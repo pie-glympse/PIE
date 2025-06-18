@@ -1,7 +1,7 @@
 import React from 'react';
 
 interface MainButtonProps {
-    color: string; // expects a Tailwind color class, e.g. "bg-blue-500"
+    color: string;
     text: string;
     onClick?: () => void;
 }
