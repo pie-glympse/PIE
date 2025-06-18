@@ -3,6 +3,7 @@
 
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'
+import MainButton from '@/components/ui/MainButton'
 
 export default function HomePage() {
   const [users, setUsers] = useState<any[]>([])
@@ -32,6 +33,7 @@ export default function HomePage() {
       <h2 className="text-h2 font-poppins">Sous-titre</h2>
       <p className="text-bodyLarge">Texte important</p>
       <p className="text-bodySmall ">Texte normal</p>
+      <MainButton color="bg-[var(--color-text)]" text="Continuer" />
     </main>
   )
 }
