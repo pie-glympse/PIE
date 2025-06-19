@@ -1,0 +1,51 @@
+"use client"
+// src/app/login/page.tsx
+import LoginForm from '@/components/forms/LoginForm'
+import Image from 'next/image';
+
+export default function LoginPage() {
+    return (
+        <section className="flex flex-row h-screen items-center gap-10 p-10">
+<div className="h-full w-1/2 flex flex-col justify-between items-start p-10">
+    <p className='text-left'>LOGO ICI</p>
+    
+    <div className="w-full flex justify-center">
+        <LoginForm
+            title={`Ravie de vous revoir sur Glyms,
+        Connectez-vous !`}
+            buttonText="Continuer"
+            placeholderText="ex : nomprenom @societe.com"
+            onSubmit={(email, password) => console.log('Login submitted:', email, password)}
+            onForgotPassword={() => console.log('Forgot password clicked')}
+            placeholderTextPswrd="************"
+            forgotPasswordText="Mot de passe oublié ?"
+        />
+    </div>
+    
+    <div className='flex flex-col items-center gap-2 text-center text-body-small font-poppins text-[var(--color-grey-three)] w-full'>
+        <span>Vous n'avez pas encore de compte ?</span>
+        <span>
+            <u className='cursor-pointer'>Inscrivez-vous</u> ou <u className='cursor-pointer'>Première Connexion</u>
+        </span>
+    </div>
+</div>
+            <div className="bg-[#E9F1FE] w-1/2 h-full flex relative rounded-4xl">
+                <div className="absolute left-1/2 bottom-8 transform -translate-x-1/2 w-[90%] bg-white flex flex-row gap-10 items-center p-6 rounded-lg">
+                    <div>
+                        <Image
+                            src="/images/Qrcode.svg"
+                            alt="Logo Glyms"
+                            width={100}
+                            height={100}
+                            className=""
+                        />
+                    </div>
+                    <div>
+                        <p className='text-h3 font-poppins'>Téléchargez l’Application Mobile</p>
+                        <span className='text-body-large font-poppins text-[var(--color-grey-three)]'>Scannez pour télécharger</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+    );
+}

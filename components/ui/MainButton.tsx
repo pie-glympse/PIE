@@ -14,6 +14,7 @@ const MainButton: React.FC<MainButtonProps> = ({ color, text, onClick }) => (
             rounded-md
             px-5 
             py-2.5
+            w-full
             hover:cursor-pointer
         `}
         onClick={onClick}

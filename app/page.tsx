@@ -4,6 +4,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import MainButton from '@/components/ui/MainButton'
+import LoginForm from '@/components/forms/LoginForm'
 
 export default function HomePage() {
   const [users, setUsers] = useState<any[]>([])
@@ -34,6 +35,16 @@ export default function HomePage() {
       <p className="text-bodyLarge">Texte important</p>
       <p className="text-bodySmall ">Texte normal</p>
       <MainButton color="bg-[var(--color-text)]" text="Continuer" />
+      <LoginForm
+        title="Ravie de vous revoir sur Glyms, 
+Connectez-vous !"
+        buttonText="Continuer"
+        placeholderText="ex : nomprenom @societe.com"
+        onSubmit={(email, password) => console.log('Login submitted:', email, password)}
+        onForgotPassword={() => console.log('Forgot password clicked')}
+        placeholderTextPswrd="************"
+        forgotPasswordText="Mot de passe oublié ?"
+      />
     </main>
   )
 }
