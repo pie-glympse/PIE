@@ -1,0 +1,123 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id         BigInt   @id @default(autoincrement())
+  name       String
+  email      String   @unique
+  password   String
+  role       String   @default("STANDARD")
+  photoUrl   String
+  events     Event[]         @relation("EventUsers")
+  preferences EventUserPreference[]
+  photos     EventsUsersPhoto[]
+  feedbacks  Feedback[]
+  votes      Vote[]
+  companyStats CompanyStats?
+}
+
+model Event {
+  id          BigInt   @id @default(autoincrement())
+  title       String?
+  description String?
+  date        DateTime?
+  maxPersons  BigInt?
+  costPerPerson BigInt?
+  state       String?
+  createdAt   DateTime
+  updatedAt   DateTime
+  users       User[]         @relation("EventUsers")
+  tags        Tag[]          @relation("EventTags")
+  preferences EventUserPreference[]
+  photos      EventsUsersPhoto[]
+  feedbacks   Feedback[]
+  votes       Vote[]
+  location    EventLocation?
+}
+
+model Tag {
+  id     BigInt @id
+  name   String 
+  events Event[] @relation("EventTags")
+  preferences EventUserPreference[]
+}
+
+model EventUserPreference {
+  userId        BigInt
+  eventId       BigInt
+  preferredDate DateTime
+  tagId         BigInt
+
+  user   User @relation(fields: [userId], references: [id])
+  event  Event @relation(fields: [eventId], references: [id])
+  tag    Tag @relation(fields: [tagId], references: [id])
+
+  @@id([userId, eventId])
+}
+
+model EventsUsersPhoto {
+  id        BigInt @id @default(autoincrement())
+  userId    BigInt
+  eventId   BigInt
+  photoUrl  String
+  caption   String?
+  createdAt BigInt
+
+  user   User  @relation(fields: [userId], references: [id])
+  event  Event @relation(fields: [eventId], references: [id])
+}
+
+model Feedback {
+  userId    BigInt
+  eventId   BigInt
+  rating    BigInt
+  message   String
+  createdAt DateTime
+
+  user  User  @relation(fields: [userId], references: [id])
+  event Event @relation(fields: [eventId], references: [id])
+
+  @@id([userId, eventId])
+}
+
+model Vote {
+  userId    BigInt
+  eventId   BigInt
+  total     BigInt
+  createdAt DateTime
+
+  user  User  @relation(fields: [userId], references: [id])
+  event Event @relation(fields: [eventId], references: [id])
+
+  @@id([userId, eventId])
+}
+
+model EventLocation {
+  id       BigInt   @id
+  eventId  BigInt   @unique
+
+  event    Event    @relation(fields: [eventId], references: [id])
+}
+
+model CompanyStats {
+  superAdminId BigInt @id
+  totalPersons BigInt
+  subscription String
+  price        BigInt
+  companyName  String
+
+  superAdmin User @relation(fields: [superAdminId], references: [id])
+}
