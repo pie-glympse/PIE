@@ -12,26 +12,6 @@ export default function LoginPage() {
     <p className='text-left'>LOGO ICI</p>
     
     <div className="w-full flex justify-center">
-        {/* <LoginForm
-            title={`Ravie de vous revoir sur Glyms,
-        Connectez-vous !`}
-            buttonText="Continuer"
-            placeholderText="ex : nomprenom @societe.com"
-            onSubmit={(email, password) => console.log('Login submitted:', email, password)}
-            onForgotPassword={() => console.log('Forgot password clicked')}
-            placeholderTextPswrd="************"
-            forgotPasswordText="Mot de passe oublié ?"
-        /> */}
-        {/* <FirstLogForm
-            title={`Bienvenue sur Glyms,
-        Créez votre compte !`}
-            buttonText="Créer un compte"
-            placeholderText="ex : nomprenom @societe.com"
-            onSubmit={(email, password) => console.log('First log submitted:', email, password)}
-            onForgotPassword={() => console.log('Forgot password clicked')}
-            placeholderTextPswrd="************"
-            forgotPasswordText="Mot de passe oublié ?"
-        /> */}
         <ForgottenPswrd
             title={`Vous avez oublié votre mot de passe ?`}
             buttonText="Recevoir le lien"
