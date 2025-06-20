@@ -1,6 +1,8 @@
 "use client"
 // src/app/login/page.tsx
 import LoginForm from '@/components/forms/LoginForm'
+import FirstLogForm from '@/components/forms/FirstLogForm';
+import ForgottenPswrd from '@/components/forms/ForgottenPswrd';
 import Image from 'next/image';
 
 export default function LoginPage() {
@@ -10,7 +12,7 @@ export default function LoginPage() {
     <p className='text-left'>LOGO ICI</p>
     
     <div className="w-full flex justify-center">
-        <LoginForm
+        {/* <LoginForm
             title={`Ravie de vous revoir sur Glyms,
         Connectez-vous !`}
             buttonText="Continuer"
@@ -19,6 +21,22 @@ export default function LoginPage() {
             onForgotPassword={() => console.log('Forgot password clicked')}
             placeholderTextPswrd="************"
             forgotPasswordText="Mot de passe oublié ?"
+        /> */}
+        {/* <FirstLogForm
+            title={`Bienvenue sur Glyms,
+        Créez votre compte !`}
+            buttonText="Créer un compte"
+            placeholderText="ex : nomprenom @societe.com"
+            onSubmit={(email, password) => console.log('First log submitted:', email, password)}
+            onForgotPassword={() => console.log('Forgot password clicked')}
+            placeholderTextPswrd="************"
+            forgotPasswordText="Mot de passe oublié ?"
+        /> */}
+        <ForgottenPswrd
+            title={`Vous avez oublié votre mot de passe ?`}
+            buttonText="Recevoir le lien"
+            placeholderText="ex : nomprenom @societe.com"
+            onSubmit={(email) => console.log('Forgotten password submitted:', email)}
         />
     </div>
     
