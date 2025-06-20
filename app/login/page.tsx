@@ -41,7 +41,7 @@ export default function LoginPage() {
     </div>
     
     <div className='flex flex-col items-center gap-2 text-center text-body-small font-poppins text-[var(--color-grey-three)] w-full'>
-        <span>Vous n'avez pas encore de compte ?</span>
+        <span>Vous n&#39;avez pas encore de compte ?</span>
         <span>
             <u className='cursor-pointer'>Inscrivez-vous</u> ou <u className='cursor-pointer'>Première Connexion</u>
         </span>

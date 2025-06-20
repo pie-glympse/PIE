@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import MainButton from '@/components/ui/MainButton'
 import LoginForm from '@/components/forms/LoginForm'
+import Modal from '@/components/layout/Modal'
 
 export default function HomePage() {
   const [users, setUsers] = useState<any[]>([])
@@ -34,16 +35,13 @@ export default function HomePage() {
       <h2 className="text-h2 font-poppins">Sous-titre</h2>
       <p className="text-bodyLarge">Texte important</p>
       <p className="text-bodySmall ">Texte normal</p>
-      <MainButton color="bg-[var(--color-text)]" text="Continuer" />
-      <LoginForm
-        title="Ravie de vous revoir sur Glyms, 
-Connectez-vous !"
-        buttonText="Continuer"
-        placeholderText="ex : nomprenom @societe.com"
-        onSubmit={(email, password) => console.log('Login submitted:', email, password)}
-        onForgotPassword={() => console.log('Forgot password clicked')}
-        placeholderTextPswrd="************"
-        forgotPasswordText="Mot de passe oublié ?"
+      <Modal
+        isOpen={true}
+        onClose={() => console.log('Modal closed')}
+        text="Un e-mail vous a été envoyé si cette adresse est bien liée à un compte. Pensez à vérifier vos spams !"
+        title="Tout est bon !"
+        buttonText="Suivant"
+        onButtonClick={() => console.log('Button clicked')}
       />
     </main>
   )
