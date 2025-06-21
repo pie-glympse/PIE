@@ -1,10 +1,18 @@
 import { NextResponse } from "next/server";
 import { PrismaClient } from "@prisma/client";
+import { getServerSession } from "next-auth";
+import { authOptions } from "../auth/[...nextauth]/route"; // adapte le chemin si besoin
 
 const prisma = new PrismaClient();
 
 export async function POST(request: Request) {
   try {
+    const session = await getServerSession(authOptions);
+
+    if (!session || session.user.role !== "ADMIN") {
+      return NextResponse.json({ error: "Non autorisé" }, { status: 403 });
+    }
+
     const { title, description, date, maxPersons, costPerPerson, state, tags } = await request.json();
 
     const newEvent = await prisma.event.create({
@@ -17,6 +25,13 @@ export async function POST(request: Request) {
         state,
         createdAt: new Date(),
         updatedAt: new Date(),
+
+        // association avec l'utilisateur connecté
+        users: {
+          connect: { id: BigInt(session.user.id) },
+        },
+
+        // ajout des tags s'ils existent
         ...(tags && Array.isArray(tags)
           ? {
               tags: {
@@ -26,7 +41,8 @@ export async function POST(request: Request) {
           : {}),
       },
       include: {
-        tags: true, // inclure les tags liés dans la réponse
+        tags: true,
+        users: true,
       },
     });
 
