@@ -39,12 +39,31 @@ export default function EventForm() {
   });
 
   const [createdEvent, setCreatedEvent] = useState<EventType | null>(null);
+  const [userEvents, setUserEvents] = useState<EventType[]>([]);
+  const [fetchError, setFetchError] = useState<string | null>(null);
 
+  // Redirection si pas connecté
   useEffect(() => {
     if (!isLoading && !user) {
       router.push("/login");
     }
   }, [user, isLoading, router]);
+
+  // Charger les events du user
+  useEffect(() => {
+    if (!isLoading && user) {
+      fetch(`/api/events?userId=${user.id}`)
+        .then((res) => {
+          if (!res.ok) throw new Error("Erreur lors de la récupération des événements");
+          return res.json();
+        })
+        .then((data) => {
+          setUserEvents(data);
+          setFetchError(null);
+        })
+        .catch((err) => setFetchError(err.message));
+    }
+  }, [isLoading, user]);
 
   if (isLoading) {
     return <div>Chargement...</div>;
@@ -87,6 +106,7 @@ export default function EventForm() {
         : null,
       date: formData.date ? new Date(formData.date).toISOString() : null,
       tags: formData.tags,
+      userId: user?.id,
     };
 
     try {
@@ -108,6 +128,8 @@ export default function EventForm() {
           state: "",
           tags: [],
         });
+        // Rafraîchir la liste des events du user
+        setUserEvents((prev) => [...prev, eventData]);
       } else {
         alert("Erreur lors de la création de l'événement");
       }
@@ -251,6 +273,34 @@ export default function EventForm() {
           </p>
         </section>
       )}
+
+      <section className="mt-10">
+        <h2 className="text-2xl font-bold mb-4">Vos événements</h2>
+        {fetchError && (
+          <p className="text-red-600 font-semibold">Erreur: {fetchError}</p>
+        )}
+        {userEvents.length === 0 && <p>Aucun événement trouvé.</p>}
+        <ul className="space-y-2">
+          {userEvents.map((event) => (
+            <li key={event.id} className="border p-3 rounded shadow-sm">
+              <h3 className="text-lg font-semibold">{event.title}</h3>
+              <p>{event.description || "Pas de description"}</p>
+              <p>
+                Date :{" "}
+                {event.date
+                  ? new Date(event.date).toLocaleString()
+                  : "Non définie"}
+              </p>
+              <p>
+                Catégories:{" "}
+                {event.tags.length > 0
+                  ? event.tags.map((t) => t.name).join(", ")
+                  : "Aucune"}
+              </p>
+            </li>
+          ))}
+        </ul>
+      </section>
     </div>
   );
 }

@@ -1,19 +1,15 @@
 import { NextResponse } from "next/server";
 import { PrismaClient } from "@prisma/client";
-import { getServerSession } from "next-auth";
-import { authOptions } from "../auth/[...nextauth]/route"; // adapte le chemin si besoin
 
 const prisma = new PrismaClient();
 
 export async function POST(request: Request) {
   try {
-    const session = await getServerSession(authOptions);
+    const { title, description, date, maxPersons, costPerPerson, state, tags, userId } = await request.json();
 
-    if (!session || session.user.role !== "ADMIN") {
-      return NextResponse.json({ error: "Non autorisé" }, { status: 403 });
+    if (!userId) {
+      return NextResponse.json({ error: "userId manquant" }, { status: 400 });
     }
-
-    const { title, description, date, maxPersons, costPerPerson, state, tags } = await request.json();
 
     const newEvent = await prisma.event.create({
       data: {
@@ -25,13 +21,9 @@ export async function POST(request: Request) {
         state,
         createdAt: new Date(),
         updatedAt: new Date(),
-
-        // association avec l'utilisateur connecté
         users: {
-          connect: { id: BigInt(session.user.id) },
+          connect: { id: BigInt(userId) },
         },
-
-        // ajout des tags s'ils existent
         ...(tags && Array.isArray(tags)
           ? {
               tags: {
@@ -42,7 +34,6 @@ export async function POST(request: Request) {
       },
       include: {
         tags: true,
-        users: true,
       },
     });
 
@@ -57,5 +48,42 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error("Erreur création event:", error);
     return NextResponse.json({ error: "Erreur création event" }, { status: 500 });
+  }
+}
+
+
+
+export async function GET(request: Request) {
+  try {
+    const url = new URL(request.url);
+    const userId = url.searchParams.get("userId");
+
+    if (!userId) {
+      return NextResponse.json({ error: "userId manquant" }, { status: 400 });
+    }
+
+    // Recherche tous les events liés à ce user via la relation many-to-many
+    const events = await prisma.event.findMany({
+      where: {
+        users: {
+          some: { id: BigInt(userId) },  // filtre events liés à ce user
+        },
+      },
+      include: {
+        tags: true,
+      },
+    });
+
+    return NextResponse.json(
+      JSON.parse(
+        JSON.stringify(events, (_, value) =>
+          typeof value === "bigint" ? value.toString() : value
+        )
+      ),
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error("Erreur récupération events:", error);
+    return NextResponse.json({ error: "Erreur récupération events" }, { status: 500 });
   }
 }
