@@ -61,6 +61,8 @@ export default function LoginPage() {
                         onSubmit={(email) => console.log('Forgotten password submitted:', email)}
                     />
                 </div>
+                      {errorMsg && <p className="text-red-600">{errorMsg}</p>}
+
                 
                 <div className='flex flex-col items-center gap-2 text-center text-body-small font-poppins text-[var(--color-grey-three)] w-full'>
                     <span>Vous n&#39;avez pas encore de compte ?</span>
