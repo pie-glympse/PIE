@@ -1,18 +1,16 @@
-"use client"
-// src/app/login/page.tsx
-import LoginForm from '@/components/forms/LoginForm'
-import FirstLogForm from '@/components/forms/FirstLogForm';
-import ForgottenPswrd from '@/components/forms/ForgottenPswrd';
+"use client" // src/app/register/page.tsx
+import { useRouter } from 'next/navigation';
 import RegisterForm from '@/components/forms/RegisterForm';
 import BackArrow from '@/components/ui/BackArrow';
-import Image from 'next/image';
 
 export default function RegisterPage() {
+    const router = useRouter();
+
     return (
         <section className="flex flex-row h-screen items-center gap-10 p-10">
             <div className="h-full w-full flex flex-col justify-between items-start p-10">
                 <p className='text-left'>LOGO ICI</p>
-                {/* <BackArrow onClick={() => window.location.href = '/'} className="mb-8" /> */}
+                <BackArrow onClick={() => router.back()} className="mb-8" />
                 <div className="w-full flex justify-center">
                     <RegisterForm
                         title={
@@ -22,7 +20,6 @@ export default function RegisterPage() {
                             </>
                         }
                         buttonText="S'inscrire"
-                        onSubmit={(email, password) => console.log('Registration submitted:', email, password)}
                         placeholderText="ex : nomprenom@societe.com"
                         placeholderTextPswrd="ex : MonMotDePasse123"
                     />
