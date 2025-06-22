@@ -71,10 +71,24 @@ export default function EventForm() {
 
   if (!user) return null;
 
-  const handleLogout = () => {
+const handleLogout = async () => {
+  try {
+    // Appeler l'API de logout
+    await fetch('/api/logout', { method: 'POST' });
+    
+    // Nettoyer le context
     logout();
-    router.push("/login");
-  };
+    
+    // Rediriger
+    router.push('/login');
+  } catch (error) {
+    console.error('Erreur lors de la déconnexion:', error);
+    // Fallback: forcer la suppression du cookie
+    document.cookie = 'token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+    logout();
+    router.push('/login');
+  }
+};
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>

@@ -1,6 +1,6 @@
 // middleware.ts (à la racine, pas dans app/)
 import { NextRequest, NextResponse } from 'next/server';
-import jwt from 'jsonwebtoken';
+import { jwtVerify } from 'jose';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'supersecretkey';
 
@@ -10,23 +10,25 @@ const protectedRoutes = ['/events', '/dashboard'];
 // Routes publiques (pas besoin d'authentification)
 const publicRoutes = ['/login', '/register', '/forgot-password'];
 
-export function middleware(request: NextRequest) {
+async function verifyToken(token: string): Promise<boolean> {
+  try {
+    const secret = new TextEncoder().encode(JWT_SECRET);
+    await jwtVerify(token, secret);
+    return true;
+  } catch (err) {
+    console.error('Token invalide :', err);
+    return false;
+  }
+}
+
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   
   // Lire le token dans les cookies
   const token = request.cookies.get('token')?.value;
   
   // Vérifier si le token est valide
-  let isTokenValid = false;
-  if (token) {
-    try {
-      jwt.verify(token, JWT_SECRET);
-      isTokenValid = true;
-    } catch (err) {
-      console.error('Token invalide :', err);
-      isTokenValid = false;
-    }
-  }
+  const isTokenValid = token ? await verifyToken(token) : false;
 
   // ✅ REDIRECTION AUTOMATIQUE DEPUIS LA RACINE
   if (pathname === '/') {
