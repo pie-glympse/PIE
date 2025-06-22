@@ -99,7 +99,7 @@ const LoginForm: React.FC<LoginFormProps> = ({
 
     return (
         <form onSubmit={handleSubmit} className="w-full mx-auto">
-            <h1 className="text-h1 mb-8 text-left w-2/3 font-urbanist">{title}</h1>
+            <h1 className="text-h1 mb-8 text-left w-full font-urbanist">{title}</h1>
             
             <div className="mb-4">
                 <label htmlFor="email" className="block mb-1 text-body-large font-poppins text-[var(--color-grey-three)]">Adresse e-mail</label>

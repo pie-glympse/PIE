@@ -30,8 +30,8 @@ export default function LoginPage() {
                     <LoginForm
                         title={
                             <>
-                                Bienvenue sur Glyms,<br />
-                                Connectez-vous à votre espace Entreprise
+                                Ravie de vous revoir sur Glyms,<br />
+                                Connectez-vous !
                             </>
                         }
                         buttonText="Se connecter"
