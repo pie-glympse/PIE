@@ -4,9 +4,17 @@ interface MainButtonProps {
     color: string;
     text: string;
     onClick?: () => void;
+    type?: 'button' | 'submit' | 'reset';
+    disabled?: boolean;
 }
 
-const MainButton: React.FC<MainButtonProps> = ({ color, text, onClick }) => (
+const MainButton: React.FC<MainButtonProps> = ({ 
+    color, 
+    text, 
+    onClick, 
+    type = 'button', // Par défaut button pour éviter les soumissions accidentelles
+    disabled = false
+}) => (
     <button
         className={`
             ${color} 
@@ -14,10 +22,13 @@ const MainButton: React.FC<MainButtonProps> = ({ color, text, onClick }) => (
             rounded-md
             px-5 
             py-2.5
+            w-full
             hover:cursor-pointer
+            ${disabled ? 'opacity-50 cursor-not-allowed' : ''}
         `}
         onClick={onClick}
-        type="button"
+        type={type}
+        disabled={disabled}
     >
         {text}
     </button>
