@@ -23,7 +23,7 @@ export default function LoginPage() {
 
     return (
         <section className="flex flex-row h-screen items-center gap-10 p-10">
-            <div className="h-full w-1/2 flex flex-col justify-between items-start p-10">
+            <div className="h-full w-full md:w-1/2 flex flex-col gap-6 justify-between items-start p-10">
                 <p className='text-left'>LOGO ICI</p>
                 
                 <div className="w-full flex justify-center">
@@ -49,7 +49,7 @@ export default function LoginPage() {
                 </div>
             </div>
             
-            <div className="bg-[#E9F1FE] w-1/2 h-full flex relative rounded-4xl">
+            <div className="bg-[#E9F1FE] hidden md:w-1/2 md:h-full md:flex  relative rounded-4xl">
                 <div className="absolute left-1/2 bottom-8 transform -translate-x-1/2 w-[90%] bg-white flex flex-row gap-10 items-center p-6 rounded-lg">
                     <div>
                         <Image
