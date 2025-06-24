@@ -18,7 +18,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({
     buttonText,
     onSubmit,
     onForgotPassword,
-    forgotPasswordText = 'Forgot password?',
+    forgotPasswordText = 'Mot de passe oublié?',
     placeholderText,
     placeholderTextPswrd
 }) => {

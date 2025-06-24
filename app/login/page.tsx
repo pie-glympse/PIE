@@ -9,8 +9,7 @@ export default function LoginPage() {
 
     const handleForgotPassword = () => {
         // Logique pour mot de passe oublié
-        console.log("Forgot password clicked");
-        // router.push('/forgot-password');
+        router.push('forgot-password'); 
     };
 
     const handleRegisterClick = () => {
