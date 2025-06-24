@@ -67,7 +67,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({
 
     return (
         <form onSubmit={handleSubmit} className="w-full mx-auto">
-            <h1 className="text-h1 mb-8 text-left w-2/3 font-urbanist">{title}</h1>
+            <h1 className="text-h1 mb-8 text-left md:w-2/3 w-full font-urbanist">{title}</h1>
             
             {/* Prénom et Nom */}
             <div className="flex flex-row gap-4 mb-4">
@@ -164,7 +164,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({
                 />
             </div>
 
-            <div className='w-1/5 mb-8'>
+            <div className='md:w-1/5 w-full mb-8'>
                 {/* Submit button */}
                 <MainButton 
                     color="bg-[var(--color-text)] font-poppins text-body-large" 
