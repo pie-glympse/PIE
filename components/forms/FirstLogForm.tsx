@@ -16,8 +16,8 @@ const FirstLogForm: React.FC<FirstLogFormProps> = ({
     buttonText,
     onSubmit,
     onForgotPassword,
-    forgotPasswordText = 'Forgot password?',
-    placeholderText ,
+    forgotPasswordText = 'Mot de passe oublié?',
+    placeholderText,
     placeholderTextPswrd
 
 }) => {

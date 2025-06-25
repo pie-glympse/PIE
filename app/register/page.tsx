@@ -8,7 +8,7 @@ export default function RegisterPage() {
 
     return (
         <section className="flex flex-row h-screen items-center gap-10 p-10">
-            <div className="h-full w-full flex flex-col justify-between items-start p-10">
+            <div className="h-full w-full flex flex-col justify-between items-start gap-6 p-10">
                 <p className='text-left'>LOGO ICI</p>
                 <BackArrow onClick={() => router.back()} className="mb-8" />
                 <div className="w-full flex justify-center">
