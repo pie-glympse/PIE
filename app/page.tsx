@@ -9,6 +9,8 @@ import Modal from '@/components/layout/Modal'
 
 export default function HomePage() {
   const [users, setUsers] = useState<any[]>([])
+  const [isModalOpen, setIsModalOpen] = useState(true) // État pour contrôler l'ouverture de la modal
+  const [currentStep, setCurrentStep] = useState(1) // État pour le step actuel
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -19,6 +21,44 @@ export default function HomePage() {
 
     fetchUsers()
   }, [])
+
+  const stepContents = [
+    {
+      title: "Bienvenue",
+      text: "Commençons votre parcours d'inscription",
+      buttonText: "Commencer"
+    },
+    {
+      title: "Vos informations",
+      text: "Veuillez renseigner vos données personnelles"
+    },
+    {
+      title: "Confirmation",
+      text: "Vérifiez vos informations avant validation"
+    }
+  ]
+
+  // Handler pour fermer la modal
+  const handleClose = () => {
+    setIsModalOpen(false)
+  }
+
+  // Handler pour passer au step suivant ou fermer à la fin
+  const handleNext = () => {
+    if (currentStep < stepContents.length) {
+      setCurrentStep(currentStep + 1)
+    } else {
+      // Dernier step - fermer la modal ou faire une action finale
+      setIsModalOpen(false)
+      console.log('Processus terminé !')
+    }
+  }
+
+  // Handler pour ouvrir la modal (optionnel)
+  const openModal = () => {
+    setIsModalOpen(true)
+    setCurrentStep(1) // Reset au premier step
+  }
 
   return (
     <main className="p-6">
@@ -34,14 +74,26 @@ export default function HomePage() {
       <h1 className="text-h1 font-urbanist">Mon titre</h1>
       <h2 className="text-h2 font-poppins">Sous-titre</h2>
       <p className="text-bodyLarge">Texte important</p>
-      <p className="text-bodySmall ">Texte normal</p>
+      <p className="text-bodySmall">Texte normal</p>
+
+      {/* Bouton pour rouvrir la modal (optionnel) */}
+      {!isModalOpen && (
+        <MainButton 
+          text="Ouvrir Modal" 
+          onClick={openModal}
+          color="bg-blue-500 text-white"
+        />
+      )}
+
       <Modal
-        isOpen={true}
-        onClose={() => console.log('Modal closed')}
-        text="Un e-mail vous a été envoyé si cette adresse est bien liée à un compte. Pensez à vérifier vos spams !"
-        title="Tout est bon !"
-        buttonText="Suivant"
-        onButtonClick={() => console.log('Button clicked')}
+        isOpen={isModalOpen}
+        onClose={handleClose}
+        onButtonClick={handleNext}
+        showSteppers={true}
+        currentStep={currentStep}
+        totalSteps={stepContents.length}
+        stepContents={stepContents}
+        lastStepButtonText="Valider"
       />
     </main>
   )
