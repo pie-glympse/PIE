@@ -6,11 +6,46 @@ import { supabase } from '@/lib/supabaseClient'
 import MainButton from '@/components/ui/MainButton'
 import LoginForm from '@/components/forms/LoginForm'
 import Modal from '@/components/layout/Modal'
+import CategoryBtn from '@/components/ui/CategoryBtn'
 
 export default function HomePage() {
   const [users, setUsers] = useState<any[]>([])
   const [isModalOpen, setIsModalOpen] = useState(true) // État pour contrôler l'ouverture de la modal
   const [currentStep, setCurrentStep] = useState(1) // État pour le step actuel
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+
+     const categories = [
+        'Technologie',
+        'Design',
+        'Marketing',
+        'Finance',
+        'Ressources Humaines',
+        'Ventes',
+        'Développement Personnel',
+        'Santé et Bien-être',
+        'Éducation',
+        'Environnement',
+        'Art et Culture',
+        'Voyages',
+        'Sports et Loisirs',
+        'Entrepreneuriat',
+        'Innovation',
+        'Leadership',
+        'Communication',
+        'Gestion de Projet',
+        'Stratégie',
+        'Analyse de Données',
+        'Intelligence Artificielle',
+        'Blockchain',
+        'Cybersécurité',
+        'Développement Durable',
+        'Économie Circulaire',
+    ];
+
+    const handleCategoryClick = (category: string) => {
+        setSelectedCategory(category === selectedCategory ? null : category);
+    };
+
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -95,6 +130,25 @@ export default function HomePage() {
         stepContents={stepContents}
         lastStepButtonText="Valider"
       />
+  <div className="p-6">
+            <h3 className="text-lg font-semibold mb-4">Sélectionnez une catégorie :</h3>
+            <ul className="flex flex-wrap gap-3">
+                {categories.map((category) => (
+                    <CategoryBtn
+                        key={category}
+                        text={category}
+                        isSelected={selectedCategory === category}
+                        onClick={() => handleCategoryClick(category)}
+                    />
+                ))}
+            </ul>
+            
+            {selectedCategory && (
+                <p className="mt-4 text-sm text-gray-600">
+                    Catégorie sélectionnée : <strong>{selectedCategory}</strong>
+                </p>
+            )}
+        </div>
     </main>
   )
 }
