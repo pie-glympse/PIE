@@ -5,11 +5,12 @@ import MainButton from '@/components/ui/MainButton';
 import BackArrow from '../../components/ui/BackArrow';
 import Modal from '@/components/layout/Modal';
 import { EventTypeCards } from '@/components/ui/EventTypeCard';
+import EventForm from '@/components/forms/EventForm';
 
 const CreateEventPage = () => {
     const router = useRouter();
     
-    // État pour gérer l'étape actuelle
+    // État pour gérer l'étape actuelle (maintenant 3 étapes)
     const [currentStep, setCurrentStep] = useState(1);
     
     // État pour la modal
@@ -17,7 +18,17 @@ const CreateEventPage = () => {
     
     // États pour chaque étape
     const [selectedEventType, setSelectedEventType] = useState<string>('');
-    const [selectedCategory, setSelectedCategory] = useState<string>('');
+    type EventFormData = {
+        eventName: string;
+        startTime: string;
+        endTime: string;
+        dateRange: string;
+        maxBudgetPerPerson: string;
+        city: string;
+        maxDistance: string;
+    };
+
+    const [formData, setFormData] = useState<EventFormData | null>(null);
     const [selectedFormat, setSelectedFormat] = useState<string>('');
 
     // Données pour chaque étape
@@ -27,14 +38,6 @@ const CreateEventPage = () => {
         { id: '3', text: 'Séminaire' },
         { id: '4', text: 'Formation' },
         { id: '5', text: 'Webinaire' },
-    ];
-
-    const categories = [
-        { id: '1', text: 'Technologie' },
-        { id: '2', text: 'Design' },
-        { id: '3', text: 'Marketing' },
-        { id: '4', text: 'Finance' },
-        { id: '5', text: 'Ressources Humaines' },
     ];
 
     const formats = [
@@ -50,12 +53,24 @@ const CreateEventPage = () => {
         setSelectedEventType(id);
     };
 
-    const handleCategorySelect = (id: string) => {
-        setSelectedCategory(id);
-    };
-
     const handleFormatSelect = (id: string) => {
         setSelectedFormat(id);
+    };
+
+// Handler pour le formulaire
+    const handleFormSubmit = (formData: { 
+        eventName: string; 
+        startTime: string; 
+        endTime: string; 
+        dateRange: string; 
+        maxBudgetPerPerson: string; 
+        city: string; 
+        maxDistance: string; 
+    }) => {
+        setFormData(formData);
+        console.log('Données du formulaire:', formData);
+        // Passer automatiquement à l'étape suivante après soumission du formulaire
+        setCurrentStep(3);
     };
 
     // Fonction pour passer à l'étape suivante
@@ -66,7 +81,7 @@ const CreateEventPage = () => {
             // Dernière étape - ouvrir la modal
             console.log('Données finales:', {
                 eventType: selectedEventType,
-                category: selectedCategory,
+                formData: formData,
                 format: selectedFormat
             });
             setIsModalOpen(true);
@@ -88,7 +103,7 @@ const CreateEventPage = () => {
             case 1:
                 return selectedEventType !== '';
             case 2:
-                return selectedCategory !== '';
+                return formData !== null;
             case 3:
                 return selectedFormat !== '';
             default:
@@ -117,7 +132,7 @@ const CreateEventPage = () => {
                             Créer un Nouvel Événement
                         </h1>
                         <h3 className="text-h3 mb-8 text-left md:w-2/3 w-full font-poppins text-[var(--color-grey-three)]">
-                            Quel type d&apos;événement souhaitez-vous créer ?
+                            Quel type d&#39;événement souhaitez-vous créer ?
                         </h3>
                         <div className="w-full">
                             <EventTypeCards
@@ -131,28 +146,21 @@ const CreateEventPage = () => {
 
             case 2:
                 return (
-                    <>
-                        <h1 className="text-h1 mb-4 text-left w-full font-urbanist">
-                            Créer un Nouvel Événement
-                        </h1>
-                        <h3 className="text-h3 mb-8 text-left md:w-2/3 w-full font-poppins text-[var(--color-grey-three)]">
-                            Dans quelle catégorie s&apos;inscrit votre événement ?
-                        </h3>
-                        <div className="w-full">
-                            <EventTypeCards
-                                cards={categories}
-                                selectedId={selectedCategory}
-                                onCardSelect={handleCategorySelect}
-                            />
-                        </div>
-                    </>
+                    <div className="w-full">
+                        <EventForm
+                            title="Détails de votre Événement"
+                            subtitle="Remplissez les informations pour créer votre événement"
+                            buttonText="Continuer"
+                            onSubmit={handleFormSubmit}
+                        />
+                    </div>
                 );
 
             case 3:
                 return (
                     <>
                         <h1 className="text-h1 mb-4 text-left w-full font-urbanist">
-                            Créer un Nouvel Événement
+                            Finaliser votre Événement
                         </h1>
                         <h3 className="text-h3 mb-8 text-left md:w-2/3 w-full font-poppins text-[var(--color-grey-three)]">
                             Quel format souhaitez-vous pour votre événement ?
@@ -182,7 +190,7 @@ const CreateEventPage = () => {
                         <BackArrow onClick={handleBack} className="" />
                     </div>
                     
-                    {/* Indicateur d'étape */}
+                    {/* Indicateur d'étape - maintenant 3 étapes */}
                     <div className="flex items-center gap-4 mb-4">
                         <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
                             currentStep >= 1 ? 'bg-[var(--color-main)] text-white' : 'bg-gray-200 text-gray-500'
@@ -207,15 +215,17 @@ const CreateEventPage = () => {
                         {renderStepContent()}
                     </div>
                     
-                    {/* Bouton en bas */}
-                    <div className='w-1/6'>
-                        <MainButton
-                            text={currentStep === 3 ? "Envoyez les liens" : "Continuer"}
-                            onClick={handleNext}
-                            disabled={!canContinue()}
-                            color="bg-[var(--color-text)] font-poppins text-body-large"
-                        />
-                    </div>
+                    {/* Bouton en bas - caché à l'étape 2 car EventForm a son propre bouton */}
+                    {currentStep !== 2 && (
+                        <div className='w-1/6'>
+                            <MainButton
+                                text={currentStep === 3 ? "Envoyez les liens" : "Continuer"}
+                                onClick={handleNext}
+                                disabled={!canContinue()}
+                                color="bg-[var(--color-text)] font-poppins text-body-large"
+                            />
+                        </div>
+                    )}
                 </div>
             </section>
 
