@@ -1,12 +1,11 @@
 "use client"
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import MainButton from '@/components/ui/MainButton';
-import Link from 'next/link';
-import Image from 'next/image';
 import BackArrow from '../../components/ui/BackArrow';
 import CategoryBtn from '@/components/ui/CategoryBtn';
 import Modal from '@/components/layout/Modal';
+import ChoiceLi from '@/components/ui/ChoiceLi';
 
 const AnswerEventPage = () => {
     const router = useRouter();
@@ -70,14 +69,16 @@ const AnswerEventPage = () => {
     ];
 
     const preferences = [
-        'Présentiel',
-        'Distanciel',
-        'Hybride',
-        'Conférence',
-        'Workshop',
-        'Networking',
-        'Formation',
-        'Table ronde',
+        { id: '1', text: 'Halal' },
+        { id: '2', text: 'Cacher' },
+        { id: '3', text: 'Végétarienne' },
+        { id: '4', text: 'Végan' },
+        { id: '5', text: 'Sans gluten' },
+        { id: '6', text: 'Sans Lactose' },
+            // Accessibilité"
+        { id: '7', text: 'Accès PMR' },
+        { id: '8', text: 'Audioguide' },
+        { id: '9', text: 'Lieux calmes' }
     ];
 
     // Handlers pour chaque étape
@@ -99,13 +100,8 @@ const AnswerEventPage = () => {
         });
     };
 
-    const handlePreferenceClick = (preference: string) => {
-        setSelectedPreferences(prev => {
-            if (prev.includes(preference)) {
-                return prev.filter(p => p !== preference);
-            }
-            return [...prev, preference];
-        });
+    const handlePreferenceClick = (selectedIds: string[]) => {
+        setSelectedPreferences(selectedIds);
     };
 
     // Fonction pour passer à l'étape suivante
@@ -215,23 +211,17 @@ const AnswerEventPage = () => {
                     <>
                         <h1 className="text-h1 mb-4 text-left w-full font-urbanist">
                             Formulez vos Préférences pour NomEvent
-
                         </h1>
                         <h3 className="text-h3 mb-8 text-left md:w-2/3 w-full font-poppins text-[var(--color-grey-three)]">
-                            Sélectionnez vos préférences d&#39;événement :
+                            Avez-vous des No Go à absolument prendre en compte ?
                         </h3>
                         <div className="w-full">
-                            <ul className="flex flex-wrap gap-3 mb-6 list-none">
-                                {preferences.map((preference) => (
-                                    <CategoryBtn
-                                        key={preference}
-                                        text={preference}
-                                        isSelected={selectedPreferences.includes(preference)}
-                                        onClick={() => handlePreferenceClick(preference)}
-                                        isDate={false}
-                                    />
-                                ))}
-                            </ul>
+                            <ChoiceLi
+                                choices={preferences}
+                                selectedChoices={selectedPreferences}
+                                onSelectionChange={handlePreferenceClick}
+                                otherPlaceholder="Autre préférence d'événement"
+                            />
                         </div>
                     </>
                 );
@@ -294,9 +284,9 @@ const AnswerEventPage = () => {
                 onClose={handleModalClose}
                 onButtonClick={handleModalButtonClick}
                 showSteppers={false}
-                title="Préférences envoyées !"
-                text="Vos préférences ont bien été envoyés à l’organisateur et seront prises en compte pour le choix final de l’évènement !"
-                buttonText="Terminer"
+                title="Félicitations !"
+                text="Vos préférences ont été enregistrées avec succès."
+                buttonText="Continuer"
             />
         </>
     );

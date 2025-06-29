@@ -1,0 +1,118 @@
+import React, { useState } from 'react';
+import Image from 'next/image';
+
+interface Choice {
+  id: string;
+  text: string;
+}
+
+interface ChoiceLiProps {
+  choices: Choice[];
+  selectedChoices: string[];
+  onSelectionChange: (selectedIds: string[]) => void;
+  otherPlaceholder?: string;
+}
+
+const ChoiceLi: React.FC<ChoiceLiProps> = ({
+  choices,
+  selectedChoices,
+  onSelectionChange,
+  otherPlaceholder = "Autre préférence"
+}) => {
+  const [otherValue, setOtherValue] = useState('');
+
+  // Diviser les choices en deux listes
+const midPoint = 6; // au lieu de Math.ceil(choices.length / 2)
+const leftChoices = choices.slice(0, midPoint);   // 6 éléments (indices 0-5)
+const rightChoices = choices.slice(midPoint);      // 3 éléments (indices 6-8)
+
+  const handleChoiceClick = (choiceId: string) => {
+    let newSelected;
+    if (selectedChoices.includes(choiceId)) {
+      newSelected = selectedChoices.filter(id => id !== choiceId);
+    } else {
+      newSelected = [...selectedChoices, choiceId];
+    }
+    onSelectionChange(newSelected);
+  };
+
+  const handleOtherChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setOtherValue(value);
+    
+    // Créer un ID unique pour l'option "autre"
+    const otherId = `other-${value}`;
+    
+    // Supprimer les anciennes valeurs "autre" des sélections
+    const filteredSelected = selectedChoices.filter(id => !id.startsWith('other-'));
+    
+    // Ajouter la nouvelle valeur si elle n'est pas vide
+    if (value.trim()) {
+      onSelectionChange([...filteredSelected, otherId]);
+    } else {
+      onSelectionChange(filteredSelected);
+    }
+  };
+
+  return (
+    <div className="flex flex-row justify-between gap-8 w-full">
+      {/* Liste de gauche */}
+      <div className="flex flex-col flex-1 text-body-large font-poppins text-[var(--color-text)]">
+        <ul className="flex flex-col gap-3">
+            <p>Alimentaire</p>
+          {leftChoices.map((choice) => (
+            <li 
+              key={choice.id}
+              className="flex items-center gap-[3px] cursor-pointer hover:opacity-80 transition-opacity"
+              onClick={() => handleChoiceClick(choice.id)}
+            >
+              <Image
+                src={selectedChoices.includes(choice.id) ? "/icons/selected.svg" : "/icons/unselected.svg"}
+                alt={selectedChoices.includes(choice.id) ? "Sélectionné" : "Non sélectionné"}
+                width={32}
+                height={32}
+              />
+              <span className="font-poppins text-base">{choice.text}</span>
+            </li>
+          ))}
+        </ul>
+        
+        {/* Input "Autre" en dessous de la liste de gauche */}
+        <div className="mt-6 flex items-center gap-3">
+          <span className="font-poppins text-body-large font-[var(--font-poppins)] text-[var(--color-text)]">Autre :</span>
+          <input
+            type="text"
+            value={otherValue}
+            onChange={handleOtherChange}
+            placeholder={otherPlaceholder}
+            className="flex-1 px-5 py-2 text-base border-2 border-[var(--color-grey-two)] rounded placeholder:font-poppins placeholder:text-[#EAEAEF]"
+          />
+        </div>
+      </div>
+
+      {/* Liste de droite */}
+      <div className="flex-1 text-body-large font-poppins text-[var(--color-text)]">
+        <ul className="flex flex-col gap-3">
+            <p>Accéssibilité</p>
+          {rightChoices.map((choice) => (
+            <li 
+              key={choice.id}
+              className="flex items-center gap-[3px] cursor-pointer hover:opacity-80 transition-opacity"
+              onClick={() => handleChoiceClick(choice.id)}
+            >
+              <Image
+                src={selectedChoices.includes(choice.id) ? "/icons/selected.svg" : "/icons/unselected.svg"}
+                alt={selectedChoices.includes(choice.id) ? "Sélectionné" : "Non sélectionné"}
+                width={32}
+                height={32}
+              />
+              <span className="font-poppins text-base">{choice.text}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  );
+};
+
+export default ChoiceLi;
