@@ -7,6 +7,7 @@ interface CategoryBtnProps {
     onClick?: () => void;
     disabled?: boolean;
     selectedIcon?: string; // Chemin vers le SVG
+    isDate?: boolean; // Nouveau prop pour plus de padding
 }
 
 const CategoryBtn: React.FC<CategoryBtnProps> = ({
@@ -14,14 +15,13 @@ const CategoryBtn: React.FC<CategoryBtnProps> = ({
     isSelected = false,
     onClick,
     disabled = false,
-    selectedIcon = '/icons/selected.svg' // Icône par défaut
+    selectedIcon = '/icons/selected.svg', // Icône par défaut
+    isDate = false // Par défaut false
 }) => (
     <li
         className={`
             relative
             w-auto
-            px-4
-            py-2.5
             rounded-md
             border-2
             cursor-pointer
@@ -30,6 +30,10 @@ const CategoryBtn: React.FC<CategoryBtnProps> = ({
             font-poppins
             text-body-large
             text-[var(--color-grey-three)]
+            ${isDate 
+                ? 'px-20 py-2.5' // Plus de padding si isDate est true
+                : 'px-4 py-2.5' // Padding normal
+            }
             ${isSelected 
                 ? 'border-[var(--color-main)] text-[var(--color-text)]' 
                 : 'border-[var(--color-grey-two)] bg-white hover:border-gray-400'
@@ -39,7 +43,7 @@ const CategoryBtn: React.FC<CategoryBtnProps> = ({
         onClick={disabled ? undefined : onClick}
     >
         {text}
-        
+                
         {/* SVG Icon - affiché uniquement si sélectionné */}
         {isSelected && (
             <div className="absolute -top-4 -right-4">
