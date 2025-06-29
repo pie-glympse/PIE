@@ -12,7 +12,8 @@ export default function HomePage() {
   const [users, setUsers] = useState<any[]>([])
   const [isModalOpen, setIsModalOpen] = useState(true) // État pour contrôler l'ouverture de la modal
   const [currentStep, setCurrentStep] = useState(1) // État pour le step actuel
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  // CHANGEMENT : Array au lieu de string | null
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
 
      const categories = [
         'Technologie',
@@ -42,10 +43,17 @@ export default function HomePage() {
         'Économie Circulaire',
     ];
 
+    // CHANGEMENT : Logique de toggle pour sélection multiple
     const handleCategoryClick = (category: string) => {
-        setSelectedCategory(category === selectedCategory ? null : category);
+        setSelectedCategories(prev => {
+            // Si la catégorie est déjà sélectionnée, la retirer
+            if (prev.includes(category)) {
+                return prev.filter(cat => cat !== category);
+            }
+            // Sinon, l'ajouter
+            return [...prev, category];
+        });
     };
-
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -130,25 +138,59 @@ export default function HomePage() {
         stepContents={stepContents}
         lastStepButtonText="Valider"
       />
-  <div className="p-6">
-            <h3 className="text-lg font-semibold mb-4">Sélectionnez une catégorie :</h3>
-            <ul className="flex flex-wrap gap-3">
-                {categories.map((category) => (
-                    <CategoryBtn
-                        key={category}
-                        text={category}
-                        isSelected={selectedCategory === category}
-                        onClick={() => handleCategoryClick(category)}
-                    />
-                ))}
-            </ul>
-            
-            {selectedCategory && (
-                <p className="mt-4 text-sm text-gray-600">
-                    Catégorie sélectionnée : <strong>{selectedCategory}</strong>
+      
+      <div className="p-6">
+        <h3 className="text-lg font-semibold mb-4">Sélectionnez une ou plusieurs catégories :</h3>
+        <ul className="flex flex-wrap gap-3">
+            {categories.map((category) => (
+                <CategoryBtn
+                    key={category}
+                    text={category}
+                    // CHANGEMENT : Vérifier si la catégorie est dans l'array
+                    isSelected={selectedCategories.includes(category)}
+                    onClick={() => handleCategoryClick(category)}
+                />
+            ))}
+        </ul>
+        
+        {/* CHANGEMENT : Affichage des catégories sélectionnées */}
+        {/* {selectedCategories.length > 0 && (
+            <div className="mt-4 p-3 bg-gray-50 rounded-md">
+                <p className="text-sm text-gray-600">
+                    <strong>Catégories sélectionnées ({selectedCategories.length}) :</strong>
                 </p>
-            )}
-        </div>
+                <div className="flex flex-wrap gap-2 mt-2">
+                    {selectedCategories.map((category) => (
+                        <span
+                            key={category}
+                            className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full"
+                        >
+                            {category}
+                        </span>
+                    ))}
+                </div>
+            </div>
+        )} */}
+
+        {/* BONUS : Boutons d'action */}
+        {/* <div className="mt-4 flex gap-2">
+            <button
+                onClick={() => setSelectedCategories([])}
+                className="px-4 py-2 text-sm text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50"
+                disabled={selectedCategories.length === 0}
+            >
+                Tout désélectionner
+            </button>
+            
+            <button
+                onClick={() => setSelectedCategories(categories)}
+                className="px-4 py-2 text-sm text-white bg-blue-500 rounded-md hover:bg-blue-600"
+                disabled={selectedCategories.length === categories.length}
+            >
+                Tout sélectionner
+            </button>
+        </div> */}
+      </div>
     </main>
   )
 }
