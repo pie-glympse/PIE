@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useUser } from "../../context/UserContext";
 import { useRouter } from "next/navigation";
+import { ShareEventModal } from "@/components/layout/ShareEventModal";
 
 const TAGS = [
   { id: 1, name: "Restauration" },
@@ -40,7 +41,17 @@ export default function EventForm() {
 
   const [createdEvent, setCreatedEvent] = useState<EventType | null>(null);
   const [userEvents, setUserEvents] = useState<EventType[]>([]);
+  const [users, setUsers] = useState<{ id: string; name?: string; email?: string }[]>([]);
   const [fetchError, setFetchError] = useState<string | null>(null);
+  const [shareModal, setShareModal] = useState<{
+  isOpen: boolean;
+  eventId: string;
+  eventTitle: string;
+}>({
+  isOpen: false,
+  eventId: '',
+  eventTitle: ''
+});
 
   // Redirection si pas connecté
   useEffect(() => {
@@ -48,6 +59,7 @@ export default function EventForm() {
       router.push("/login");
     }
   }, [user, isLoading, router]);
+  
 
   // Charger les events du user
   useEffect(() => {
@@ -59,6 +71,21 @@ export default function EventForm() {
         })
         .then((data) => {
           setUserEvents(data);
+          setFetchError(null);
+        })
+        .catch((err) => setFetchError(err.message));
+    }
+  }, [isLoading, user]);
+
+  useEffect(() => {
+    if (!isLoading && user) {
+      fetch(`/api/users`)
+        .then((res) => {
+          if (!res.ok) throw new Error("Erreur lors de la récupération des utilisateurs");
+          return res.json();
+        })
+        .then((data) => {
+          setUsers(data);
           setFetchError(null);
         })
         .catch((err) => setFetchError(err.message));
@@ -152,6 +179,23 @@ const handleLogout = async () => {
       console.error(error);
     }
   };
+  
+
+  const openShareModal = (eventId: string, eventTitle: string) => {
+  setShareModal({
+    isOpen: true,
+    eventId,
+    eventTitle
+  });
+};
+
+const closeShareModal = () => {
+  setShareModal({
+    isOpen: false,
+    eventId: '',
+    eventTitle: ''
+  });
+};
 
   const isAuthorized = ["ADMIN", "SUPER_ADMIN"].includes(user.role);
 
@@ -296,25 +340,33 @@ const handleLogout = async () => {
         {userEvents.length === 0 && <p>Aucun événement trouvé.</p>}
         <ul className="space-y-2">
           {userEvents.map((event) => (
-            <li key={event.id} className="border p-3 rounded shadow-sm">
+        <li key={event.id} className="border p-4 rounded shadow">
+          <div className="flex justify-between items-center">
+            <div>
               <h3 className="text-lg font-semibold">{event.title}</h3>
-              <p>{event.description || "Pas de description"}</p>
-              <p>
-                Date :{" "}
-                {event.date
-                  ? new Date(event.date).toLocaleString()
-                  : "Non définie"}
-              </p>
-              <p>
-                Catégories:{" "}
-                {event.tags.length > 0
-                  ? event.tags.map((t) => t.name).join(", ")
-                  : "Aucune"}
-              </p>
-            </li>
-          ))}
+              <p className="text-sm text-gray-500">{event.description || "Pas de description"}</p>
+            </div>
+            {isAuthorized && (
+              <button
+              onClick={() => openShareModal(event.id, event.title)}
+              className="ml-4 bg-indigo-600 text-white px-3 py-1 rounded hover:bg-indigo-700 transition"
+            >
+              Partager
+            </button>
+            )}
+          </div>
+        </li>
+))}
         </ul>
       </section>
+      {/* Modal de partage */}
+      <ShareEventModal
+        isOpen={shareModal.isOpen}
+        onClose={closeShareModal}
+        eventId={shareModal.eventId}
+        eventTitle={shareModal.eventTitle}
+        users={users}
+      />
     </div>
   );
 }

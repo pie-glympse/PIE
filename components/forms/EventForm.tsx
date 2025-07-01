@@ -90,7 +90,7 @@ const EventForm: React.FC<EventFormProps> = ({
             
             {/* Nom de l'événement */}
             <div className="mb-4">
-                <label htmlFor="eventName" className="block mb-1 text-body-large font-poppins text-[var(--color-grey-three)]">Nom de l'événement</label>
+                <label htmlFor="eventName" className="block mb-1 text-body-large font-poppins text-[var(--color-grey-three)]">Nom de l&apos;événement</label>
                 <input
                     id="eventName"
                     type="text"
