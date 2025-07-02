@@ -90,7 +90,25 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
-ul {
-    list-style: none;
+/* styles/global.scss ou styles/globals.css */
+.custom-scroll {
+  scrollbar-width: thin;              /* Firefox */
+  scrollbar-color: #cbd5e1 transparent;
 }
 
+.custom-scroll::-webkit-scrollbar {
+  height: 6px;                        /* hauteur horizontale */
+}
+
+.custom-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scroll::-webkit-scrollbar-thumb {
+  background-color: #cbd5e1;          /* Couleur Tailwind: slate-300 */
+  border-radius: 8px;
+}
+
+.custom-scroll:hover::-webkit-scrollbar-thumb {
+  background-color: #94a3b8;          /* Couleur Tailwind: slate-400 */
+}
