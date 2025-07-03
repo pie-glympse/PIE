@@ -1,94 +1,129 @@
 "use client";
-import React from "react";
+
+import React, { useState, useEffect } from "react";
 import Header from "@/components/header/header";
 import { useUser } from "../../context/UserContext";
 import GCalendar from "@/components/Gcalendar/Gcalendar";
 import Gcard from "@/components/Gcard/Gcard";
 
-const events = [
-  {
-    title: "Soirée Networking",
-    date: "2024-07-01T19:00:00",
-    profiles: [
-      "/img/user1.jpg",
-      "/img/user2.jpg",
-      "/img/user3.jpg",
-      "/img/user4.jpg",
-      "/img/user5.jpg",
-    ],
-    backgroundUrl: "/images/illustration/roundstar.svg",
-  },
-    {
-    title: "Bar-mitzvahs",
-    date: "2024-07-01T19:00:00",
-    profiles: [
-      "/img/user1.jpg",
-      "/img/user2.jpg",
-      "/img/user3.jpg",
-      "/img/user4.jpg",
-      "/img/user5.jpg",
-    ],
-    backgroundUrl: "/images/illustration/palm.svg",
-  },
-    {
-    title: "Soirée caca",
-    date: "2024-07-01T19:00:00",
-    profiles: [
-      "/img/user1.jpg",
-      "/img/user2.jpg",
-      "/img/user3.jpg",
-      "/img/user4.jpg",
-      "/img/user5.jpg",
-    ],
-    backgroundUrl: "/images/illustration/stack.svg",
-  },
-
-];
+type EventType = {
+  id: string;
+  uuid: string;
+  title: string;
+  description?: string;
+  date?: string;
+  maxPersons?: string;
+  costPerPerson?: string;
+  state?: string;
+  tags: { id: string; name: string }[];
+};
 
 export default function HomePage() {
-    const { user, isLoading, logout } = useUser();
-    return (
-        <>
+  const { user, isLoading } = useUser();
+  const [events, setEvents] = useState<EventType[]>([]);
+  const [fetchError, setFetchError] = useState<string | null>(null);
+
+  // Récupérer les événements depuis l'API
+  useEffect(() => {
+    if (!isLoading && user) {
+      fetch(`/api/events?userId=${user.id}`)
+        .then((res) => {
+          if (!res.ok) throw new Error("Erreur lors de la récupération des événements");
+          return res.json();
+        })
+        .then((data) => {
+          setEvents(data);
+          setFetchError(null);
+        })
+        .catch((err) => setFetchError(err.message));
+    }
+  }, [isLoading, user]);
+
+  // Fonction pour adapter les données de l'API au format attendu par Gcard
+  const adaptEventForGcard = (event: EventType) => {
+    // Assigner différentes images de fond selon les tags
+    const getBackgroundUrl = (tags: { id: string; name: string }[]) => {
+      if (tags.some(tag => tag.name === "Restauration")) return "/images/illustration/palm.svg";
+      if (tags.some(tag => tag.name === "Afterwork")) return "/images/illustration/stack.svg";
+      if (tags.some(tag => tag.name === "Team Building")) return "/images/illustration/roundstar.svg";
+      return "/images/illustration/roundstar.svg"; // Par défaut
+    };
+
+    return {
+      title: event.title,
+      date: event.date || new Date().toISOString(),
+      profiles: ["/img/user1.jpg", "/img/user2.jpg", "/img/user3.jpg", "/img/user4.jpg", "/img/user5.jpg"], 
+      backgroundUrl: getBackgroundUrl(event.tags),
+    };
+  };
+
+  if (isLoading) {
+    return <div>Chargement...</div>;
+  }
+
+  return (
+    <>
+      <main className="h-screen overflow-y-auto md:overflow-hidden bg-gray-50 p-6 flex flex-col gap-8">
         <Header />
-        <main className="flex min-h-screen flex-col p-8 bg-gray-50">
         
+        {/* Section Bienvenue */}
+        <section className="mt-20">
+          <h1 className="text-2xl font-bold text-gray-900 mb-1">Bienvenue,</h1>
+          <div className="flex items-center gap-3">
+            <p className="text-3xl font-semibold text-gray-800">
+              {user?.name || "invité"}
+            </p>
+            <img
+              src="/images/icones/pastille.svg"
+              alt="Statut utilisateur"
+              className="w-6 h-6"
+            />
+          </div>
+        </section>
+
+        {/* Calendrier */}
+        <section>
+          <h2 className="text-xl font-bold text-gray-800 mb-4">Calendrier des évènements</h2>
+          <GCalendar year={2025} />
+        </section>
+
+        {/* Évènements à venir */}
+        <section className="flex flex-col">
+          <h2 className="text-xl font-bold text-gray-800 mb-4">Évènements à venir</h2>
+          
+          {fetchError && (
+            <p className="text-red-600 font-semibold mb-4">Erreur: {fetchError}</p>
+          )}
+          
+          <div className="flex gap-4 overflow-x-auto pb-2">
+            {events.length === 0 && !fetchError && (
+              <p className="text-gray-500">Aucun événement trouvé.</p>
+            )}
             
-            <section>
-                <h1 className="text-3xl font-bold text-gray-900 mb-4">
-                Bienvenue,
-                </h1>
-                <div className="flex items-center">
-                  <h1 className="text-3xl font-bold text-gray-900 mb-4">
-                  {user?.name || "invité"}
-                </h1>
-                <img src="/images/icones/pastille.svg" alt="pastille"></img>
-                </div>
-                
-            </section>
+            {events.slice(0, 3).map((event) => (
+              <Gcard 
+                key={event.id} 
+                {...adaptEventForGcard(event)} 
+                className="w-100 h-60 flex-shrink-0" 
+              />
+            ))}
 
-            <section id="calendar" className=" py-15">
-                <h2 className="text-xl font-bold text-left mb-4 text-gray-800">
-                    Calendrier des Evènements
-                </h2>
-                <GCalendar year={2024} />
-            </section>
-            <section>
-                <h2 className="text-xl font-bold text-left mb-4 text-gray-800">
-                    Evènement à venir
-                </h2>
-                <div className="flex gap-4">
-                {events.map((event, idx) => (
-                    <Gcard 
-                    key={idx} {...event}
-                    className="w-120 h-60" />
-                ))}
-                <button className="w-20 h-60 rounded-xl border-1 border-gray-200">
-                </button>
-                </div>
 
-            </section>
-
-        </main>
-        </>
-    );
+            {/* Bouton Ajouter */}
+            <button
+              aria-label="Ajouter un évènement"
+              className="w-20 h-60 flex-shrink-0 flex items-center justify-center border border-gray-300 rounded-xl hover:bg-gray-100 transition text-3xl text-gray-500"
+            >
+              +
+            </button>
+          </div>
+          <div className="flex justify-end">
+            <a href="/events" className="text-gray-500 mt-2">
+              voir plus
+            </a>
+          </div>
+        </section>
+      </main>
+    </>
+  );
 }

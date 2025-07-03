@@ -2,8 +2,22 @@
 
 import React, { useState, useEffect } from "react";
 import type { ReactNode } from "react";
+import { useUser } from "../../context/UserContext";
 
+// Type pour les événements de l'API
+interface APIEvent {
+  id: string;
+  uuid: string;
+  title: string;
+  description?: string;
+  date?: string;
+  maxPersons?: string;
+  costPerPerson?: string;
+  state?: string;
+  tags: { id: string; name: string }[];
+}
 
+// Type pour les événements du calendrier
 interface Event {
   id: number;
   date: string;
@@ -24,176 +38,12 @@ interface MiniCalendarProps {
   eventsData?: Event[];
 }
 
-
-const mockEvents: Event[] = [
-  {
-    id: 1,
-    date: "2024-01-15",
-    title: "Réunion équipe marketing",
-    description:
-      "Point mensuel sur les campagnes en cours et planification des prochaines actions",
-    time: "09:00",
-    type: "meeting",
-  },
-  {
-    id: 2,
-    date: "2024-01-15",
-    title: "Deadline projet Alpha",
-    description: "Finalisation et livraison du projet Alpha au client",
-    time: "17:00",
-    type: "urgent",
-  },
-  {
-    id: 3,
-    date: "2024-01-22",
-    title: "Formation React",
-    description: "Session de formation avancée sur React et ses hooks",
-    time: "14:00",
-    type: "event",
-  },
-  {
-    id: 4,
-    date: "2024-02-05",
-    title: "Révision de code",
-    description: "Code review hebdomadaire avec l'équipe de développement",
-    time: "10:30",
-    type: "task",
-  },
-  {
-    id: 5,
-    date: "2024-02-14",
-    title: "Présentation client",
-    description: "Présentation du nouveau design au client principal",
-    time: "16:00",
-    type: "important",
-  },
-  {
-    id: 6,
-    date: "2024-02-28",
-    title: "Rétrospective sprint",
-    description: "Bilan du sprint terminé et planification du suivant",
-    time: "11:00",
-    type: "meeting",
-  },
-  {
-    id: 7,
-    date: "2024-03-08",
-    title: "Maintenance serveur",
-    description: "Maintenance programmée des serveurs de production",
-    time: "02:00",
-    type: "urgent",
-  },
-  {
-    id: 8,
-    date: "2024-03-15",
-    title: "Atelier UX",
-    description: "Atelier collaboratif sur l'expérience utilisateur",
-    time: "13:30",
-    type: "event",
-  },
-  {
-    id: 9,
-    date: "2024-04-01",
-    title: "Lancement campagne",
-    description: "Lancement officiel de la nouvelle campagne publicitaire",
-    time: "08:00",
-    type: "important",
-  },
-  {
-    id: 10,
-    date: "2024-04-10",
-    title: "Audit sécurité",
-    description: "Audit de sécurité trimestriel de l'infrastructure",
-    time: "15:00",
-    type: "task",
-  },
-  {
-    id: 11,
-    date: "2024-05-01",
-    title: "Conférence tech",
-    description:
-      "Participation à la conférence annuelle sur les nouvelles technologies",
-    time: "09:00",
-    type: "event",
-  },
-  {
-    id: 12,
-    date: "2024-05-20",
-    title: "Entretien candidat",
-    description: "Entretien avec le candidat développeur senior",
-    time: "14:30",
-    type: "meeting",
-  },
-  {
-    id: 13,
-    date: "2024-06-03",
-    title: "Fin de projet Beta",
-    description: "Date limite pour la finalisation du projet Beta",
-    time: "18:00",
-    type: "urgent",
-  },
-  {
-    id: 14,
-    date: "2024-06-15",
-    title: "Formation GraphQL",
-    description: "Formation interne sur GraphQL et ses bonnes pratiques",
-    time: "10:00",
-    type: "event",
-  },
-  {
-    id: 15,
-    date: "2024-07-04",
-    title: "Réunion budget",
-    description: "Révision du budget trimestriel avec la direction",
-    time: "11:00",
-    type: "important",
-  },
-  {
-    id: 16,
-    date: "2024-08-12",
-    title: "Test utilisateur",
-    description: "Session de tests utilisateurs pour la nouvelle interface",
-    time: "16:30",
-    type: "task",
-  },
-  {
-    id: 17,
-    date: "2024-09-09",
-    title: "Hackathon interne",
-    description: "Hackathon de 24h pour explorer de nouvelles idées",
-    time: "09:00",
-    type: "event",
-  },
-  {
-    id: 18,
-    date: "2024-10-31",
-    title: "Migration base de données",
-    description: "Migration planifiée vers la nouvelle base de données",
-    time: "22:00",
-    type: "urgent",
-  },
-  {
-    id: 19,
-    date: "2024-11-15",
-    title: "Bilan annuel",
-    description: "Réunion de bilan annuel avec tous les départements",
-    time: "14:00",
-    type: "important",
-  },
-  {
-    id: 20,
-    date: "2024-12-20",
-    title: "Fête de fin d'année",
-    description: "Célébration de fin d'année avec toute l'équipe",
-    time: "18:00",
-    type: "event",
-  },
-];
-
 const MiniCalendar = ({ year = 2024, eventsData = [] }: MiniCalendarProps) => {
+  const { user, isLoading } = useUser();
   const [hoveredDay, setHoveredDay] = useState<HoveredDay | null>(null);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
-  const [events, setEvents] = useState<Event[]>(mockEvents); // use données mockées 
+  const [events, setEvents] = useState<Event[]>([]);
+  const [fetchError, setFetchError] = useState<string | null>(null);
 
   const months = [
     "Janvier",
@@ -210,28 +60,69 @@ const MiniCalendar = ({ year = 2024, eventsData = [] }: MiniCalendarProps) => {
     "Décembre",
   ];
 
-  // ici fecth les events depuis l'API
-  const fetchEvents = async () => {
-    try {
-      const response = await fetch("/api/events");
-      if (response.ok) {
-        const data = await response.json();
-        setEvents(data);
-      }
-    } catch (error) {
-      console.error("Erreur lors du chargement des événements:", error);
-    }
+  // Fonction pour convertir les événements de l'API au format du calendrier
+  const convertAPIEventToCalendarEvent = (apiEvent: APIEvent): Event => {
+    // Déterminer le type basé sur les tags
+    const getEventType = (tags: { id: string; name: string }[]): Event['type'] => {
+      const tagNames = tags.map(tag => tag.name.toLowerCase());
+      
+      if (tagNames.includes('urgent')) return 'urgent';
+      if (tagNames.includes('important')) return 'important';
+      if (tagNames.includes('séminaire')) return 'meeting';
+      if (tagNames.includes('team building')) return 'task';
+      return 'event'; // Par défaut
+    };
+
+    // Extraire l'heure de la date
+    const getTimeFromDate = (dateString?: string): string => {
+      if (!dateString) return '00:00';
+      const date = new Date(dateString);
+      return date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+    };
+
+    // Formater la date pour le calendrier (YYYY-MM-DD)
+    const formatDateForCalendar = (dateString?: string): string => {
+      if (!dateString) return new Date().toISOString().split('T')[0];
+      return new Date(dateString).toISOString().split('T')[0];
+    };
+
+    return {
+      id: parseInt(apiEvent.id),
+      date: formatDateForCalendar(apiEvent.date),
+      title: apiEvent.title,
+      description: apiEvent.description || '',
+      time: getTimeFromDate(apiEvent.date),
+      type: getEventType(apiEvent.tags)
+    };
   };
 
+  // Récupérer les événements depuis l'API
   useEffect(() => {
+    if (!isLoading && user) {
+      fetch(`/api/events?userId=${user.id}`)
+        .then((res) => {
+          if (!res.ok) throw new Error("Erreur lors de la récupération des événements");
+          return res.json();
+        })
+        .then((data: APIEvent[]) => {
+          // Convertir les événements de l'API au format du calendrier
+          const convertedEvents = data.map(convertAPIEventToCalendarEvent);
+          setEvents(convertedEvents);
+          setFetchError(null);
+        })
+        .catch((err) => {
+          setFetchError(err.message);
+          console.error("Erreur lors du chargement des événements:", err);
+        });
+    }
+  }, [isLoading, user]);
 
-    if (eventsData.length === 0) {
-
-    } else {
+  // Utiliser les événements passés en props si disponibles
+  useEffect(() => {
+    if (eventsData.length > 0) {
       setEvents(eventsData);
     }
   }, [eventsData]);
-
 
   const getDaysInMonth = (month: number, year: number): number => {
     return new Date(year, month + 1, 0).getDate();
@@ -250,9 +141,8 @@ const MiniCalendar = ({ year = 2024, eventsData = [] }: MiniCalendarProps) => {
 
   const getDayColor = (day: number, month: number): string => {
     const dayEvents = getDayEvents(day, month);
-    if (dayEvents.length === 0) return "bg-gray-100 hover:bg-gray-200";
+    if (dayEvents.length === 0) return "bg-gray-200 hover:bg-gray-300";
 
- 
     const priority: Record<string, string> = {
       urgent: "bg-red-400 hover:bg-red-500",
       important: "bg-orange-400 hover:bg-orange-500",
@@ -261,16 +151,14 @@ const MiniCalendar = ({ year = 2024, eventsData = [] }: MiniCalendarProps) => {
       event: "bg-purple-400 hover:bg-purple-500",
     };
 
-
     for (const [type, color] of Object.entries(priority)) {
       if (dayEvents.some((event) => event.type === type)) {
         return color;
       }
     }
 
-    return "bg-indigo-700 hover:bg-indigo-800"; 
+    return "bg-indigo-700 hover:bg-indigo-800";
   };
-
 
   const handleMouseEnter = (
     day: number,
@@ -299,18 +187,18 @@ const MiniCalendar = ({ year = 2024, eventsData = [] }: MiniCalendarProps) => {
     const firstDay = getFirstDayOfMonth(month, year);
     const days: React.ReactElement[] = [];
 
-   
+    // Ajouter les jours vides au début
     for (let i = 0; i < firstDay; i++) {
       days.push(<div key={`empty-${i}`} className="w-6 h-6"></div>);
     }
 
-
+    // Ajouter les jours du mois
     for (let day = 1; day <= daysInMonth; day++) {
       const colorClass = getDayColor(day, month);
       days.push(
         <div
           key={day}
-          className={`w-6 h-6 ${colorClass} cursor-pointer rounded-sm  transition-colors duration-200 flex items-center justify-center text-xs font-medium`}
+          className={`w-6 h-6 ${colorClass} cursor-pointer rounded-sm transition-colors duration-200 flex items-center justify-center text-xs font-medium`}
           onMouseEnter={(e) => handleMouseEnter(day, month, e)}
           onMouseMove={handleMouseMove}
           onMouseLeave={handleMouseLeave}
@@ -321,8 +209,26 @@ const MiniCalendar = ({ year = 2024, eventsData = [] }: MiniCalendarProps) => {
     return days;
   };
 
+  // Afficher un message d'erreur si nécessaire
+  if (fetchError) {
+    return (
+      <div className="p-4 bg-red-50 text-red-600 rounded-lg">
+        Erreur lors du chargement des événements: {fetchError}
+      </div>
+    );
+  }
+
+  // Afficher un loading si en cours de chargement
+  if (isLoading) {
+    return (
+      <div className="p-4 bg-gray-50 text-gray-600 rounded-lg">
+        Chargement du calendrier...
+      </div>
+    );
+  }
+
   return (
-    <div >
+    <div>
       <div className="flex overflow-x-auto space-x-4 snap-x snap-mandatory px-1 py-5 custom-scroll gap-6">
         {months.map((month, index) => (
           <div
@@ -332,14 +238,14 @@ const MiniCalendar = ({ year = 2024, eventsData = [] }: MiniCalendarProps) => {
             <h3 className="text-sm font-semibold text-left mb-2 text-gray-700">
               {month} {year}
             </h3>
-            <div className="grid grid-cols-12 gap-1">
+            <div className="grid grid-cols-13 gap-2">
               {generateMonthDays(index)}
             </div>
           </div>
         ))}
       </div>
 
-
+      {/* Tooltip pour afficher les événements */}
       {hoveredDay && (
         <div
           className="fixed z-50 bg-white text-gray-600 p-3 rounded-lg shadow-xl max-w-xs pointer-events-none"
