@@ -411,14 +411,15 @@ const closeShareModal = () => {
           <p className="mt-3">
             Lien de partage:{" "}
             <a
-              href={`/event/${createdEvent.uuid}`}
+              href={`/events/${createdEvent.id}`} 
               target="_blank"
               rel="noopener noreferrer"
               className="text-blue-600 underline"
             >
-              /event/{createdEvent.uuid}
+              /events/{createdEvent.id}
             </a>
           </p>
+
         </section>
       )}
 
@@ -447,6 +448,12 @@ const closeShareModal = () => {
               Partager
             </button>
           )}
+                          <button
+                  onClick={() => router.push(`/events/${event.id}`)}
+                  className="ml-4 px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700"
+                >
+                  Voir détails
+                </button>
           {!userEventPreferences.has(Number(event.id)) && (
             <button
               onClick={() => {
