@@ -27,6 +27,7 @@ module.exports = {
         greyOne: "#F4F4F4",
         greyTwo: "#EAEAEF",
         greyThree: "#9B9B9B",
+        greyFour: "#9B9B9D",
         text: "#191919",
       },
     },

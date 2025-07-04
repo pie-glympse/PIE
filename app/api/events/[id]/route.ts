@@ -15,13 +15,36 @@ export async function GET(
   req: Request,
   { params }: { params: { id: string } }
 ) {
-  const eventId = parseInt(params.id); // ou BigInt si tu utilises BigInt dans Prisma
+  try {
+    const eventId = parseInt(params.id);
+    
+    if (isNaN(eventId)) {
+      return NextResponse.json({ error: "ID invalide" }, { status: 400 });
+    }
 
-  const event = await prisma.event.findUnique({
-    where: { id: eventId },
-  });
+    const event = await prisma.event.findUnique({
+      where: { id: eventId },
+      include: {
+        tags: true,
+        users: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          }
+        }
+      }
+    });
 
-  return NextResponse.json({ event: safeJson(event) }, { status: 200 });
+    if (!event) {
+      return NextResponse.json({ error: "Événement non trouvé" }, { status: 404 });
+    }
+
+    return NextResponse.json(safeJson(event), { status: 200 });
+  } catch (error) {
+    console.error("Erreur:", error);
+    return NextResponse.json({ error: "Erreur serveur" }, { status: 500 });
+  }
 }
 
 
@@ -56,7 +79,7 @@ export async function GET(
 
   export async function DELETE(
   req: Request,
-  { params }: { params: { id: string } } // 👈 Toujours une string ici
+  { params }: { params: { id: string } } 
 ) {
 
       console.log("sigma")

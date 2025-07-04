@@ -277,14 +277,15 @@ const handleLogout = async () => {
           <p className="mt-3">
             Lien de partage:{" "}
             <a
-              href={`/event/${createdEvent.uuid}`}
+              href={`/events/${createdEvent.id}`} 
               target="_blank"
               rel="noopener noreferrer"
               className="text-blue-600 underline"
             >
-              /event/{createdEvent.uuid}
+              /events/{createdEvent.id}
             </a>
           </p>
+
         </section>
       )}
 
@@ -297,20 +298,30 @@ const handleLogout = async () => {
         <ul className="space-y-2">
           {userEvents.map((event) => (
             <li key={event.id} className="border p-3 rounded shadow-sm">
-              <h3 className="text-lg font-semibold">{event.title}</h3>
-              <p>{event.description || "Pas de description"}</p>
-              <p>
-                Date :{" "}
-                {event.date
-                  ? new Date(event.date).toLocaleString()
-                  : "Non définie"}
-              </p>
-              <p>
-                Catégories:{" "}
-                {event.tags.length > 0
-                  ? event.tags.map((t) => t.name).join(", ")
-                  : "Aucune"}
-              </p>
+              <div className="flex justify-between items-start">
+                <div className="flex-1">
+                  <h3 className="text-lg font-semibold">{event.title}</h3>
+                  <p>{event.description || "Pas de description"}</p>
+                  <p>
+                    Date :{" "}
+                    {event.date
+                      ? new Date(event.date).toLocaleString()
+                      : "Non définie"}
+                  </p>
+                  <p>
+                    Catégories:{" "}
+                    {event.tags.length > 0
+                      ? event.tags.map((t) => t.name).join(", ")
+                      : "Aucune"}
+                  </p>
+                </div>
+                <button
+                  onClick={() => router.push(`/events/${event.id}`)}
+                  className="ml-4 px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700"
+                >
+                  Voir détails
+                </button>
+              </div>
             </li>
           ))}
         </ul>
