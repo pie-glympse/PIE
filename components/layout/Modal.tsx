@@ -1,24 +1,66 @@
 import React from 'react';
 import MainButton from '../ui/MainButton';
 
+interface StepContent {
+    title: string;
+    text: string;
+    buttonText?: string;
+}
+
 interface ModalProps {
     isOpen: boolean;
     onClose: () => void;
-    title: string;
-    text: string;
-    buttonText: string;
     onButtonClick: () => void;
+    showSteppers?: boolean;
+    currentStep?: number;
+    totalSteps?: number; // max 5
+    // Props pour contenu dynamique
+    stepContents?: StepContent[];
+    // Props fallback pour usage simple
+    title?: string;
+    text?: string;
+    buttonText?: string;
+    // Textes personnalisés pour le bouton
+    lastStepButtonText?: string;
 }
 
 const Modal: React.FC<ModalProps> = ({
     isOpen,
     onClose,
-    title,
-    text,
-    buttonText,
     onButtonClick,
+    showSteppers = false,
+    currentStep = 1,
+    totalSteps = 3,
+    stepContents = [],
+    title = '',
+    text = '',
+    buttonText = 'Continuer',
+    lastStepButtonText = 'Terminer',
 }) => {
     if (!isOpen) return null;
+
+    // Limiter le nombre de steps à 5 maximum
+    const validTotalSteps = Math.min(Math.max(totalSteps, 1), 5);
+    const validCurrentStep = Math.min(Math.max(currentStep, 1), validTotalSteps);
+
+    // Déterminer le contenu à afficher
+    const getCurrentContent = () => {
+        if (stepContents.length > 0 && stepContents[validCurrentStep - 1]) {
+            return stepContents[validCurrentStep - 1];
+        }
+        return { title, text, buttonText };
+    };
+
+    const currentContent = getCurrentContent();
+    const isLastStep = validCurrentStep === validTotalSteps;
+    
+    // Déterminer le texte du bouton
+    const getButtonText = () => {
+        if (currentContent.buttonText) {
+            return currentContent.buttonText;
+        }
+        return isLastStep && showSteppers ? lastStepButtonText : buttonText;
+    };
 
     return (
         <div
@@ -34,16 +76,41 @@ const Modal: React.FC<ModalProps> = ({
                 
                 {/* Title div */}
                 <div className="mb-2 text-center">
-                    <h2 className="text-h2 font-poppins">{title}</h2>
+                    <h2 className="text-h2 font-poppins">{currentContent.title}</h2>
                 </div>
                 
                 {/* Text div */}
-                <div className="mb-6 text-center text-body-small font-poppins">{text}</div>
+                <div className="mb-6 text-center text-body-small font-poppins">{currentContent.text}</div>
                 
                 {/* Button div */}
                 <div className="flex justify-center">
-                    <MainButton color="bg-[var(--color-text)] font-poppins text-body-small" text={buttonText} onClick={onButtonClick} />
+                    <MainButton 
+                        color="bg-[var(--color-text)] font-poppins text-body-small" 
+                        text={getButtonText()} 
+                        onClick={onButtonClick} 
+                    />
                 </div>
+                
+                {/* Steppers - Conditionnel */}
+                {showSteppers && (
+                    <div className="flex justify-center mt-4 gap-2">
+                        {Array.from({ length: validTotalSteps }, (_, index) => {
+                            const stepNumber = index + 1;
+                            const isCurrent = stepNumber === validCurrentStep;
+                            
+                            return (
+                                <div
+                                    key={stepNumber}
+                                    className={`h-1 rounded-full transition-all duration-200 ${
+                                        isCurrent 
+                                            ? 'w-10 bg-[var(--color-main)]' // Step actuel 
+                                            : 'w-6 bg-gray-300'   // Steps inactifs : plus étroits et gris
+                                    }`}
+                                />
+                            );
+                        })}
+                    </div>
+                )}
             </div>
         </div>
     );

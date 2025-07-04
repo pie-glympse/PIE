@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useUser } from "../../context/UserContext";
 import { useRouter } from "next/navigation";
+import { ShareEventModal } from "@/components/layout/ShareEventModal";
 
 const TAGS = [
   { id: 1, name: "Restauration" },
@@ -40,7 +41,26 @@ export default function EventForm() {
 
   const [createdEvent, setCreatedEvent] = useState<EventType | null>(null);
   const [userEvents, setUserEvents] = useState<EventType[]>([]);
+  const [userEventPreferences, setUserEventPreferences] = useState<Map<number, any>>(new Map());
+  const [users, setUsers] = useState<{ id: string; name?: string; email?: string }[]>([]);
   const [fetchError, setFetchError] = useState<string | null>(null);
+  const [step, setStep] = useState(1);
+  const [selectedTagId, setSelectedTagId] = useState<number | null>(null);
+  const [preferredDate, setPreferredDate] = useState("");
+  const [preferences, setPreferences] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [selectedEvent, setSelectedEvent] = useState<EventType | null>(null);
+  const [showPreferenceForm, setShowPreferenceForm] = useState(false);
+
+  const [shareModal, setShareModal] = useState<{
+  isOpen: boolean;
+  eventId: string;
+  eventTitle: string;
+}>({
+  isOpen: false,
+  eventId: '',
+  eventTitle: ''
+});
 
   // Redirection si pas connecté
   useEffect(() => {
@@ -48,6 +68,7 @@ export default function EventForm() {
       router.push("/login");
     }
   }, [user, isLoading, router]);
+  
 
   // Charger les events du user
   useEffect(() => {
@@ -65,11 +86,69 @@ export default function EventForm() {
     }
   }, [isLoading, user]);
 
+  useEffect(() => {
+  if (userEvents.length > 0 && user) {
+    const fetchPreferences = async () => {
+      const res = await fetch(`/api/user-event-preferences?userId=${user.id}`);
+      const data = await res.json(); // Format: [{ eventId: X, preferredDate: ..., tagId: ... }]
+      const preferenceMap = new Map();
+      data.forEach((pref: any) => {
+        preferenceMap.set(pref.eventId, pref);
+      });
+      setUserEventPreferences(preferenceMap); // New state
+    };
+    fetchPreferences();
+  }
+}, [userEvents]);
+
+
+  useEffect(() => {
+    if (!isLoading && user) {
+      fetch(`/api/users`)
+        .then((res) => {
+          if (!res.ok) throw new Error("Erreur lors de la récupération des utilisateurs");
+          return res.json();
+        })
+        .then((data) => {
+          setUsers(data);
+          setFetchError(null);
+        })
+        .catch((err) => setFetchError(err.message));
+    }
+  }, [isLoading, user]);
+
+  useEffect(() => {
+    async function fetchPreferences() {
+      try {
+        // Only fetch if user and selectedEvent are defined
+        if (!user || !selectedEvent) return;
+        const res = await fetch(`/api/preferences?userId=${user.id}&eventId=${selectedEvent.id}`);
+        if (!res.ok) {
+          // Pas de préférence en base
+          setPreferences(null);
+        } else {
+          const data = await res.json();
+          setPreferences(data);
+        }
+      } catch (error) {
+        console.error('Erreur fetch preferences:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchPreferences();
+    // Only run when user or selectedEvent changes
+  }, [user, selectedEvent]);
+
   if (isLoading) {
     return <div>Chargement...</div>;
   }
 
   if (!user) return null;
+
+  if (loading) return <p>Chargement...</p>;
+
 
 const handleLogout = async () => {
   try {
@@ -108,6 +187,44 @@ const handleLogout = async () => {
       };
     });
   };
+
+  const handleSubmitPreferences = async () => {
+  if (!user || !selectedEvent || !selectedTagId || !preferredDate) return;
+
+  const body = {
+    userId: user.id,
+    eventId: selectedEvent.id,
+    tagId: selectedTagId,
+    preferredDate,
+  };
+
+  try {
+    const res = await fetch(`/api/events/${selectedEvent.id}/preferences`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+
+    if (res.ok) {
+      alert("Préférences enregistrées !");
+      setShowPreferenceForm(false);
+      setSelectedEvent(null);
+      setSelectedTagId(null);
+      setPreferredDate("");
+      setStep(1);
+
+      // Rafraîchir les préférences
+      const updatedPrefs = await res.json();
+      setUserEventPreferences((prev) => new Map(prev.set(Number(selectedEvent.id), updatedPrefs)));
+    } else {
+      alert("Erreur lors de l'envoi des préférences");
+    }
+  } catch (err) {
+    console.error(err);
+    alert("Erreur réseau");
+  }
+};
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -152,6 +269,23 @@ const handleLogout = async () => {
       console.error(error);
     }
   };
+  
+
+  const openShareModal = (eventId: string, eventTitle: string) => {
+  setShareModal({
+    isOpen: true,
+    eventId,
+    eventTitle
+  });
+};
+
+const closeShareModal = () => {
+  setShareModal({
+    isOpen: false,
+    eventId: '',
+    eventTitle: ''
+  });
+};
 
   const isAuthorized = ["ADMIN", "SUPER_ADMIN"].includes(user.role);
 
@@ -277,14 +411,15 @@ const handleLogout = async () => {
           <p className="mt-3">
             Lien de partage:{" "}
             <a
-              href={`/event/${createdEvent.uuid}`}
+              href={`/events/${createdEvent.id}`} 
               target="_blank"
               rel="noopener noreferrer"
               className="text-blue-600 underline"
             >
-              /event/{createdEvent.uuid}
+              /events/{createdEvent.id}
             </a>
           </p>
+
         </section>
       )}
 
@@ -295,26 +430,117 @@ const handleLogout = async () => {
         )}
         {userEvents.length === 0 && <p>Aucun événement trouvé.</p>}
         <ul className="space-y-2">
-          {userEvents.map((event) => (
-            <li key={event.id} className="border p-3 rounded shadow-sm">
-              <h3 className="text-lg font-semibold">{event.title}</h3>
-              <p>{event.description || "Pas de description"}</p>
-              <p>
-                Date :{" "}
-                {event.date
-                  ? new Date(event.date).toLocaleString()
-                  : "Non définie"}
-              </p>
-              <p>
-                Catégories:{" "}
-                {event.tags.length > 0
-                  ? event.tags.map((t) => t.name).join(", ")
-                  : "Aucune"}
-              </p>
-            </li>
-          ))}
-        </ul>
+  {userEvents.map((event) => {
+    return (
+      <li key={event.id} className="border p-4 rounded shadow">
+        <div className="flex justify-between items-center">
+          <div>
+            <h3 className="text-lg font-semibold">{event.title}</h3>
+            <p className="text-sm text-gray-500">
+              {event.description || "Pas de description"}
+            </p>
+          </div>
+          {isAuthorized && (
+            <button
+              onClick={() => openShareModal(event.id, event.title)}
+              className="ml-4 bg-indigo-600 text-white px-3 py-1 rounded hover:bg-indigo-700 transition"
+            >
+              Partager
+            </button>
+          )}
+                          <button
+                  onClick={() => router.push(`/events/${event.id}`)}
+                  className="ml-4 px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700"
+                >
+                  Voir détails
+                </button>
+          {!userEventPreferences.has(Number(event.id)) && (
+            <button
+              onClick={() => {
+                setSelectedEvent(event);
+                setShowPreferenceForm(true);
+              }}
+              className="text-blue-600 underline mt-2"
+            >
+              Remplir mes préférences
+            </button>
+          )}
+        </div>
+      </li>
+    );
+  })}
+</ul>
+
       </section>
+      {/* Modal de partage */}
+      <ShareEventModal
+        isOpen={shareModal.isOpen}
+        onClose={closeShareModal}
+        eventId={shareModal.eventId}
+        eventTitle={shareModal.eventTitle}
+        users={users}
+      />
+      {showPreferenceForm && selectedEvent && (
+  <div className="fixed top-0 left-0 w-full h-full bg-white z-50 p-8 overflow-auto">
+    <h2 className="text-2xl font-bold mb-6">Préférences pour : {selectedEvent.title}</h2>
+
+      {step === 1 && (
+        <>
+          <p className="mb-4">Choisissez un type d’activité :</p>
+          <div className="flex gap-4 flex-wrap">
+            {TAGS.map((tag) => (
+              <button
+                key={tag.id}
+                onClick={() => setSelectedTagId(tag.id)}
+                className={`p-3 rounded border ${
+                  selectedTagId === tag.id ? "bg-blue-500 text-white" : "bg-gray-100"
+                }`}
+              >
+                {tag.name}
+              </button>
+            ))}
+          </div>
+          <button
+            className="mt-6 px-4 py-2 bg-blue-600 text-white rounded"
+            onClick={() => setStep(2)}
+            disabled={!selectedTagId}
+          >
+            Suivant
+          </button>
+        </>
+      )}
+
+      {step === 2 && (
+        <>
+          <p className="mb-4 mt-6">Choisissez une date préférée :</p>
+          <input
+            type="date"
+            value={preferredDate}
+            onChange={(e) => setPreferredDate(e.target.value)}
+            className="p-2 border rounded"
+          />
+          <div className="mt-6 flex gap-4">
+            <button
+              className="px-4 py-2 bg-gray-300 rounded"
+              onClick={() => setStep(1)}
+            >
+              Retour
+            </button>
+            <button
+              className="px-4 py-2 bg-green-600 text-white rounded"
+              onClick={handleSubmitPreferences}
+              disabled={!preferredDate}
+            >
+              Envoyer
+            </button>
+          </div>
+        </>
+      )}
     </div>
+  )}
+
+    </div>
+    
+    
   );
 }
