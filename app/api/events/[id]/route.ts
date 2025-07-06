@@ -11,17 +11,23 @@ function safeJson(obj: any) {
   );
 }
 
-export async function GET(
-  req: Request,
-  { params }: { params: { id: string } }
-) {
-  try {
-    const eventId = parseInt(params.id);
-    
-    if (isNaN(eventId)) {
-      return NextResponse.json({ error: "ID invalide" }, { status: 400 });
-    }
+// 🔥 Fonction utilitaire pour récupérer l'id depuis l'URL
+function getEventIdFromUrl(req: Request): number | null {
+  const url = new URL(req.url);
+  const segments = url.pathname.split("/").filter(Boolean); // ["api", "events", "123"]
+  const id = segments[segments.length - 1]; // Dernier segment = "123"
+  const eventId = Number(id);
+  return isNaN(eventId) ? null : eventId;
+}
 
+export async function GET(req: Request) {
+  const eventId = getEventIdFromUrl(req);
+
+  if (eventId === null) {
+    return NextResponse.json({ error: "ID invalide" }, { status: 400 });
+  }
+
+  try {
     const event = await prisma.event.findUnique({
       where: { id: eventId },
       include: {
@@ -31,9 +37,9 @@ export async function GET(
             id: true,
             name: true,
             email: true,
-          }
-        }
-      }
+          },
+        },
+      },
     });
 
     if (!event) {
@@ -47,47 +53,35 @@ export async function GET(
   }
 }
 
+export async function PATCH(req: Request) {
+  const eventId = getEventIdFromUrl(req);
 
-  export async function PATCH(
-    req: Request,
-    { params }: { params: { id: string } }
-  ) {
-    const eventId = Number(params.id);
-
-    if (isNaN(eventId)) {
-      return new Response("Invalid note ID", { status: 400 });
-    }
-
-    const body = await req.json();
-
-    try {
-      const updatedEvent = await prisma.event.update({
-        where: { id: eventId },
-        data: {
-          title: body.title,
-          description: body.description,
-        },
-      });
-
-  return NextResponse.json({ event: safeJson(updatedEvent) });
-    } catch (error) {
-      return new Response("Note not found or update failed", {
-        status: 404,
-      });
-    }
+  if (eventId === null) {
+    return new Response("Invalid event ID", { status: 400 });
   }
 
-  export async function DELETE(
-  req: Request,
-  { params }: { params: { id: string } } 
-) {
+  const body = await req.json();
 
-      console.log("sigma")
+  try {
+    const updatedEvent = await prisma.event.update({
+      where: { id: eventId },
+      data: {
+        title: body.title,
+        description: body.description,
+      },
+    });
 
-  const eventId =  Number(params.id);
+    return NextResponse.json({ event: safeJson(updatedEvent) });
+  } catch (error) {
+    return new Response("Event not found or update failed", { status: 404 });
+  }
+}
 
-  if (isNaN(eventId)) {
-    return new Response("Invalid note ID", { status: 400 });
+export async function DELETE(req: Request) {
+  const eventId = getEventIdFromUrl(req);
+
+  if (eventId === null) {
+    return new Response("Invalid event ID", { status: 400 });
   }
 
   try {
@@ -95,9 +89,9 @@ export async function GET(
       where: { id: eventId },
     });
 
-  return NextResponse.json("Event deleted", { status: 200 });
+    return NextResponse.json("Event deleted", { status: 200 });
   } catch (error) {
-    return new Response("Note not found or could not be deleted", {
+    return new Response("Event not found or could not be deleted", {
       status: 404,
     });
   }

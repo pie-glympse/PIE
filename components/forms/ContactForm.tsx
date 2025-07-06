@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import MainButton from '@/components/ui/MainButton';
 
 interface ContactFormProps {
-    title: string;
+    title: React.ReactNode;
     buttonText: string;
     onSubmit?: (formData: {
         objet: string;

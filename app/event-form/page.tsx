@@ -19,12 +19,6 @@ export default function EventFormPage() {
                         }
                         subtitle='Entrez les informations générales de l’événement'
                         buttonText="Créer l'événement"
-                        placeholderTitle="Titre de l'événement"
-                        placeholderDescription="Description de l'événement"
-                        placeholderDateRange="Ex: 01/01/2024 - 07/01/2024"
-                        placeholderMaxBudget="Ex: 50€"
-                        placeholderCity="Ville"
-                        placeholderMaxDistance="Ex: 50km"
                     />
                 </div>
             </div>

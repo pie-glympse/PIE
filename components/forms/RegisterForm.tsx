@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import MainButton from '@/components/ui/MainButton';
 
 interface RegisterFormProps {
-    title: string;
+    title: React.ReactNode;
     buttonText: string;
     onSubmit?: (email: string, password: string) => void;
     onForgotPassword?: () => void;

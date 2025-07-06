@@ -1,7 +1,6 @@
 "use client" // src/app/login/page.tsx
 import { useRouter } from "next/navigation";
 import LoginForm from '@/components/forms/LoginForm';
-import BackArrow from '@/components/ui/BackArrow';
 import Image from 'next/image';
 
 export default function LoginPage() {
