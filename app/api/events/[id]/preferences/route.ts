@@ -3,12 +3,20 @@ import { NextRequest, NextResponse } from 'next/server';
 
 const prisma = new PrismaClient();
 
-export async function POST(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function POST(request: NextRequest) {
   try {
-    const eventId = BigInt(params.id);
+    // 🔥 Récupérer l'id depuis l'URL
+    const url = new URL(request.url);
+    const id = url.pathname.split('/').filter(Boolean).pop(); // "preferences" -> "[id]"
+    if (!id) {
+      return NextResponse.json(
+        { message: 'Paramètre id manquant dans l’URL' },
+        { status: 400 }
+      );
+    }
+
+    const eventId = BigInt(id);
+
     const { userId, tagId, preferredDate } = await request.json();
 
     if (!userId || !tagId || !preferredDate) {
@@ -37,7 +45,6 @@ export async function POST(
       },
     });
 
-    // Conversion des BigInt pour éviter l'erreur de sérialisation
     const serializablePreference = {
       ...preference,
       userId: preference.userId.toString(),

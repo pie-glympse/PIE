@@ -2,13 +2,13 @@
 
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
-import Image from 'next/image';
-import BackArrow from '@/components/ui/BackArrow';
-import ShareButton from '@/components/ui/ShareButton';
-import TabNavigation from '@/components/ui/TabNavigation';
-import EventInformations from '@/components/event/EventInformations';
-import EventParticipants from '@/components/event/EventParticipants';
-import EventDocuments from '@/components/event/EventDocuments';
+import Image from "next/image";
+import BackArrow from "@/components/ui/BackArrow";
+import ShareButton from "@/components/ui/ShareButton";
+import TabNavigation from "@/components/ui/TabNavigation";
+import EventInformations from "@/components/event/EventInformations";
+import EventParticipants from "@/components/event/EventParticipants";
+import EventDocuments from "@/components/event/EventDocuments";
 
 type EventDetails = {
   id: string;
@@ -36,24 +36,32 @@ export default function SingleEventPage() {
   const [event, setEvent] = useState<EventDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState('informations');
+  const [activeTab, setActiveTab] = useState("informations");
 
   const tabs = [
-    { id: 'informations', label: 'Informations', active: activeTab === 'informations' },
-    { id: 'participants', label: 'Participants', active: activeTab === 'participants' },
-    { id: 'documents', label: 'Documents', active: activeTab === 'documents' },
+    {
+      id: "informations",
+      label: "Informations",
+      active: activeTab === "informations",
+    },
+    {
+      id: "participants",
+      label: "Participants",
+      active: activeTab === "participants",
+    },
+    { id: "documents", label: "Documents", active: activeTab === "documents" },
   ];
 
   useEffect(() => {
     const fetchEvent = async () => {
       try {
         const response = await fetch(`/api/events/${id}`);
-        
+
         if (!response.ok) {
           if (response.status === 404) {
-            setError('Événement non trouvé');
+            setError("Événement non trouvé");
           } else {
-            setError('Erreur lors du chargement');
+            setError("Erreur lors du chargement");
           }
           return;
         }
@@ -61,8 +69,8 @@ export default function SingleEventPage() {
         const data = await response.json();
         setEvent(data.event || data);
       } catch (err) {
-        setError('Erreur de connexion');
-        console.error('Erreur:', err);
+        setError("Erreur de connexion");
+        console.error("Erreur:", err);
       } finally {
         setLoading(false);
       }
@@ -82,19 +90,26 @@ export default function SingleEventPage() {
   };
 
   const handleShare = () => {
-    console.log('Partager l\'événement');
+    console.log("Partager l'événement");
   };
 
   const renderTabContent = () => {
     if (!event) return null;
 
     switch (activeTab) {
-      case 'informations':
+      case "informations":
         return <EventInformations event={event} />;
-      case 'participants':
-        return <EventParticipants participants={event.users} />;
-      case 'documents':
-        return <EventDocuments eventId={event.id} />;
+      case "participants":
+        return (
+          <EventParticipants
+            participants={event.users.map((user) => ({
+              ...user,
+              id: Number(user.id),
+            }))}
+          />
+        );
+      case "documents":
+        return <EventDocuments />;
       default:
         return <EventInformations event={event} />;
     }
@@ -112,9 +127,11 @@ export default function SingleEventPage() {
     return (
       <div className="flex h-screen items-center justify-center">
         <div className="text-center">
-          <p className="text-red-600 text-lg mb-4">{error || 'Événement non trouvé'}</p>
-          <button 
-            onClick={() => router.push('/events')}
+          <p className="text-red-600 text-lg mb-4">
+            {error || "Événement non trouvé"}
+          </p>
+          <button
+            onClick={() => router.push("/events")}
             className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
           >
             Retour aux événements
@@ -132,7 +149,7 @@ export default function SingleEventPage() {
         {/* Header avec logo et back arrow */}
         <p className="text-left">LOGO ICI</p>
         <BackArrow onClick={handleBack} className="" />
-        
+
         {/* Header de l'événement */}
         <div className="flex justify-between items-start w-full">
           <div>
@@ -140,25 +157,20 @@ export default function SingleEventPage() {
               {event.title}
             </h1>
             <p className="text-body-large font-poppins text-[var(--color-text)]">
-              Organisé par {organizer?.name || 'Organisateur inconnu'}
+              Organisé par {organizer?.name || "Organisateur inconnu"}
             </p>
           </div>
           <ShareButton onClick={handleShare} />
         </div>
-        
+
         {/* Navigation par onglets */}
         <div className="w-full">
-          <TabNavigation 
-            tabs={tabs}
-            onTabChange={handleTabChange}
-          />
+          <TabNavigation tabs={tabs} onTabChange={handleTabChange} />
         </div>
-        
+
         {/* Contenu de l'onglet actif */}
-        <div className="w-full flex-1 overflow-auto">
-          {renderTabContent()}
-        </div>
-        
+        <div className="w-full flex-1 overflow-auto">{renderTabContent()}</div>
+
         {/* Image en bas à droite - fixe pour toutes les sections */}
         <div className="fixed bottom-0 right-0 z-[-1] pointer-events-none">
           <Image

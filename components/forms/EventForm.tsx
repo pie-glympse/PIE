@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import MainButton from '@/components/ui/MainButton';
 
 interface EventFormProps {
-    title: string;
+    title: React.ReactNode;
     subtitle?: string;
     buttonText: string;
     onSubmit?: (formData: {

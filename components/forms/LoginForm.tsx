@@ -5,7 +5,7 @@ import { useUser } from '../../context/UserContext';
 import MainButton from '../ui/MainButton';
 
 interface LoginFormProps {
-    title: string;
+    title: React.ReactNode;
     buttonText: string;
     onSubmit?: (email: string, password: string) => void;
     onForgotPassword?: () => void;
