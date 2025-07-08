@@ -21,7 +21,7 @@ model User {
   password   String
   role       String   @default("STANDARD")
   photoUrl   String   @default("")
-  events     Event[]         @relation("EventUsers")
+  events     Event[]  @relation("EventUsers")
   preferences EventUserPreference[]
   photos     EventsUsersPhoto[]
   feedbacks  Feedback[]
@@ -38,6 +38,7 @@ model Event {
   maxPersons  BigInt?
   costPerPerson BigInt?
   state       String?
+  activityType String?
   createdAt   DateTime
   updatedAt   DateTime
   users       User[]         @relation("EventUsers")
@@ -63,7 +64,7 @@ model EventUserPreference {
   tagId         BigInt
 
   user   User @relation(fields: [userId], references: [id])
-  event  Event @relation(fields: [eventId], references: [id])
+  event  Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
   tag    Tag @relation(fields: [tagId], references: [id])
 
   @@id([userId, eventId])
@@ -77,8 +78,8 @@ model EventsUsersPhoto {
   caption   String?
   createdAt BigInt
 
-  user   User  @relation(fields: [userId], references: [id])
-  event  Event @relation(fields: [eventId], references: [id])
+user   User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+event  Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
 }
 
 model Feedback {
@@ -88,8 +89,8 @@ model Feedback {
   message   String
   createdAt DateTime
 
-  user  User  @relation(fields: [userId], references: [id])
-  event Event @relation(fields: [eventId], references: [id])
+user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
 
   @@id([userId, eventId])
 }
@@ -100,8 +101,8 @@ model Vote {
   total     BigInt
   createdAt DateTime
 
-  user  User  @relation(fields: [userId], references: [id])
-  event Event @relation(fields: [eventId], references: [id])
+user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
 
   @@id([userId, eventId])
 }
@@ -110,7 +111,7 @@ model EventLocation {
   id       BigInt   @id
   eventId  BigInt   @unique
 
-  event    Event    @relation(fields: [eventId], references: [id])
+event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
 }
 
 model CompanyStats {
