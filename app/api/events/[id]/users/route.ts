@@ -1,87 +1,63 @@
-import { PrismaClient } from '@prisma/client';
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from "next/server";
+import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
-function getEventIdFromUrl(req: NextRequest): bigint | null {
-  const url = new URL(req.url);
-  const segments = url.pathname.split("/").filter(Boolean);
-
-  // Trouver "events" et prendre le segment suivant
-  const eventsIndex = segments.indexOf("events");
-  if (eventsIndex === -1 || eventsIndex + 1 >= segments.length) {
-    return null;
-  }
-
-  const id = segments[eventsIndex + 1];
+export async function POST(request: Request) {
   try {
-    return BigInt(id);
-  } catch {
-    return null;
-  }
-}
+    const {
+      title,
+      startDate,
+      endDate,
+      startTime,
+      endTime,
+      maxPersons,
+      costPerPerson,
+      state,
+      activityType,
+      userId
+    } = await request.json();
 
-
-export async function POST(request: NextRequest) {
-  try {
-    const eventId = getEventIdFromUrl(request);
-    if (!eventId) {
-      return NextResponse.json({ message: "Invalid event ID" }, { status: 400 });
-    }
-
-    const { userId } = await request.json();
     if (!userId) {
-      return NextResponse.json({ message: "userId is required" }, { status: 400 });
+      return NextResponse.json({ error: "userId manquant" }, { status: 400 });
     }
 
-    await prisma.event.update({
-      where: { id: eventId },
+    if (!title) {
+      return NextResponse.json({ error: "title manquant" }, { status: 400 });
+    }
+
+    const safeActivityType =
+      activityType && activityType.trim() !== "" ? activityType : "DEFAULT";
+
+    const newEvent = await prisma.event.create({
       data: {
+        title,
+        startDate,
+        endDate,
+        startTime,
+        endTime,
+        maxPersons: maxPersons ? BigInt(maxPersons) : null,
+        costPerPerson: costPerPerson ? BigInt(costPerPerson) : null,
+        state: state || "PENDING",
+        activityType: safeActivityType,
+        createdAt: new Date(),
+        updatedAt: new Date(),
         users: {
           connect: { id: BigInt(userId) },
         },
       },
-    });
-
-    return NextResponse.json({ message: "User linked to event successfully" });
-  } catch (error) {
-    console.error("Error linking user to event:", error);
-    return NextResponse.json({ message: "Internal server error" }, { status: 500 });
-  }
-}
-
-export async function GET(req: NextRequest) {
-  try {
-    // Récupérer l'ID depuis l'URL
-    const url = new URL(req.url);
-    const segments = url.pathname.split("/").filter(Boolean);
-    const id = segments[segments.length - 2]; // pour /api/events/[id]/users
-    const eventId = BigInt(id);
-
-    const event = await prisma.event.findUnique({
-      where: { id: eventId },
-      select: {
-        users: {
-          select: { id: true },
-        },
+      include: {
+        tags: true,
       },
     });
 
-    if (!event) {
-      return NextResponse.json(
-        { message: "Événement non trouvé" },
-        { status: 404 }
-      );
-    }
-
-    const userIds = event.users.map((u) => u.id.toString());
-
-    return NextResponse.json({ userIds });
-  } catch (error) {
-    console.error("Error fetching event users:", error);
-    return NextResponse.json(
-      { message: "Erreur serveur lors de la récupération" },
-      { status: 500 }
+    const safeEvent = JSON.parse(
+      JSON.stringify(newEvent, (_, v) => (typeof v === "bigint" ? v.toString() : v))
     );
+
+    return NextResponse.json(safeEvent, { status: 201 });
+  } catch (error) {
+    console.error("Erreur création event:", error);
+    return NextResponse.json({ error: "Erreur création event" }, { status: 500 });
   }
 }

@@ -30,24 +30,27 @@ model User {
 }
 
 model Event {
-  id          BigInt   @id @default(autoincrement())
-  uuid        String   @unique @default(uuid())
-  title       String?
-  description String?
-  date        DateTime?
-  maxPersons  BigInt?
+  id            BigInt   @id @default(autoincrement())
+  uuid          String   @unique @default(uuid())
+  title         String
+  startDate     DateTime?
+  endDate       DateTime?
+  startTime     DateTime?
+  endTime       DateTime?
+  maxPersons    BigInt?
   costPerPerson BigInt?
-  state       String?
-  activityType String?
-  createdAt   DateTime
-  updatedAt   DateTime
-  users       User[]         @relation("EventUsers")
-  tags        Tag[]          @relation("EventTags")
-  preferences EventUserPreference[]
-  photos      EventsUsersPhoto[]
-  feedbacks   Feedback[]
-  votes       Vote[]
-  location    EventLocation?
+  state         String   @default("PENDING") // PENDING à la création
+  activityType  String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  users         User[]         @relation("EventUsers")
+  tags          Tag[]          @relation("EventTags")
+  preferences   EventUserPreference[]
+  photos        EventsUsersPhoto[]
+  feedbacks     Feedback[]
+  votes         Vote[]
+  location      EventLocation?
 }
 
 model Tag {
