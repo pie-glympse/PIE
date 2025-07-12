@@ -17,6 +17,8 @@ export async function POST(request: Request) {
       state,
       tags,
       userId,
+      city,          // ✅ Ajouté ici
+      maxDistance,   // ✅ Ajouté ici
     } = await request.json();
 
     if (!userId) {
@@ -38,32 +40,35 @@ export async function POST(request: Request) {
       : null;
 
     const newEvent = await prisma.event.create({
-  data: {
-    title,
-    startDate: parsedStartDate,
-    endDate: parsedEndDate,
-    startTime: parsedStartTime,
-    endTime: parsedEndTime,
-    maxPersons: maxPersons ? BigInt(maxPersons) : null,
-    costPerPerson: costPerPerson ? BigInt(costPerPerson) : null,
-    state: state || "PENDING",
-    activityType: activityType || null, // ✅ Ajouté ici
-    users: {
-      connect: { id: BigInt(userId) },
-    },
-    ...(tags && Array.isArray(tags)
-      ? {
-          tags: {
-            connect: tags.map((id: number) => ({ id: BigInt(id) })),
-          },
-        }
-      : {}),
-  },
-  include: {
-    tags: true,
-  },
-});
-
+      data: {
+        title,
+        startDate: parsedStartDate,
+        endDate: parsedEndDate,
+        startTime: parsedStartTime,
+        endTime: parsedEndTime,
+        maxPersons: maxPersons ? BigInt(maxPersons) : null,
+        costPerPerson: costPerPerson ? BigInt(costPerPerson) : null,
+        state: state || "PENDING",
+        activityType: activityType || null,
+        city: city || null,                     
+        maxDistance: maxDistance                 
+          ? parseFloat(maxDistance)
+          : null,
+        users: {
+          connect: { id: BigInt(userId) },
+        },
+        ...(tags && Array.isArray(tags)
+          ? {
+              tags: {
+                connect: tags.map((id: number) => ({ id: BigInt(id) })),
+              },
+            }
+          : {}),
+      },
+      include: {
+        tags: true,
+      },
+    });
 
     return NextResponse.json(
       JSON.parse(
