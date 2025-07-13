@@ -27,7 +27,7 @@ export const ShareEventModal = ({
 }: ShareEventModalProps) => {
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
-  const [linkedUserIds, setLinkedUserIds] = React.useState<string[]>([]);
+  const [linkedUsers, setLinkedUsers] = React.useState<User[]>([]);
 
   // Charger les utilisateurs déjà liés quand le modal s'ouvre
   React.useEffect(() => {
@@ -35,15 +35,21 @@ export const ShareEventModal = ({
 
     const fetchLinkedUsers = async () => {
       try {
+        setLoading(true);
+        setError(null);
         const res = await fetch(`/api/events/${eventId}/users`);
         if (!res.ok) {
           throw new Error("Impossible de récupérer les utilisateurs liés");
         }
         const data = await res.json();
-        setLinkedUserIds(data.userIds || []);
+        // On suppose que l'API retourne un tableau d'utilisateurs liés
+        setLinkedUsers(data.users || []);
       } catch (err) {
         console.error(err);
-        setLinkedUserIds([]); // En cas d'erreur, mettre une liste vide
+        setLinkedUsers([]);
+        setError("Erreur lors du chargement des utilisateurs liés");
+      } finally {
+        setLoading(false);
       }
     };
 
@@ -70,7 +76,6 @@ export const ShareEventModal = ({
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "x-user-id": currentUserId,
         },
         body: JSON.stringify({ userId }),
       });
@@ -80,8 +85,12 @@ export const ShareEventModal = ({
         throw new Error(errorData.message || "Erreur ajout utilisateur");
       }
 
-      // Mettre à jour la liste des utilisateurs liés
-      setLinkedUserIds((prev) => [...prev, userId]);
+      // Mettre à jour la liste des utilisateurs liés (évite les doublons)
+      setLinkedUsers((prev) =>
+        prev.some((u) => u.id === userId)
+          ? prev
+          : [...prev, filteredUsers.find((u) => u.id === userId)!]
+      );
 
       alert("Utilisateur ajouté à l'événement !");
     } catch (e) {
@@ -122,7 +131,7 @@ export const ShareEventModal = ({
               <p className="text-gray-600">Aucun utilisateur trouvé.</p>
             ) : (
               filteredUsers.map((user) => {
-                const isLinked = linkedUserIds.includes(user.id);
+                const isLinked = linkedUsers.some((u) => u.id === user.id);
 
                 return (
                   <div

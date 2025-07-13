@@ -31,12 +31,16 @@ export default function EventForm() {
 
   const [formData, setFormData] = useState({
     title: "",
-    description: "",
-    date: "",
+    startDate: "",
+    endDate: "",
+    startTime: "",
+    endTime: "",
     maxPersons: "",
     costPerPerson: "",
-    state: "",
+    activityType: "",
     tags: [] as number[],
+    city: "",
+    maxDistance: "",
   });
 
   const [createdEvent, setCreatedEvent] = useState<EventType | null>(null);
@@ -178,7 +182,7 @@ export default function EventForm() {
   };
 
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
@@ -197,25 +201,25 @@ export default function EventForm() {
   };
 
   // Fonction pour supprimer un événement
-const handleDeleteEvent = async (eventId: string) => {
-  if (!confirm("Voulez-vous vraiment supprimer cet événement ?")) return;
+  const handleDeleteEvent = async (eventId: string) => {
+    if (!confirm("Voulez-vous vraiment supprimer cet événement ?")) return;
 
-  try {
-    const res = await fetch(`/api/events/${eventId}`, {
-      method: "DELETE",
-    });
-    if (res.ok) {
-      // Mise à jour locale en supprimant l'event supprimé
-      setUserEvents((prev) => prev.filter((event) => event.id !== eventId));
-      alert("Événement supprimé avec succès !");
-    } else {
-      alert("Erreur lors de la suppression de l'événement.");
+    try {
+      const res = await fetch(`/api/events/${eventId}`, {
+        method: "DELETE",
+      });
+      if (res.ok) {
+        // Mise à jour locale en supprimant l'event supprimé
+        setUserEvents((prev) => prev.filter((event) => event.id !== eventId));
+        alert("Événement supprimé avec succès !");
+      } else {
+        alert("Erreur lors de la suppression de l'événement.");
+      }
+    } catch (error) {
+      console.error("Erreur réseau lors de la suppression :", error);
+      alert("Erreur réseau lors de la suppression.");
     }
-  } catch (error) {
-    console.error("Erreur réseau lors de la suppression :", error);
-    alert("Erreur réseau lors de la suppression.");
-  }
-};
+  };
 
   const handleSubmitPreferences = async () => {
     if (!user || !selectedEvent || !selectedTagId || !preferredDate) return;
@@ -260,14 +264,18 @@ const handleDeleteEvent = async (eventId: string) => {
     e.preventDefault();
 
     const body = {
-      ...formData,
+      title: formData.title,
+      startDate: formData.startDate,
+      endDate: formData.endDate,
+      startTime: formData.startTime,
+      endTime: formData.endTime,
       maxPersons: formData.maxPersons ? Number(formData.maxPersons) : null,
-      costPerPerson: formData.costPerPerson
-        ? Number(formData.costPerPerson)
-        : null,
-      date: formData.date ? new Date(formData.date).toISOString() : null,
+      costPerPerson: formData.costPerPerson ? Number(formData.costPerPerson) : null,
+      activityType: formData.activityType,
       tags: formData.tags,
       userId: user?.id,
+      city: formData.city,
+      maxDistance: formData.maxDistance ? parseFloat(formData.maxDistance) : null,
     };
 
     try {
@@ -282,17 +290,21 @@ const handleDeleteEvent = async (eventId: string) => {
         setCreatedEvent(eventData);
         setFormData({
           title: "",
-          description: "",
-          date: "",
+          startDate: "",
+          endDate: "",
+          startTime: "",
+          endTime: "",
           maxPersons: "",
           costPerPerson: "",
-          state: "",
+          activityType: "",
           tags: [],
+          city: "",
+          maxDistance: "",
         });
-        // Rafraîchir la liste des events du user
         setUserEvents((prev) => [...prev, eventData]);
       } else {
-        alert("Erreur lors de la création de l'événement");
+        const error = await response.json();
+        alert(error?.error || "Erreur lors de la création de l'événement");
       }
     } catch (error) {
       alert("Erreur réseau ou serveur");
@@ -339,17 +351,32 @@ const handleDeleteEvent = async (eventId: string) => {
             className="w-full border p-2"
             required
           />
-          <textarea
-            name="description"
-            placeholder="Description"
-            value={formData.description}
+          <input
+            type="date"
+            name="startDate"
+            value={formData.startDate}
+            onChange={handleChange}
+            className="w-full border p-2"
+            required
+          />
+          <input
+            type="date"
+            name="endDate"
+            value={formData.endDate}
             onChange={handleChange}
             className="w-full border p-2"
           />
           <input
-            type="datetime-local"
-            name="date"
-            value={formData.date}
+            type="time"
+            name="startTime"
+            value={formData.startTime}
+            onChange={handleChange}
+            className="w-full border p-2"
+          />
+          <input
+            type="time"
+            name="endTime"
+            value={formData.endTime}
             onChange={handleChange}
             className="w-full border p-2"
           />
@@ -373,13 +400,31 @@ const handleDeleteEvent = async (eventId: string) => {
           />
           <input
             type="text"
-            name="state"
-            placeholder="État (ex: Brouillon, Publié...)"
-            value={formData.state}
+            name="activityType"
+            placeholder="Type d'activité"
+            value={formData.activityType}
             onChange={handleChange}
             className="w-full border p-2"
           />
-
+          <input
+            type="text"
+            name="city"
+            placeholder="Ville"
+            value={formData.city}
+            onChange={handleChange}
+            className="w-full border p-2"
+            required
+          />
+          <input
+            type="number"
+            name="maxDistance"
+            placeholder="Distance max (km)"
+            value={formData.maxDistance}
+            onChange={handleChange}
+            className="w-full border p-2"
+            min={0}
+            required
+          />
           <fieldset>
             <legend>Catégories</legend>
             {TAGS.map((tag) => (
@@ -413,67 +458,67 @@ const handleDeleteEvent = async (eventId: string) => {
           <p className="text-red-600 font-semibold">Erreur: {fetchError}</p>
         )}
         {userEvents.length === 0 && <p>Aucun événement trouvé.</p>}
-<ul className="space-y-2">
-  {userEvents.map((event) => (
-    <li key={event.id} className="border p-4 rounded shadow flex justify-between items-center">
-      <div>
-        <h3 className="text-lg font-semibold">{event.title}</h3>
-        <p className="text-sm text-gray-500">{event.description || "Pas de description"}</p>
-      </div>
+        <ul className="space-y-2">
+          {userEvents.map((event) => (
+            <li key={event.id} className="border p-4 rounded shadow flex justify-between items-center">
+              <div>
+                <h3 className="text-lg font-semibold">{event.title}</h3>
+                <p className="text-sm text-gray-500">{event.description || "Pas de description"}</p>
+              </div>
 
-      <div className="flex items-center gap-2">
-        {/* Checkbox pour supprimer l'événement */}
-        <label className="flex items-center cursor-pointer">
-          <input
-            type="checkbox"
-            onChange={() => handleDeleteEvent(event.id)}
-            className="mr-2"
-          />
-          Supprimer
-        </label>
+              <div className="flex items-center gap-2">
+                {/* Checkbox pour supprimer l'événement */}
+                <label className="flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    onChange={() => handleDeleteEvent(event.id)}
+                    className="mr-2"
+                  />
+                  Supprimer
+                </label>
 
-        {isAuthorized && (
-          <button
-            onClick={() => openShareModal(event.id, event.title)}
-            className="ml-4 bg-indigo-600 text-white px-3 py-1 rounded hover:bg-indigo-700 transition"
-          >
-            Partager
-          </button>
-        )}
+                {isAuthorized && (
+                  <button
+                    onClick={() => openShareModal(event.id, event.title)}
+                    className="ml-4 bg-indigo-600 text-white px-3 py-1 rounded hover:bg-indigo-700 transition"
+                  >
+                    Partager
+                  </button>
+                )}
 
-        <button
-          onClick={() => router.push(`/events/${event.id}`)}
-          className="ml-4 px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700"
-        >
-          Voir détails
-        </button>
+                <button
+                  onClick={() => router.push(`/events/${event.id}`)}
+                  className="ml-4 px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700"
+                >
+                  Voir détails
+                </button>
 
-        {!userEventPreferences.has(Number(event.id)) && (
-          <button
-            onClick={() => {
-              setSelectedEvent(event);
-              setShowPreferenceForm(true);
-            }}
-            className="text-blue-600 underline mt-2"
-          >
-            Remplir mes préférences
-          </button>
-        )}
-      </div>
-    </li>
-  ))}
-</ul>
+                {!userEventPreferences.has(Number(event.id)) && (
+                  <button
+                    onClick={() => {
+                      setSelectedEvent(event);
+                      setShowPreferenceForm(true);
+                    }}
+                    className="text-blue-600 underline mt-2"
+                  >
+                    Remplir mes préférences
+                  </button>
+                )}
+              </div>
+            </li>
+          ))}
+        </ul>
 
       </section>
       {/* Modal de partage */}
-<ShareEventModal
-  isOpen={shareModal.isOpen}
-  onClose={closeShareModal}
-  eventId={shareModal.eventId}
-  eventTitle={shareModal.eventTitle}
-  users={users}  // <-- ici
-  currentUserId={user.id}
-/>
+      <ShareEventModal
+        isOpen={shareModal.isOpen}
+        onClose={closeShareModal}
+        eventId={shareModal.eventId}
+        eventTitle={shareModal.eventTitle}
+        users={users}  // <-- ici
+        currentUserId={user.id}
+      />
       {showPreferenceForm && selectedEvent && (
         <div className="fixed top-0 left-0 w-full h-full bg-white z-50 p-8 overflow-auto">
           <h2 className="text-2xl font-bold mb-6">

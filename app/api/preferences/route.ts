@@ -9,33 +9,49 @@ export async function GET(request: NextRequest) {
     const userId = url.searchParams.get('userId');
     const eventId = url.searchParams.get('eventId');
 
-    if (!userId || !eventId) {
+    if (!userId) {
       return NextResponse.json(
-        { message: 'userId et eventId sont requis' },
+        { message: 'userId est requis' },
         { status: 400 }
       );
     }
 
-    const preference = await prisma.eventUserPreference.findUnique({
-      where: {
-        userId_eventId: {
-          userId: BigInt(userId),
-          eventId: BigInt(eventId),
+    if (eventId) {
+      // Recherche d'une préférence pour un user + event précis
+      const preference = await prisma.eventUserPreference.findUnique({
+        where: {
+          userId_eventId: {
+            userId: BigInt(userId),
+            eventId: BigInt(eventId),
+          },
         },
-      },
-      include: {
-        tag: true,
-      },
-    });
+        include: {
+          tag: true,
+        },
+      });
 
-    if (!preference) {
-      return NextResponse.json(
-        { message: 'Aucune préférence trouvée pour cet utilisateur et cet événement' },
-        { status: 404 }
-      );
+      if (!preference) {
+        return NextResponse.json(
+          { message: 'Aucune préférence trouvée pour cet utilisateur et cet événement' },
+          { status: 404 }
+        );
+      }
+
+      return NextResponse.json(preference, { status: 200 });
+    } else {
+      // Recherche de toutes les préférences pour un user
+      const preferences = await prisma.eventUserPreference.findMany({
+        where: {
+          userId: BigInt(userId),
+        },
+        include: {
+          tag: true,
+          event: true,
+        },
+      });
+
+      return NextResponse.json(preferences, { status: 200 });
     }
-
-    return NextResponse.json(preference, { status: 200 });
   } catch (error) {
     console.error('Erreur récupération préférence :', error);
     return NextResponse.json(

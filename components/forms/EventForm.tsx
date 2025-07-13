@@ -8,13 +8,17 @@ interface EventFormProps {
     subtitle?: string;
     buttonText: string;
     onSubmit?: (formData: {
-        eventName: string;
+        title: string;
+        startDate: string;
+        endDate: string;
         startTime: string;
         endTime: string;
-        dateRange: string;
-        maxBudgetPerPerson: string;
+        maxPersons: number | null;
+        costPerPerson: number | null;
+        activityType: string;
         city: string;
-        maxDistance: string;
+        maxDistance: number | null;
+        tags: number[];
     }) => void;
 }
 
@@ -25,13 +29,17 @@ const EventForm: React.FC<EventFormProps> = ({
     onSubmit
 }) => {
     const router = useRouter();
-    const [eventName, setEventName] = useState('');
+    const [title, setTitle] = useState('');
+    const [startDate, setStartDate] = useState('');
+    const [endDate, setEndDate] = useState('');
     const [startTime, setStartTime] = useState('');
     const [endTime, setEndTime] = useState('');
-    const [dateRange, setDateRange] = useState('');
-    const [maxBudgetPerPerson, setMaxBudgetPerPerson] = useState('');
+    const [maxPersons, setMaxPersons] = useState('');
+    const [costPerPerson, setCostPerPerson] = useState('');
+    const [activityType, setActivityType] = useState('');
     const [city, setCity] = useState('');
     const [maxDistance, setMaxDistance] = useState('');
+    const [tags, setTags] = useState<number[]>([]);
 
     // Options pour les heures
     const timeOptions = [];
@@ -42,18 +50,30 @@ const EventForm: React.FC<EventFormProps> = ({
         }
     }
 
+    const handleTagToggle = (tagId: number) => {
+        setTags((prev) =>
+            prev.includes(tagId)
+                ? prev.filter((id) => id !== tagId)
+                : [...prev, tagId]
+        );
+    };
+
     const handleSubmit = async (e: FormEvent) => {
         e.preventDefault();
         
         try {
             const formData = {
-                eventName,
+                title,
+                startDate,
+                endDate,
                 startTime,
                 endTime,
-                dateRange,
-                maxBudgetPerPerson,
+                maxPersons: maxPersons ? Number(maxPersons) : null,
+                costPerPerson: costPerPerson ? Number(costPerPerson) : null,
+                activityType,
                 city,
-                maxDistance
+                maxDistance: maxDistance ? parseFloat(maxDistance) : null,
+                tags,
             };
 
             if (onSubmit) {
@@ -88,22 +108,43 @@ const EventForm: React.FC<EventFormProps> = ({
                 <h2 className="text-h3 mb-8 text-left md:w-2/3 w-full font-poppins text-[var(--color-grey-three)]">{subtitle}</h2>
             )}
             
-            {/* Nom de l'événement */}
+            {/* Titre de l'événement */}
             <div className="mb-4">
-                <label htmlFor="eventName" className="block mb-1 text-body-large font-poppins text-[var(--color-grey-three)]">Nom de l&apos;événement</label>
+                <label htmlFor="title" className="block mb-1 text-body-large font-poppins text-[var(--color-grey-three)]">Titre de l&apos;événement</label>
                 <input
-                    id="eventName"
+                    id="title"
                     type="text"
-                    value={eventName}
-                    onChange={e => setEventName(e.target.value)}
-                    placeholder="Nom de l'événement"
+                    value={title}
+                    onChange={e => setTitle(e.target.value)}
+                    placeholder="Titre de l'événement"
                     required
                     className="w-full px-5 py-2 text-base border-2 border-[var(--color-grey-two)] rounded placeholder:font-poppins placeholder:text-[#EAEAEF]"
                 />
             </div>
 
-            {/* Heure de début et Heure de fin (50-50) */}
+            {/* Date de début, Date de fin, Heure de début et Heure de fin (25-25-25-25) */}
             <div className="flex flex-col md:flex-row gap-4 mb-4">
+                <div className="flex-1">
+                    <label htmlFor="startDate" className="block mb-1 text-body-large font-poppins text-[var(--color-grey-three)]">Date de début</label>
+                    <input
+                        id="startDate"
+                        type="date"
+                        value={startDate}
+                        onChange={e => setStartDate(e.target.value)}
+                        required
+                        className="w-full px-5 py-2 text-base border-2 border-[var(--color-grey-two)] rounded font-poppins"
+                    />
+                </div>
+                <div className="flex-1">
+                    <label htmlFor="endDate" className="block mb-1 text-body-large font-poppins text-[var(--color-grey-three)]">Date de fin</label>
+                    <input
+                        id="endDate"
+                        type="date"
+                        value={endDate}
+                        onChange={e => setEndDate(e.target.value)}
+                        className="w-full px-5 py-2 text-base border-2 border-[var(--color-grey-two)] rounded font-poppins"
+                    />
+                </div>
                 <div className="flex-1">
                     <label htmlFor="startTime" className="block mb-1 text-body-large font-poppins text-[var(--color-grey-three)]">Heure de début</label>
                     <div className="relative">
@@ -150,35 +191,41 @@ const EventForm: React.FC<EventFormProps> = ({
                 </div>
             </div>
 
-            {/* Plage de date et Budget max par personne (50-50) */}
-            <div className="flex flex-col md:flex-row gap-4 mb-4">
+            {/* Nombre max de personnes, Coût par personne, Type d'activité, Ville et Distance max (20-20-20-20-20) */}
+            <div className="flex flex-col md:flex-row gap-4 mb-6">
                 <div className="flex-1">
-                    <label htmlFor="dateRange" className="block mb-1 text-body-large font-poppins text-[var(--color-grey-three)]">Plage de date</label>
+                    <label htmlFor="maxPersons" className="block mb-1 text-body-large font-poppins text-[var(--color-grey-three)]">Nombre max de personnes</label>
                     <input
-                        id="dateRange"
-                        type="date"
-                        value={dateRange}
-                        onChange={e => setDateRange(e.target.value)}
-                        required
-                        className="w-full px-5 py-2 text-base border-2 border-[var(--color-grey-two)] rounded font-poppins"
-                    />
-                </div>
-                <div className="flex-1">
-                    <label htmlFor="maxBudgetPerPerson" className="block mb-1 text-body-large font-poppins text-[var(--color-grey-three)]">Budget max / pers</label>
-                    <input
-                        id="maxBudgetPerPerson"
-                        type="text"
-                        value={maxBudgetPerPerson}
-                        onChange={e => setMaxBudgetPerPerson(e.target.value)}
-                        placeholder="Ex: 50€"
-                        required
+                        id="maxPersons"
+                        type="number"
+                        value={maxPersons}
+                        onChange={e => setMaxPersons(e.target.value)}
+                        min={1}
                         className="w-full px-5 py-2 text-base border-2 border-[var(--color-grey-two)] rounded placeholder:font-poppins placeholder:text-[#EAEAEF]"
                     />
                 </div>
-            </div>
-
-            {/* Ville et Distance max (50-50) */}
-            <div className="flex flex-col md:flex-row gap-4 mb-6">
+                <div className="flex-1">
+                    <label htmlFor="costPerPerson" className="block mb-1 text-body-large font-poppins text-[var(--color-grey-three)]">Coût par personne</label>
+                    <input
+                        id="costPerPerson"
+                        type="number"
+                        value={costPerPerson}
+                        onChange={e => setCostPerPerson(e.target.value)}
+                        min={0}
+                        className="w-full px-5 py-2 text-base border-2 border-[var(--color-grey-two)] rounded placeholder:font-poppins placeholder:text-[#EAEAEF]"
+                    />
+                </div>
+                <div className="flex-1">
+                    <label htmlFor="activityType" className="block mb-1 text-body-large font-poppins text-[var(--color-grey-three)]">Type d'activité</label>
+                    <input
+                        id="activityType"
+                        type="text"
+                        value={activityType}
+                        onChange={e => setActivityType(e.target.value)}
+                        placeholder="Type d'activité"
+                        className="w-full px-5 py-2 text-base border-2 border-[var(--color-grey-two)] rounded placeholder:font-poppins placeholder:text-[#EAEAEF]"
+                    />
+                </div>
                 <div className="flex-1">
                     <label htmlFor="city" className="block mb-1 text-body-large font-poppins text-[var(--color-grey-three)]">Ville</label>
                     <input
@@ -186,7 +233,6 @@ const EventForm: React.FC<EventFormProps> = ({
                         type="text"
                         value={city}
                         onChange={e => setCity(e.target.value)}
-                        placeholder="Ville"
                         required
                         className="w-full px-5 py-2 text-base border-2 border-[var(--color-grey-two)] rounded placeholder:font-poppins placeholder:text-[#EAEAEF]"
                     />
@@ -195,15 +241,31 @@ const EventForm: React.FC<EventFormProps> = ({
                     <label htmlFor="maxDistance" className="block mb-1 text-body-large font-poppins text-[var(--color-grey-three)]">Distance max</label>
                     <input
                         id="maxDistance"
-                        type="text"
+                        type="number"
                         value={maxDistance}
                         onChange={e => setMaxDistance(e.target.value)}
-                        placeholder="Ex: 50km"
+                        min={0}
                         required
                         className="w-full px-5 py-2 text-base border-2 border-[var(--color-grey-two)] rounded placeholder:font-poppins placeholder:text-[#EAEAEF]"
                     />
                 </div>
             </div>
+
+            {/* Tags */}
+            <fieldset className="mb-6">
+                <legend className="block mb-2 text-body-large font-poppins text-[var(--color-grey-three)]">Catégories</legend>
+                {[{ id: 1, name: "Restauration" }, { id: 2, name: "Afterwork" }, { id: 3, name: "Team Building" }, { id: 4, name: "Séminaire" }, { id: 5, name: "Autre" }].map((tag) => (
+                    <label key={tag.id} className="block mb-1">
+                        <input
+                            type="checkbox"
+                            checked={tags.includes(tag.id)}
+                            onChange={() => handleTagToggle(tag.id)}
+                            className="mr-2 leading-tight"
+                        />{" "}
+                        <span className="text-body-large font-poppins text-[var(--color-grey-three)]">{tag.name}</span>
+                    </label>
+                ))}
+            </fieldset>
 
             <div className='md:w-1/5 w-full mb-8'>
                 {/* Submit button */}

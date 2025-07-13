@@ -47,10 +47,10 @@ export async function middleware(request: NextRequest) {
   );
 
   if (isPublicRoute) {
-    // Si utilisateur connecté essaie d'accéder au login, rediriger vers events
-    if (isTokenValid && pathname === '/login') {
-      return NextResponse.redirect(new URL('/events', request.url));
-    }
+    // Supprimer la redirection automatique du login si connecté
+    // if (isTokenValid && pathname === '/login') {
+    //   return NextResponse.redirect(new URL('/events', request.url));
+    // }
     // Sinon, laisser passer
     return NextResponse.next();
   }
@@ -67,6 +67,11 @@ export async function middleware(request: NextRequest) {
     }
     // Token valide → accès autorisé
     return NextResponse.next();
+  }
+
+  // Si pas de token et pas sur la page de login, rediriger vers login
+  if (!token && pathname !== '/login') {
+    return NextResponse.redirect(new URL('/login', request.url));
   }
 
   // Pour toutes les autres routes, laisser passer
