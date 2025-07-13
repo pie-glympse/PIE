@@ -10,8 +10,9 @@ export async function POST(req: Request) {
 
     const user = await createUser({ email, password, name });
 
+    // Conversion de l'id BigInt en string pour le payload JWT et la réponse
     const payload = {
-      id: user.id,
+      id: user.id.toString(),
       email: user.email,
       name: user.name,
       role: user.role,
@@ -31,7 +32,6 @@ export async function POST(req: Request) {
     });
 
     return response;
-
   } catch (error: any) {
     console.error("Erreur d'inscription :", error);
     return NextResponse.json(
