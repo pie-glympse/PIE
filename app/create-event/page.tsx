@@ -98,11 +98,12 @@ const CreateEventPage = () => {
                 // Préparer les données pour l'API
                 const eventData = {
                     ...formData,
-                    // Convertir les dates si elles sont fournies
-                    startDate: formData.startDate ? new Date(formData.startDate).toISOString() : null,
-                    endDate: formData.endDate ? new Date(formData.endDate).toISOString() : null,
-                    startTime: formData.startTime ? new Date(`1970-01-01T${formData.startTime}`).toISOString() : null,
-                    endTime: formData.endTime ? new Date(`1970-01-01T${formData.endTime}`).toISOString() : null,
+                    // Envoyer les dates telles quelles (format YYYY-MM-DD)
+                    startDate: formData.startDate || null,
+                    endDate: formData.endDate || null,
+                    // Envoyer les heures telles quelles (format HH:MM)
+                    startTime: formData.startTime || null,
+                    endTime: formData.endTime || null,
                     // Convertir les nombres
                     maxPersons: formData.maxPersons ? Number(formData.maxPersons) : null,
                     costPerPerson: formData.costPerPerson ? Number(formData.costPerPerson) : null,

@@ -31,7 +31,7 @@ type EventType = {
 };
 
 export default function EventForm() {
-  const { user, isLoading, logout } = useUser();
+  const { user, isLoading } = useUser();
   const router = useRouter();
 
   const [formData, setFormData] = useState({
@@ -166,26 +166,6 @@ export default function EventForm() {
   if (!user) return null;
 
   if (loading) return <p>Chargement...</p>;
-
-  const handleLogout = async () => {
-    try {
-      // Appeler l'API de logout
-      await fetch("/api/logout", { method: "POST" });
-
-      // Nettoyer le context
-      logout();
-
-      // Rediriger
-      router.push("/login");
-    } catch (error) {
-      console.error("Erreur lors de la déconnexion:", error);
-      // Fallback: forcer la suppression du cookie
-      document.cookie =
-        "token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
-      logout();
-      router.push("/login");
-    }
-  };
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -337,64 +317,9 @@ const handleDeleteEvent = async (eventId: string) => {
 
   const isAuthorized = ["ADMIN", "SUPER_ADMIN"].includes(user.role);
 
-  const initializeTags = async () => {
-    try {
-      const response = await fetch("/api/tags/init", {
-        method: "POST",
-      });
-      if (response.ok) {
-        alert("Tags initialisés avec succès !");
-      } else {
-        alert("Erreur lors de l'initialisation des tags");
-      }
-    } catch (error) {
-      console.error(error);
-      alert("Erreur réseau");
-    }
-  };
-
-  const createTestUser = async () => {
-    try {
-      const response = await fetch("/api/create-test-user", {
-        method: "POST",
-      });
-      if (response.ok) {
-        const data = await response.json();
-        alert(`Utilisateur test créé: ${data.user.email} / mot de passe: 123456`);
-      } else {
-        alert("Erreur lors de la création de l'utilisateur test");
-      }
-    } catch (error) {
-      console.error(error);
-      alert("Erreur réseau");
-    }
-  };
-
   return (
     <div className="max-w-xl mx-auto space-y-6">
       <div>Bonjour {user?.name || "invité"}</div>
-      <button
-        onClick={handleLogout}
-        className="px-4 py-2 bg-red-600 text-white rounded"
-      >
-        Se déconnecter
-      </button>
-
-      {/* Bouton temporaire pour initialiser les tags */}
-      <button
-        onClick={initializeTags}
-        className="px-4 py-2 bg-green-600 text-white rounded"
-      >
-        Initialiser les tags (à faire une seule fois)
-      </button>
-
-      {/* Bouton temporaire pour créer un utilisateur de test */}
-      <button
-        onClick={createTestUser}
-        className="px-4 py-2 bg-purple-600 text-white rounded"
-      >
-        Créer utilisateur test (test@test.com / 123456)
-      </button>
 
       {isAuthorized ? (
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -552,12 +477,18 @@ const handleDeleteEvent = async (eventId: string) => {
           <div className="grid grid-cols-2 gap-4 text-sm">
             {event.startDate && (
               <div>
-                <span className="font-medium">Début:</span> {new Date(event.startDate).toLocaleDateString('fr-FR')} à {new Date(event.startDate).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                <span className="font-medium">Date début:</span> {new Date(event.startDate).toLocaleDateString('fr-FR')}
+                {event.startTime && (
+                  <span className="ml-2">à {new Date(event.startTime).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</span>
+                )}
               </div>
             )}
             {event.endDate && (
               <div>
-                <span className="font-medium">Fin:</span> {new Date(event.endDate).toLocaleDateString('fr-FR')} à {new Date(event.endDate).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                <span className="font-medium">Date fin:</span> {new Date(event.endDate).toLocaleDateString('fr-FR')}
+                {event.endTime && (
+                  <span className="ml-2">à {new Date(event.endTime).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</span>
+                )}
               </div>
             )}
             {event.activityType && (

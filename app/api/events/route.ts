@@ -62,13 +62,33 @@ export async function POST(request: Request) {
 
     console.log("Dates reçues:", { startDate, endDate, startTime, endTime }); // Debug
 
+    // Helper pour créer une date sans heure (seulement la date)
+    const createDateOnly = (dateString: string) => {
+      if (!dateString) return null;
+      const date = new Date(dateString);
+      // Créer une date à minuit UTC pour éviter les problèmes de timezone
+      return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
+    };
+
+    // Helper pour créer une heure uniquement (sur une date de référence)
+    const createTimeOnly = (timeString: string) => {
+      if (!timeString) return null;
+      // Si c'est déjà un timestamp ISO, extraire juste l'heure
+      if (timeString.includes('T')) {
+        const timeOnly = timeString.split('T')[1].split('.')[0]; // Extraire HH:MM:SS
+        return new Date(`1970-01-01T${timeOnly}`);
+      }
+      // Si c'est juste HH:MM, l'utiliser directement
+      return new Date(`1970-01-01T${timeString}:00`);
+    };
+
     const newEvent = await prisma.event.create({
       data: {
         title,
-        startDate: startDate ? new Date(startDate) : null,
-        endDate: endDate ? new Date(endDate) : null,
-        startTime: startTime ? new Date(startTime) : null,
-        endTime: endTime ? new Date(endTime) : null,
+        startDate: createDateOnly(startDate),
+        endDate: createDateOnly(endDate), 
+        startTime: createTimeOnly(startTime),
+        endTime: createTimeOnly(endTime),
         maxPersons: maxPersons ? BigInt(maxPersons) : null,
         costPerPerson: costPerPerson ? BigInt(costPerPerson) : null,
         state,
