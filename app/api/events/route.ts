@@ -5,24 +5,128 @@ const prisma = new PrismaClient();
 
 export async function POST(request: Request) {
   try {
-    const { title, description, date, maxPersons, costPerPerson, state, tags, userId } = await request.json();
+    const {
+      title,
+      startDate,
+      endDate,
+      startTime,
+      endTime,
+      maxPersons,
+      costPerPerson,
+      state,
+      activityType,
+      city,
+      maxDistance,
+      tags,
+      userId,
+      invitedUsers = [], // Nouveaux utilisateurs invités
+    } = await request.json();
+
+    console.log("Données reçues:", { userId, title, tags, invitedUsers }); // Debug plus complet
 
     if (!userId) {
       return NextResponse.json({ error: "userId manquant" }, { status: 400 });
     }
 
+    // Debug: vérifier si l'utilisateur existe
+    const userExists = await prisma.user.findUnique({
+      where: { id: BigInt(userId) }
+    });
+    console.log("Utilisateur existe:", !!userExists, "ID:", userId);
+
+    if (!userExists) {
+      return NextResponse.json({ 
+        error: `L'utilisateur avec l'ID ${userId} n'existe pas en base de données` 
+      }, { status: 404 });
+    }
+
+    // Debug: vérifier les utilisateurs invités
+    if (invitedUsers && Array.isArray(invitedUsers) && invitedUsers.length > 0) {
+      const existingUsers = await prisma.user.findMany({
+        where: {
+          id: { in: invitedUsers.map((id: number) => BigInt(id)) }
+        }
+      });
+      console.log("Utilisateurs invités demandés:", invitedUsers);
+      console.log("Utilisateurs existants:", existingUsers.map(u => ({ id: u.id.toString(), email: u.email })));
+      
+      if (existingUsers.length !== invitedUsers.length) {
+        const missingUsers = invitedUsers.filter(userId => 
+          !existingUsers.some(existingUser => existingUser.id === BigInt(userId))
+        );
+        console.log("Utilisateurs manquants:", missingUsers);
+        return NextResponse.json({ 
+          error: `Utilisateurs manquants avec les IDs: ${missingUsers.join(', ')}` 
+        }, { status: 400 });
+      }
+    }
+
+    // Debug: si des tags sont fournis, vérifier lesquels existent
+    if (tags && Array.isArray(tags) && tags.length > 0) {
+      const existingTags = await prisma.tag.findMany({
+        where: {
+          id: { in: tags.map((id: number) => BigInt(id)) }
+        }
+      });
+      console.log("Tags demandés:", tags);
+      console.log("Tags existants:", existingTags.map(t => ({ id: t.id.toString(), name: t.name })));
+      
+      if (existingTags.length !== tags.length) {
+        const missingTags = tags.filter(tagId => 
+          !existingTags.some(existingTag => existingTag.id === BigInt(tagId))
+        );
+        console.log("Tags manquants:", missingTags);
+        return NextResponse.json({ 
+          error: `Tags manquants avec les IDs: ${missingTags.join(', ')}` 
+        }, { status: 400 });
+      }
+    }
+
+    console.log("Dates reçues:", { startDate, endDate, startTime, endTime }); // Debug
+
+    // Helper pour créer une date sans heure (seulement la date)
+    const createDateOnly = (dateString: string) => {
+      if (!dateString) return null;
+      const date = new Date(dateString);
+      // Créer une date à minuit UTC pour éviter les problèmes de timezone
+      return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
+    };
+
+    // Helper pour créer une heure uniquement (sur une date de référence)
+    const createTimeOnly = (timeString: string) => {
+      if (!timeString) return null;
+      // Si c'est déjà un timestamp ISO, extraire juste l'heure
+      if (timeString.includes('T')) {
+        const timeOnly = timeString.split('T')[1].split('.')[0]; // Extraire HH:MM:SS
+        return new Date(`1970-01-01T${timeOnly}`);
+      }
+      // Si c'est juste HH:MM, l'utiliser directement
+      return new Date(`1970-01-01T${timeString}:00`);
+    };
+
     const newEvent = await prisma.event.create({
       data: {
         title,
-        description,
-        date: date ? new Date(date) : null,
+        startDate: createDateOnly(startDate),
+        endDate: createDateOnly(endDate), 
+        startTime: createTimeOnly(startTime),
+        endTime: createTimeOnly(endTime),
         maxPersons: maxPersons ? BigInt(maxPersons) : null,
         costPerPerson: costPerPerson ? BigInt(costPerPerson) : null,
         state,
+        activityType,
+        city,
+        maxDistance: maxDistance ? Number(maxDistance) : null,
         createdAt: new Date(),
         updatedAt: new Date(),
         users: {
-          connect: { id: BigInt(userId) },
+          connect: [
+            { id: BigInt(userId) }, // Le créateur de l'événement
+            ...(invitedUsers && Array.isArray(invitedUsers) 
+              ? invitedUsers.map((id: number) => ({ id: BigInt(id) }))
+              : []
+            )
+          ],
         },
         ...(tags && Array.isArray(tags)
           ? {
@@ -34,6 +138,13 @@ export async function POST(request: Request) {
       },
       include: {
         tags: true,
+        users: {
+          select: {
+            id: true,
+            email: true,
+            name: true,
+          }
+        },
       },
     });
 
@@ -51,27 +162,29 @@ export async function POST(request: Request) {
   }
 }
 
-
-
 export async function GET(request: Request) {
   try {
-    const url = new URL(request.url);
-    const userId = url.searchParams.get("userId");
+    const { searchParams } = new URL(request.url);
+    const userId = searchParams.get('userId');
 
     if (!userId) {
       return NextResponse.json({ error: "userId manquant" }, { status: 400 });
     }
 
-    // Recherche tous les events liés à ce user via la relation many-to-many
     const events = await prisma.event.findMany({
       where: {
         users: {
-          some: { id: BigInt(userId) },  // filtre events liés à ce user
-        },
+          some: {
+            id: BigInt(userId)
+          }
+        }
       },
       include: {
         tags: true,
       },
+      orderBy: {
+        createdAt: 'desc'
+      }
     });
 
     return NextResponse.json(
@@ -79,8 +192,7 @@ export async function GET(request: Request) {
         JSON.stringify(events, (_, value) =>
           typeof value === "bigint" ? value.toString() : value
         )
-      ),
-      { status: 200 }
+      )
     );
   } catch (error) {
     console.error("Erreur récupération events:", error);
