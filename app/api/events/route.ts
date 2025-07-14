@@ -5,20 +5,76 @@ const prisma = new PrismaClient();
 
 export async function POST(request: Request) {
   try {
-    const { title, description, date, maxPersons, costPerPerson, state, tags, userId } = await request.json();
+    const {
+      title,
+      startDate,
+      endDate,
+      startTime,
+      endTime,
+      maxPersons,
+      costPerPerson,
+      state,
+      activityType,
+      city,
+      maxDistance,
+      tags,
+      userId,
+    } = await request.json();
+
+    console.log("Données reçues:", { userId, title, tags }); // Debug plus complet
 
     if (!userId) {
       return NextResponse.json({ error: "userId manquant" }, { status: 400 });
     }
 
+    // Debug: vérifier si l'utilisateur existe
+    const userExists = await prisma.user.findUnique({
+      where: { id: BigInt(userId) }
+    });
+    console.log("Utilisateur existe:", !!userExists, "ID:", userId);
+
+    if (!userExists) {
+      return NextResponse.json({ 
+        error: `L'utilisateur avec l'ID ${userId} n'existe pas en base de données` 
+      }, { status: 404 });
+    }
+
+    // Debug: si des tags sont fournis, vérifier lesquels existent
+    if (tags && Array.isArray(tags) && tags.length > 0) {
+      const existingTags = await prisma.tag.findMany({
+        where: {
+          id: { in: tags.map((id: number) => BigInt(id)) }
+        }
+      });
+      console.log("Tags demandés:", tags);
+      console.log("Tags existants:", existingTags.map(t => ({ id: t.id.toString(), name: t.name })));
+      
+      if (existingTags.length !== tags.length) {
+        const missingTags = tags.filter(tagId => 
+          !existingTags.some(existingTag => existingTag.id === BigInt(tagId))
+        );
+        console.log("Tags manquants:", missingTags);
+        return NextResponse.json({ 
+          error: `Tags manquants avec les IDs: ${missingTags.join(', ')}` 
+        }, { status: 400 });
+      }
+    }
+
+    console.log("Dates reçues:", { startDate, endDate, startTime, endTime }); // Debug
+
     const newEvent = await prisma.event.create({
       data: {
         title,
-        description,
-        date: date ? new Date(date) : null,
+        startDate: startDate ? new Date(startDate) : null,
+        endDate: endDate ? new Date(endDate) : null,
+        startTime: startTime ? new Date(startTime) : null,
+        endTime: endTime ? new Date(endTime) : null,
         maxPersons: maxPersons ? BigInt(maxPersons) : null,
         costPerPerson: costPerPerson ? BigInt(costPerPerson) : null,
         state,
+        activityType,
+        city,
+        maxDistance: maxDistance ? Number(maxDistance) : null,
         createdAt: new Date(),
         updatedAt: new Date(),
         users: {
@@ -51,27 +107,29 @@ export async function POST(request: Request) {
   }
 }
 
-
-
 export async function GET(request: Request) {
   try {
-    const url = new URL(request.url);
-    const userId = url.searchParams.get("userId");
+    const { searchParams } = new URL(request.url);
+    const userId = searchParams.get('userId');
 
     if (!userId) {
       return NextResponse.json({ error: "userId manquant" }, { status: 400 });
     }
 
-    // Recherche tous les events liés à ce user via la relation many-to-many
     const events = await prisma.event.findMany({
       where: {
         users: {
-          some: { id: BigInt(userId) },  // filtre events liés à ce user
-        },
+          some: {
+            id: BigInt(userId)
+          }
+        }
       },
       include: {
         tags: true,
       },
+      orderBy: {
+        createdAt: 'desc'
+      }
     });
 
     return NextResponse.json(
@@ -79,8 +137,7 @@ export async function GET(request: Request) {
         JSON.stringify(events, (_, value) =>
           typeof value === "bigint" ? value.toString() : value
         )
-      ),
-      { status: 200 }
+      )
     );
   } catch (error) {
     console.error("Erreur récupération events:", error);

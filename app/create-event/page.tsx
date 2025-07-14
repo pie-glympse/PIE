@@ -1,14 +1,24 @@
 "use client"
 import { useRouter } from 'next/navigation';
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import MainButton from '@/components/ui/MainButton';
 import BackArrow from '../../components/ui/BackArrow';
 import Modal from '@/components/layout/Modal';
 import { EventTypeCards } from '@/components/ui/EventTypeCard';
 import EventForm from '@/components/forms/EventForm';
+import { useUser } from '@/context/UserContext';
+
+const TAGS = [
+  { id: 1, name: "Restauration" },
+  { id: 2, name: "Afterwork" },
+  { id: 3, name: "Team Building" },
+  { id: 4, name: "Séminaire" },
+  { id: 5, name: "Autre" },
+];
 
 const CreateEventPage = () => {
     const router = useRouter();
+    const { user, isLoading } = useUser();
     
     // État pour gérer l'étape actuelle (maintenant 3 étapes)
     const [currentStep, setCurrentStep] = useState(1);
@@ -18,18 +28,28 @@ const CreateEventPage = () => {
     
     // États pour chaque étape
     const [selectedEventType, setSelectedEventType] = useState<string>('');
+    
     type EventFormData = {
-        eventName: string;
+        title: string;
+        startDate: string;
+        endDate: string;
         startTime: string;
         endTime: string;
-        dateRange: string;
-        maxBudgetPerPerson: string;
+        maxPersons: string;
+        costPerPerson: string;
         city: string;
         maxDistance: string;
     };
 
     const [formData, setFormData] = useState<EventFormData | null>(null);
-    const [selectedFormat, setSelectedFormat] = useState<string>('');
+    const [selectedTags, setSelectedTags] = useState<number[]>([]);
+
+    // Redirection si pas connecté
+    useEffect(() => {
+        if (!isLoading && !user) {
+            router.push("/login");
+        }
+    }, [user, isLoading, router]);
 
     // Données pour chaque étape
     const eventTypes = [
@@ -40,32 +60,22 @@ const CreateEventPage = () => {
         { id: '5', text: 'Webinaire' },
     ];
 
-    const formats = [
-        { id: '1', text: 'Présentiel' },
-        { id: '2', text: 'Distanciel' },
-        { id: '3', text: 'Hybride' },
-        { id: '4', text: 'En ligne' },
-        { id: '5', text: 'Sur site' },
-    ];
-
     // Handlers pour chaque étape
     const handleEventTypeSelect = (id: string) => {
         setSelectedEventType(id);
     };
 
-    const handleFormatSelect = (id: string) => {
-        setSelectedFormat(id);
-    };
-
 // Handler pour le formulaire
     const handleFormSubmit = (formData: { 
-        eventName: string; 
-        startTime: string; 
-        endTime: string; 
-        dateRange: string; 
-        maxBudgetPerPerson: string; 
-        city: string; 
-        maxDistance: string; 
+        title: string;
+        startDate: string;
+        endDate: string;
+        startTime: string;
+        endTime: string;
+        maxPersons: string;
+        costPerPerson: string;
+        city: string;
+        maxDistance: string;
     }) => {
         setFormData(formData);
         console.log('Données du formulaire:', formData);
@@ -74,17 +84,59 @@ const CreateEventPage = () => {
     };
 
     // Fonction pour passer à l'étape suivante
-    const handleNext = () => {
+    const handleNext = async () => {
         if (currentStep < 3) {
             setCurrentStep(currentStep + 1);
         } else {
-            // Dernière étape - ouvrir la modal
-            console.log('Données finales:', {
-                eventType: selectedEventType,
-                formData: formData,
-                format: selectedFormat
-            });
-            setIsModalOpen(true);
+            // Dernière étape - créer l'événement en base de données
+            if (!user || !formData) {
+                alert("Erreur: utilisateur ou données manquantes");
+                return;
+            }
+
+            try {
+                // Préparer les données pour l'API
+                const eventData = {
+                    ...formData,
+                    // Convertir les dates si elles sont fournies
+                    startDate: formData.startDate ? new Date(formData.startDate).toISOString() : null,
+                    endDate: formData.endDate ? new Date(formData.endDate).toISOString() : null,
+                    startTime: formData.startTime ? new Date(`1970-01-01T${formData.startTime}`).toISOString() : null,
+                    endTime: formData.endTime ? new Date(`1970-01-01T${formData.endTime}`).toISOString() : null,
+                    // Convertir les nombres
+                    maxPersons: formData.maxPersons ? Number(formData.maxPersons) : null,
+                    costPerPerson: formData.costPerPerson ? Number(formData.costPerPerson) : null,
+                    maxDistance: formData.maxDistance ? Number(formData.maxDistance) : null,
+                    // Ajouter type d'événement sélectionné depuis l'étape 1
+                    activityType: eventTypes.find(type => type.id === selectedEventType)?.text || '',
+                    // Ajouter état par défaut
+                    state: 'Brouillon',
+                    // Ajouter les tags sélectionnés
+                    tags: selectedTags,
+                    // Ajouter l'utilisateur
+                    userId: user.id,
+                };
+
+                console.log('Création événement:', eventData);
+
+                const response = await fetch('/api/events', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(eventData),
+                });
+
+                if (response.ok) {
+                    const createdEvent = await response.json();
+                    console.log('Événement créé:', createdEvent);
+                    setIsModalOpen(true);
+                } else {
+                    const error = await response.json();
+                    alert(error?.error || 'Erreur lors de la création de l\'événement');
+                }
+            } catch (error) {
+                console.error('Erreur création événement:', error);
+                alert('Erreur réseau ou serveur');
+            }
         }
     };
 
@@ -105,10 +157,20 @@ const CreateEventPage = () => {
             case 2:
                 return formData !== null;
             case 3:
-                return selectedFormat !== '';
+                return selectedTags.length > 0; // Au moins un tag sélectionné
             default:
                 return false;
         }
+    };
+
+    // Handler pour sélectionner/désélectionner un tag
+    const handleTagToggle = (tagId: number) => {
+        setSelectedTags(prev => {
+            const alreadySelected = prev.includes(tagId);
+            return alreadySelected
+                ? prev.filter(id => id !== tagId)
+                : [...prev, tagId];
+        });
     };
 
     // Handlers pour la modal
@@ -117,9 +179,9 @@ const CreateEventPage = () => {
     };
 
     const handleModalButtonClick = () => {
-        // Fermer la modal et rediriger
+        // Fermer la modal et rediriger vers la liste des événements
         setIsModalOpen(false);
-        router.push('/events'); // Remplacez par votre route
+        router.push('/events'); 
     };
 
     // Fonction pour obtenir le contenu de l'étape actuelle
@@ -163,14 +225,24 @@ const CreateEventPage = () => {
                             Finaliser votre Événement
                         </h1>
                         <h3 className="text-h3 mb-8 text-left md:w-2/3 w-full font-poppins text-[var(--color-grey-three)]">
-                            Quel format souhaitez-vous pour votre événement ?
+                            Quelles catégories correspondent à votre événement ?
                         </h3>
                         <div className="w-full">
-                            <EventTypeCards
-                                cards={formats}
-                                selectedId={selectedFormat}
-                                onCardSelect={handleFormatSelect}
-                            />
+                            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                                {TAGS.map((tag) => (
+                                    <div
+                                        key={tag.id}
+                                        onClick={() => handleTagToggle(tag.id)}
+                                        className={`p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                                            selectedTags.includes(tag.id)
+                                                ? 'border-[var(--color-main)] bg-[var(--color-main)] text-white'
+                                                : 'border-gray-200 hover:border-[var(--color-main)]'
+                                        }`}
+                                    >
+                                        <h3 className="font-semibold text-center">{tag.name}</h3>
+                                    </div>
+                                ))}
+                            </div>
                         </div>
                     </>
                 );
@@ -179,6 +251,16 @@ const CreateEventPage = () => {
                 return null;
         }
     };
+
+    // Affichage de chargement
+    if (isLoading) {
+        return <div className="flex items-center justify-center h-screen">Chargement...</div>;
+    }
+
+    // Redirection si pas connecté (ne devrait pas arriver grâce à useEffect)
+    if (!user) {
+        return null;
+    }
 
     return (
         <>
@@ -219,7 +301,7 @@ const CreateEventPage = () => {
                     {currentStep !== 2 && (
                         <div className='w-1/6'>
                             <MainButton
-                                text={currentStep === 3 ? "Envoyez les liens" : "Continuer"}
+                                text={currentStep === 3 ? "Créer l'événement" : "Continuer"}
                                 onClick={handleNext}
                                 disabled={!canContinue()}
                                 color="bg-[var(--color-text)] font-poppins text-body-large"

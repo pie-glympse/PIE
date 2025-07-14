@@ -8,11 +8,13 @@ interface EventFormProps {
     subtitle?: string;
     buttonText: string;
     onSubmit?: (formData: {
-        eventName: string;
+        title: string;
+        startDate: string;
+        endDate: string;
         startTime: string;
         endTime: string;
-        dateRange: string;
-        maxBudgetPerPerson: string;
+        maxPersons: string;
+        costPerPerson: string;
         city: string;
         maxDistance: string;
     }) => void;
@@ -25,11 +27,13 @@ const EventForm: React.FC<EventFormProps> = ({
     onSubmit
 }) => {
     const router = useRouter();
-    const [eventName, setEventName] = useState('');
+    const [eventTitle, setEventTitle] = useState('');
+    const [startDate, setStartDate] = useState('');
+    const [endDate, setEndDate] = useState('');
     const [startTime, setStartTime] = useState('');
     const [endTime, setEndTime] = useState('');
-    const [dateRange, setDateRange] = useState('');
-    const [maxBudgetPerPerson, setMaxBudgetPerPerson] = useState('');
+    const [maxPersons, setMaxPersons] = useState('');
+    const [costPerPerson, setCostPerPerson] = useState('');
     const [city, setCity] = useState('');
     const [maxDistance, setMaxDistance] = useState('');
 
@@ -47,11 +51,13 @@ const EventForm: React.FC<EventFormProps> = ({
         
         try {
             const formData = {
-                eventName,
+                title: eventTitle,
+                startDate,
+                endDate,
                 startTime,
                 endTime,
-                dateRange,
-                maxBudgetPerPerson,
+                maxPersons,
+                costPerPerson,
                 city,
                 maxDistance
             };
@@ -90,16 +96,40 @@ const EventForm: React.FC<EventFormProps> = ({
             
             {/* Nom de l'événement */}
             <div className="mb-4">
-                <label htmlFor="eventName" className="block mb-1 text-body-large font-poppins text-[var(--color-grey-three)]">Nom de l&apos;événement</label>
+                <label htmlFor="eventTitle" className="block mb-1 text-body-large font-poppins text-[var(--color-grey-three)]">Nom de l&apos;événement</label>
                 <input
-                    id="eventName"
+                    id="eventTitle"
                     type="text"
-                    value={eventName}
-                    onChange={e => setEventName(e.target.value)}
+                    value={eventTitle}
+                    onChange={e => setEventTitle(e.target.value)}
                     placeholder="Nom de l'événement"
                     required
                     className="w-full px-5 py-2 text-base border-2 border-[var(--color-grey-two)] rounded placeholder:font-poppins placeholder:text-[#EAEAEF]"
                 />
+            </div>
+
+            {/* Dates de début et fin (50-50) */}
+            <div className="flex flex-col md:flex-row gap-4 mb-4">
+                <div className="flex-1">
+                    <label htmlFor="startDate" className="block mb-1 text-body-large font-poppins text-[var(--color-grey-three)]">Date de début</label>
+                    <input
+                        id="startDate"
+                        type="date"
+                        value={startDate}
+                        onChange={e => setStartDate(e.target.value)}
+                        className="w-full px-5 py-2 text-base border-2 border-[var(--color-grey-two)] rounded font-poppins"
+                    />
+                </div>
+                <div className="flex-1">
+                    <label htmlFor="endDate" className="block mb-1 text-body-large font-poppins text-[var(--color-grey-three)]">Date de fin</label>
+                    <input
+                        id="endDate"
+                        type="date"
+                        value={endDate}
+                        onChange={e => setEndDate(e.target.value)}
+                        className="w-full px-5 py-2 text-base border-2 border-[var(--color-grey-two)] rounded font-poppins"
+                    />
+                </div>
             </div>
 
             {/* Heure de début et Heure de fin (50-50) */}
@@ -150,28 +180,29 @@ const EventForm: React.FC<EventFormProps> = ({
                 </div>
             </div>
 
-            {/* Plage de date et Budget max par personne (50-50) */}
+            {/* Places max et Budget par personne (50-50) */}
             <div className="flex flex-col md:flex-row gap-4 mb-4">
                 <div className="flex-1">
-                    <label htmlFor="dateRange" className="block mb-1 text-body-large font-poppins text-[var(--color-grey-three)]">Plage de date</label>
+                    <label htmlFor="maxPersons" className="block mb-1 text-body-large font-poppins text-[var(--color-grey-three)]">Places maximum</label>
                     <input
-                        id="dateRange"
-                        type="date"
-                        value={dateRange}
-                        onChange={e => setDateRange(e.target.value)}
-                        required
-                        className="w-full px-5 py-2 text-base border-2 border-[var(--color-grey-two)] rounded font-poppins"
+                        id="maxPersons"
+                        type="number"
+                        value={maxPersons}
+                        onChange={e => setMaxPersons(e.target.value)}
+                        placeholder="Nombre de places"
+                        min="1"
+                        className="w-full px-5 py-2 text-base border-2 border-[var(--color-grey-two)] rounded placeholder:font-poppins placeholder:text-[#EAEAEF]"
                     />
                 </div>
                 <div className="flex-1">
-                    <label htmlFor="maxBudgetPerPerson" className="block mb-1 text-body-large font-poppins text-[var(--color-grey-three)]">Budget max / pers</label>
+                    <label htmlFor="costPerPerson" className="block mb-1 text-body-large font-poppins text-[var(--color-grey-three)]">Coût par personne (€)</label>
                     <input
-                        id="maxBudgetPerPerson"
-                        type="text"
-                        value={maxBudgetPerPerson}
-                        onChange={e => setMaxBudgetPerPerson(e.target.value)}
-                        placeholder="Ex: 50€"
-                        required
+                        id="costPerPerson"
+                        type="number"
+                        value={costPerPerson}
+                        onChange={e => setCostPerPerson(e.target.value)}
+                        placeholder="Ex: 50"
+                        min="0"
                         className="w-full px-5 py-2 text-base border-2 border-[var(--color-grey-two)] rounded placeholder:font-poppins placeholder:text-[#EAEAEF]"
                     />
                 </div>
@@ -187,19 +218,19 @@ const EventForm: React.FC<EventFormProps> = ({
                         value={city}
                         onChange={e => setCity(e.target.value)}
                         placeholder="Ville"
-                        required
                         className="w-full px-5 py-2 text-base border-2 border-[var(--color-grey-two)] rounded placeholder:font-poppins placeholder:text-[#EAEAEF]"
                     />
                 </div>
                 <div className="flex-1">
-                    <label htmlFor="maxDistance" className="block mb-1 text-body-large font-poppins text-[var(--color-grey-three)]">Distance max</label>
+                    <label htmlFor="maxDistance" className="block mb-1 text-body-large font-poppins text-[var(--color-grey-three)]">Distance max (km)</label>
                     <input
                         id="maxDistance"
-                        type="text"
+                        type="number"
                         value={maxDistance}
                         onChange={e => setMaxDistance(e.target.value)}
-                        placeholder="Ex: 50km"
-                        required
+                        placeholder="Ex: 50"
+                        min="0"
+                        step="0.1"
                         className="w-full px-5 py-2 text-base border-2 border-[var(--color-grey-two)] rounded placeholder:font-poppins placeholder:text-[#EAEAEF]"
                     />
                 </div>

@@ -47,11 +47,11 @@ export async function middleware(request: NextRequest) {
   );
 
   if (isPublicRoute) {
-    // Si utilisateur connecté essaie d'accéder au login, rediriger vers events
-    if (isTokenValid && pathname === '/login') {
-      return NextResponse.redirect(new URL('/events', request.url));
-    }
-    // Sinon, laisser passer
+    // // Si utilisateur connecté essaie d'accéder au login, rediriger vers events
+    // if (isTokenValid && pathname === '/login') {
+    //   return NextResponse.redirect(new URL('/events', request.url));
+    // }
+    // // Sinon, laisser passer
     return NextResponse.next();
   }
 

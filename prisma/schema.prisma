@@ -1,60 +1,58 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
 }
 
 model User {
-  id         BigInt   @id @default(autoincrement())
-  name       String
-  email      String   @unique
-  password   String
-  role       String   @default("STANDARD")
-  photoUrl   String   @default("")
-  events     Event[]  @relation("EventUsers")
-  preferences EventUserPreference[]
-  photos     EventsUsersPhoto[]
-  feedbacks  Feedback[]
-  votes      Vote[]
+  id           BigInt                @id @default(autoincrement())
+  name         String
+  email        String                @unique
+  password     String
+  role         String                @default("STANDARD")
+  photoUrl     String                @default("")
   companyStats CompanyStats?
+  preferences  EventUserPreference[]
+  photos       EventsUsersPhoto[]
+  feedbacks    Feedback[]
+  votes        Vote[]
+  events       Event[]               @relation("EventUsers")
 }
 
 model Event {
-  id          BigInt   @id @default(autoincrement())
-  uuid        String   @unique @default(uuid())
-  title       String?
-  description String?
-  date        DateTime?
-  maxPersons  BigInt?
+  id            BigInt                @id @default(autoincrement())
+  title         String
+  maxPersons    BigInt?
   costPerPerson BigInt?
-  state       String?
-  activityType String?
-  createdAt   DateTime
-  updatedAt   DateTime
-  users       User[]         @relation("EventUsers")
-  tags        Tag[]          @relation("EventTags")
-  preferences EventUserPreference[]
-  photos      EventsUsersPhoto[]
-  feedbacks   Feedback[]
-  votes       Vote[]
-  location    EventLocation?
+  state         String                @default("PENDING")
+  createdAt     DateTime              @default(now())
+  updatedAt     DateTime
+  uuid          String                @unique @default(uuid())
+  activityType  String?
+  endDate       DateTime?
+  endTime       DateTime?
+  startDate     DateTime?
+  startTime     DateTime?
+  city          String?
+  maxDistance   Float?
+  location      EventLocation?
+  preferences   EventUserPreference[]
+  photos        EventsUsersPhoto[]
+  feedbacks     Feedback[]
+  votes         Vote[]
+  tags          Tag[]                 @relation("EventTags")
+  users         User[]                @relation("EventUsers")
 }
 
 model Tag {
-  id     BigInt @id
-  name   String 
-  events Event[] @relation("EventTags")
+  id          BigInt                @id
+  name        String
   preferences EventUserPreference[]
+  events      Event[]               @relation("EventTags")
 }
 
 model EventUserPreference {
@@ -62,24 +60,22 @@ model EventUserPreference {
   eventId       BigInt
   preferredDate DateTime
   tagId         BigInt
-
-  user   User @relation(fields: [userId], references: [id])
-  event  Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  tag    Tag @relation(fields: [tagId], references: [id])
+  event         Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  tag           Tag      @relation(fields: [tagId], references: [id])
+  user          User     @relation(fields: [userId], references: [id])
 
   @@id([userId, eventId])
 }
 
 model EventsUsersPhoto {
-  id        BigInt @id @default(autoincrement())
+  id        BigInt  @id @default(autoincrement())
   userId    BigInt
   eventId   BigInt
   photoUrl  String
   caption   String?
   createdAt BigInt
-
-user   User  @relation(fields: [userId], references: [id], onDelete: Cascade)
-event  Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  event     Event   @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Feedback {
@@ -88,9 +84,8 @@ model Feedback {
   rating    BigInt
   message   String
   createdAt DateTime
-
-user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
-event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@id([userId, eventId])
 }
@@ -100,18 +95,16 @@ model Vote {
   eventId   BigInt
   total     BigInt
   createdAt DateTime
-
-user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
-event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@id([userId, eventId])
 }
 
 model EventLocation {
-  id       BigInt   @id
-  eventId  BigInt   @unique
-
-event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  eventId BigInt @unique
+  id      BigInt @id
+  event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
 }
 
 model CompanyStats {
@@ -120,6 +113,5 @@ model CompanyStats {
   subscription String
   price        BigInt
   companyName  String
-
-  superAdmin User @relation(fields: [superAdminId], references: [id])
+  superAdmin   User   @relation(fields: [superAdminId], references: [id])
 }

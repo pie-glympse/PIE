@@ -17,11 +17,16 @@ type EventType = {
   id: string;
   uuid: string;
   title: string;
-  description?: string;
-  date?: string;
+  startDate?: string;
+  endDate?: string;
+  startTime?: string;
+  endTime?: string;
   maxPersons?: string;
   costPerPerson?: string;
   state?: string;
+  activityType?: string;
+  city?: string;
+  maxDistance?: number;
   tags: { id: string; name: string }[];
 };
 
@@ -31,18 +36,23 @@ export default function EventForm() {
 
   const [formData, setFormData] = useState({
     title: "",
-    description: "",
-    date: "",
+    startDate: "",
+    endDate: "",
+    startTime: "",
+    endTime: "",
     maxPersons: "",
     costPerPerson: "",
     state: "",
+    activityType: "",
+    city: "",
+    maxDistance: "",
     tags: [] as number[],
   });
 
   const [createdEvent, setCreatedEvent] = useState<EventType | null>(null);
   const [userEvents, setUserEvents] = useState<EventType[]>([]);
   const [userEventPreferences, setUserEventPreferences] = useState<
-    Map<number, any>
+    Map<number, { eventId: number; preferredDate: string; tagId: number }>
   >(new Map());
   const [users, setUsers] = useState<
     { id: string; name?: string; email?: string }[]
@@ -98,14 +108,14 @@ export default function EventForm() {
         );
         const data = await res.json(); // Format: [{ eventId: X, preferredDate: ..., tagId: ... }]
         const preferenceMap = new Map();
-        data.forEach((pref: any) => {
+        data.forEach((pref: { eventId: number; preferredDate: string; tagId: number }) => {
           preferenceMap.set(pref.eventId, pref);
         });
         setUserEventPreferences(preferenceMap); // New state
       };
       fetchPreferences();
     }
-  }, [userEvents]);
+  }, [userEvents, user]);
 
   useEffect(() => {
     if (!isLoading && user) {
@@ -265,7 +275,11 @@ const handleDeleteEvent = async (eventId: string) => {
       costPerPerson: formData.costPerPerson
         ? Number(formData.costPerPerson)
         : null,
-      date: formData.date ? new Date(formData.date).toISOString() : null,
+      maxDistance: formData.maxDistance ? Number(formData.maxDistance) : null,
+      startDate: formData.startDate ? new Date(formData.startDate).toISOString() : null,
+      endDate: formData.endDate ? new Date(formData.endDate).toISOString() : null,
+      startTime: formData.startTime ? new Date(`1970-01-01T${formData.startTime}`).toISOString() : null,
+      endTime: formData.endTime ? new Date(`1970-01-01T${formData.endTime}`).toISOString() : null,
       tags: formData.tags,
       userId: user?.id,
     };
@@ -282,11 +296,16 @@ const handleDeleteEvent = async (eventId: string) => {
         setCreatedEvent(eventData);
         setFormData({
           title: "",
-          description: "",
-          date: "",
+          startDate: "",
+          endDate: "",
+          startTime: "",
+          endTime: "",
           maxPersons: "",
           costPerPerson: "",
           state: "",
+          activityType: "",
+          city: "",
+          maxDistance: "",
           tags: [],
         });
         // Rafraîchir la liste des events du user
@@ -318,6 +337,39 @@ const handleDeleteEvent = async (eventId: string) => {
 
   const isAuthorized = ["ADMIN", "SUPER_ADMIN"].includes(user.role);
 
+  const initializeTags = async () => {
+    try {
+      const response = await fetch("/api/tags/init", {
+        method: "POST",
+      });
+      if (response.ok) {
+        alert("Tags initialisés avec succès !");
+      } else {
+        alert("Erreur lors de l'initialisation des tags");
+      }
+    } catch (error) {
+      console.error(error);
+      alert("Erreur réseau");
+    }
+  };
+
+  const createTestUser = async () => {
+    try {
+      const response = await fetch("/api/create-test-user", {
+        method: "POST",
+      });
+      if (response.ok) {
+        const data = await response.json();
+        alert(`Utilisateur test créé: ${data.user.email} / mot de passe: 123456`);
+      } else {
+        alert("Erreur lors de la création de l'utilisateur test");
+      }
+    } catch (error) {
+      console.error(error);
+      alert("Erreur réseau");
+    }
+  };
+
   return (
     <div className="max-w-xl mx-auto space-y-6">
       <div>Bonjour {user?.name || "invité"}</div>
@@ -326,6 +378,22 @@ const handleDeleteEvent = async (eventId: string) => {
         className="px-4 py-2 bg-red-600 text-white rounded"
       >
         Se déconnecter
+      </button>
+
+      {/* Bouton temporaire pour initialiser les tags */}
+      <button
+        onClick={initializeTags}
+        className="px-4 py-2 bg-green-600 text-white rounded"
+      >
+        Initialiser les tags (à faire une seule fois)
+      </button>
+
+      {/* Bouton temporaire pour créer un utilisateur de test */}
+      <button
+        onClick={createTestUser}
+        className="px-4 py-2 bg-purple-600 text-white rounded"
+      >
+        Créer utilisateur test (test@test.com / 123456)
       </button>
 
       {isAuthorized ? (
@@ -339,19 +407,80 @@ const handleDeleteEvent = async (eventId: string) => {
             className="w-full border p-2"
             required
           />
-          <textarea
-            name="description"
-            placeholder="Description"
-            value={formData.description}
+          
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium mb-1">Date de début</label>
+              <input
+                type="date"
+                name="startDate"
+                value={formData.startDate}
+                onChange={handleChange}
+                className="w-full border p-2"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Date de fin</label>
+              <input
+                type="date"
+                name="endDate"
+                value={formData.endDate}
+                onChange={handleChange}
+                className="w-full border p-2"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium mb-1">Heure de début</label>
+              <input
+                type="time"
+                name="startTime"
+                value={formData.startTime}
+                onChange={handleChange}
+                className="w-full border p-2"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Heure de fin</label>
+              <input
+                type="time"
+                name="endTime"
+                value={formData.endTime}
+                onChange={handleChange}
+                className="w-full border p-2"
+              />
+            </div>
+          </div>
+
+          <input
+            type="text"
+            name="activityType"
+            placeholder="Type d'activité"
+            value={formData.activityType}
             onChange={handleChange}
             className="w-full border p-2"
           />
+
           <input
-            type="datetime-local"
-            name="date"
-            value={formData.date}
+            type="text"
+            name="city"
+            placeholder="Ville"
+            value={formData.city}
             onChange={handleChange}
             className="w-full border p-2"
+          />
+
+          <input
+            type="number"
+            name="maxDistance"
+            placeholder="Distance maximale (km)"
+            value={formData.maxDistance}
+            onChange={handleChange}
+            className="w-full border p-2"
+            min={0}
+            step="0.1"
           />
           <input
             type="number"
@@ -413,52 +542,109 @@ const handleDeleteEvent = async (eventId: string) => {
           <p className="text-red-600 font-semibold">Erreur: {fetchError}</p>
         )}
         {userEvents.length === 0 && <p>Aucun événement trouvé.</p>}
-<ul className="space-y-2">
+<ul className="space-y-4">
   {userEvents.map((event) => (
-    <li key={event.id} className="border p-4 rounded shadow flex justify-between items-center">
-      <div>
-        <h3 className="text-lg font-semibold">{event.title}</h3>
-        <p className="text-sm text-gray-500">{event.description || "Pas de description"}</p>
-      </div>
+    <li key={event.id} className="border p-6 rounded shadow">
+      <div className="flex justify-between items-start">
+        <div className="flex-1">
+          <h3 className="text-lg font-semibold">{event.title}</h3>
+          
+          <div className="grid grid-cols-2 gap-4 text-sm">
+            {event.startDate && (
+              <div>
+                <span className="font-medium">Début:</span> {new Date(event.startDate).toLocaleDateString('fr-FR')} à {new Date(event.startDate).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+              </div>
+            )}
+            {event.endDate && (
+              <div>
+                <span className="font-medium">Fin:</span> {new Date(event.endDate).toLocaleDateString('fr-FR')} à {new Date(event.endDate).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+              </div>
+            )}
+            {event.activityType && (
+              <div>
+                <span className="font-medium">Type d&apos;activité:</span> {event.activityType}
+              </div>
+            )}
+            {event.city && (
+              <div>
+                <span className="font-medium">Ville:</span> {event.city}
+              </div>
+            )}
+            {event.maxDistance && (
+              <div>
+                <span className="font-medium">Distance max:</span> {event.maxDistance} km
+              </div>
+            )}
+            {event.maxPersons && (
+              <div>
+                <span className="font-medium">Places max:</span> {event.maxPersons}
+              </div>
+            )}
+            {event.costPerPerson && (
+              <div>
+                <span className="font-medium">Coût/pers:</span> {event.costPerPerson}€
+              </div>
+            )}
+            {event.state && (
+              <div>
+                <span className="font-medium">État:</span> {event.state}
+              </div>
+            )}
+          </div>
+          
+          {event.tags && event.tags.length > 0 && (
+            <div className="mt-3">
+              <span className="font-medium text-sm">Catégories:</span>
+              <div className="flex gap-2 mt-1">
+                {event.tags.map((tag) => (
+                  <span key={tag.id} className="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">
+                    {tag.name}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
 
-      <div className="flex items-center gap-2">
-        {/* Checkbox pour supprimer l'événement */}
-        <label className="flex items-center cursor-pointer">
-          <input
-            type="checkbox"
-            onChange={() => handleDeleteEvent(event.id)}
-            className="mr-2"
-          />
-          Supprimer
-        </label>
+        <div className="flex flex-col items-end gap-2 ml-4">
+          {/* Checkbox pour supprimer l'événement */}
+          <label className="flex items-center cursor-pointer">
+            <input
+              type="checkbox"
+              onChange={() => handleDeleteEvent(event.id)}
+              className="mr-2"
+            />
+            <span className="text-sm">Supprimer</span>
+          </label>
 
-        {isAuthorized && (
+          {isAuthorized && (
+            <button
+              onClick={() => openShareModal(event.id, event.title)}
+              className="bg-indigo-600 text-white px-3 py-1 rounded hover:bg-indigo-700 transition text-sm"
+            >
+              Partager
+            </button>
+          )}
+
           <button
-            onClick={() => openShareModal(event.id, event.title)}
-            className="ml-4 bg-indigo-600 text-white px-3 py-1 rounded hover:bg-indigo-700 transition"
+            onClick={() => router.push(`/events/${event.id}`)}
+            className="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700"
           >
-            Partager
+            Voir détails
           </button>
-        )}
 
-        <button
-          onClick={() => router.push(`/events/${event.id}`)}
-          className="ml-4 px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700"
-        >
-          Voir détails
-        </button>
-
-        {!userEventPreferences.has(Number(event.id)) && (
-          <button
-            onClick={() => {
-              setSelectedEvent(event);
-              setShowPreferenceForm(true);
-            }}
-            className="text-blue-600 underline mt-2"
-          >
-            Remplir mes préférences
-          </button>
-        )}
+          {!userEventPreferences.has(Number(event.id)) && (
+            <button
+              onClick={() => {
+                setSelectedEvent(event);
+                setShowPreferenceForm(true);
+              }}
+              className="text-blue-600 underline text-sm"
+            >
+              Remplir mes préférences
+            </button>
+          )}
+        </div>
       </div>
     </li>
   ))}
