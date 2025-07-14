@@ -5,7 +5,7 @@ import { jwtVerify } from 'jose';
 const JWT_SECRET = process.env.JWT_SECRET || 'supersecretkey';
 
 // Routes protégées (nécessitent une authentification)
-const protectedRoutes = ['/events', '/dashboard'];
+const protectedRoutes = ['/events', '/dashboard', '/home', '/create-event', '/profile'];
 
 // Routes publiques (pas besoin d'authentification)
 const publicRoutes = ['/login', '/register', '/forgot-password'];
@@ -33,8 +33,8 @@ export async function middleware(request: NextRequest) {
   // ✅ REDIRECTION AUTOMATIQUE DEPUIS LA RACINE
   if (pathname === '/') {
     if (isTokenValid) {
-      // Utilisateur connecté → rediriger vers events
-      return NextResponse.redirect(new URL('/events', request.url));
+      // Utilisateur connecté → rediriger vers home
+      return NextResponse.redirect(new URL('/home', request.url));
     } else {
       // Utilisateur non connecté → rediriger vers login
       return NextResponse.redirect(new URL('/login', request.url));

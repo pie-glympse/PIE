@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Header from "@/components/header/header";
 import { useUser } from "../../context/UserContext";
+import { useRouter } from "next/navigation";
 import GCalendar from "@/components/Gcalendar/Gcalendar";
 import Gcard from "@/components/Gcard/Gcard";
 
@@ -19,9 +20,29 @@ type EventType = {
 };
 
 export default function HomePage() {
-  const { user, isLoading } = useUser();
+  const { user, isLoading, logout } = useUser();
+  const router = useRouter();
   const [events, setEvents] = useState<EventType[]>([]);
   const [fetchError, setFetchError] = useState<string | null>(null);
+
+  // Fonction de déconnexion
+  const handleLogout = async () => {
+    try {
+      // Appeler l'API de logout
+      await fetch("/api/logout", { method: "POST" });
+      
+      // Nettoyer le context
+      logout();
+      
+      // Rediriger vers login
+      router.push("/login");
+    } catch (error) {
+      console.error("Erreur lors de la déconnexion:", error);
+      // Fallback: forcer la suppression et rediriger
+      logout();
+      router.push("/login");
+    }
+  };
 
   // Récupérer les événements depuis l'API
   useEffect(() => {
@@ -68,7 +89,15 @@ export default function HomePage() {
         
         {/* Section Bienvenue */}
         <section className="mt-20">
-          <h1 className="text-2xl font-bold text-gray-900 mb-1">Bienvenue,</h1>
+          <div className="flex justify-between items-center mb-1">
+            <h1 className="text-2xl font-bold text-gray-900">Bienvenue,</h1>
+            <button
+              onClick={handleLogout}
+              className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition text-sm"
+            >
+              Se déconnecter
+            </button>
+          </div>
           <div className="flex items-center gap-3">
             <p className="text-3xl font-semibold text-gray-800">
               {user?.name || "invité"}

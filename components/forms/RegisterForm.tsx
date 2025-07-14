@@ -53,8 +53,8 @@ const RegisterForm: React.FC<RegisterFormProps> = ({
             });
 
             if (response.ok) {
-                // ✅ Redirection automatique vers /events
-                router.push('/events');
+                // ✅ Redirection automatique vers /home
+                router.push('/home');
             } else {
                 const error = await response.json();
                 alert(error?.error || 'Erreur lors de l\'inscription');

@@ -19,9 +19,10 @@ export async function POST(request: Request) {
       maxDistance,
       tags,
       userId,
+      invitedUsers = [], // Nouveaux utilisateurs invités
     } = await request.json();
 
-    console.log("Données reçues:", { userId, title, tags }); // Debug plus complet
+    console.log("Données reçues:", { userId, title, tags, invitedUsers }); // Debug plus complet
 
     if (!userId) {
       return NextResponse.json({ error: "userId manquant" }, { status: 400 });
@@ -37,6 +38,27 @@ export async function POST(request: Request) {
       return NextResponse.json({ 
         error: `L'utilisateur avec l'ID ${userId} n'existe pas en base de données` 
       }, { status: 404 });
+    }
+
+    // Debug: vérifier les utilisateurs invités
+    if (invitedUsers && Array.isArray(invitedUsers) && invitedUsers.length > 0) {
+      const existingUsers = await prisma.user.findMany({
+        where: {
+          id: { in: invitedUsers.map((id: number) => BigInt(id)) }
+        }
+      });
+      console.log("Utilisateurs invités demandés:", invitedUsers);
+      console.log("Utilisateurs existants:", existingUsers.map(u => ({ id: u.id.toString(), email: u.email })));
+      
+      if (existingUsers.length !== invitedUsers.length) {
+        const missingUsers = invitedUsers.filter(userId => 
+          !existingUsers.some(existingUser => existingUser.id === BigInt(userId))
+        );
+        console.log("Utilisateurs manquants:", missingUsers);
+        return NextResponse.json({ 
+          error: `Utilisateurs manquants avec les IDs: ${missingUsers.join(', ')}` 
+        }, { status: 400 });
+      }
     }
 
     // Debug: si des tags sont fournis, vérifier lesquels existent
@@ -98,7 +120,13 @@ export async function POST(request: Request) {
         createdAt: new Date(),
         updatedAt: new Date(),
         users: {
-          connect: { id: BigInt(userId) },
+          connect: [
+            { id: BigInt(userId) }, // Le créateur de l'événement
+            ...(invitedUsers && Array.isArray(invitedUsers) 
+              ? invitedUsers.map((id: number) => ({ id: BigInt(id) }))
+              : []
+            )
+          ],
         },
         ...(tags && Array.isArray(tags)
           ? {
@@ -110,6 +138,13 @@ export async function POST(request: Request) {
       },
       include: {
         tags: true,
+        users: {
+          select: {
+            id: true,
+            email: true,
+            name: true,
+          }
+        },
       },
     });
 

@@ -89,7 +89,7 @@ const LoginForm: React.FC<LoginFormProps> = ({
             localStorage.setItem("token", data.token);
             localStorage.setItem("user", JSON.stringify(data.user));
             
-            router.push("/events");
+            router.push("/home");
             
         } catch (err) {
             console.error("Erreur lors de la connexion:", err);

@@ -113,3 +113,26 @@ body {
 .custom-scroll:hover::-webkit-scrollbar-thumb {
   background-color: #e2e8f0; /* slate-200 au survol (encore plus clair) */
 }
+
+/* Scrollbar orange pour sélection utilisateurs */
+.custom-orange-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-main) transparent;
+}
+
+.custom-orange-scrollbar::-webkit-scrollbar {
+  width: 8px;
+}
+
+.custom-orange-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-orange-scrollbar::-webkit-scrollbar-thumb {
+  background-color: var(--color-main);
+  border-radius: 4px;
+}
+
+.custom-orange-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: #e6b330;
+}

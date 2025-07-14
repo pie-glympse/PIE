@@ -6,15 +6,8 @@ import BackArrow from '../../components/ui/BackArrow';
 import Modal from '@/components/layout/Modal';
 import { EventTypeCards } from '@/components/ui/EventTypeCard';
 import EventForm from '@/components/forms/EventForm';
+import { UserSelectionStep } from '@/components/forms/UserSelectionStep';
 import { useUser } from '@/context/UserContext';
-
-const TAGS = [
-  { id: 1, name: "Restauration" },
-  { id: 2, name: "Afterwork" },
-  { id: 3, name: "Team Building" },
-  { id: 4, name: "Séminaire" },
-  { id: 5, name: "Autre" },
-];
 
 const CreateEventPage = () => {
     const router = useRouter();
@@ -42,7 +35,7 @@ const CreateEventPage = () => {
     };
 
     const [formData, setFormData] = useState<EventFormData | null>(null);
-    const [selectedTags, setSelectedTags] = useState<number[]>([]);
+    const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
 
     // Redirection si pas connecté
     useEffect(() => {
@@ -112,10 +105,12 @@ const CreateEventPage = () => {
                     activityType: eventTypes.find(type => type.id === selectedEventType)?.text || '',
                     // Ajouter état par défaut
                     state: 'Brouillon',
-                    // Ajouter les tags sélectionnés
-                    tags: selectedTags,
-                    // Ajouter l'utilisateur
+                    // Les tags seront ajoutés plus tard, pour l'instant on se concentre sur les utilisateurs
+                    tags: [], // Vide pour l'instant
+                    // Ajouter l'utilisateur créateur
                     userId: user.id,
+                    // Ajouter les utilisateurs invités
+                    invitedUsers: selectedUserIds,
                 };
 
                 console.log('Création événement:', eventData);
@@ -158,19 +153,19 @@ const CreateEventPage = () => {
             case 2:
                 return formData !== null;
             case 3:
-                return selectedTags.length > 0; // Au moins un tag sélectionné
+                return selectedUserIds.length > 0; // Au moins un utilisateur sélectionné
             default:
                 return false;
         }
     };
 
-    // Handler pour sélectionner/désélectionner un tag
-    const handleTagToggle = (tagId: number) => {
-        setSelectedTags(prev => {
-            const alreadySelected = prev.includes(tagId);
+    // Handler pour sélectionner/désélectionner un utilisateur
+    const handleUserToggle = (userId: string) => {
+        setSelectedUserIds(prev => {
+            const alreadySelected = prev.includes(userId);
             return alreadySelected
-                ? prev.filter(id => id !== tagId)
-                : [...prev, tagId];
+                ? prev.filter(id => id !== userId)
+                : [...prev, userId];
         });
     };
 
@@ -180,9 +175,9 @@ const CreateEventPage = () => {
     };
 
     const handleModalButtonClick = () => {
-        // Fermer la modal et rediriger vers la liste des événements
+        // Fermer la modal et rediriger vers la page d'accueil
         setIsModalOpen(false);
-        router.push('/events'); 
+        router.push('/home'); 
     };
 
     // Fonction pour obtenir le contenu de l'étape actuelle
@@ -221,31 +216,13 @@ const CreateEventPage = () => {
 
             case 3:
                 return (
-                    <>
-                        <h1 className="text-h1 mb-4 text-left w-full font-urbanist">
-                            Finaliser votre Événement
-                        </h1>
-                        <h3 className="text-h3 mb-8 text-left md:w-2/3 w-full font-poppins text-[var(--color-grey-three)]">
-                            Quelles catégories correspondent à votre événement ?
-                        </h3>
-                        <div className="w-full">
-                            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                                {TAGS.map((tag) => (
-                                    <div
-                                        key={tag.id}
-                                        onClick={() => handleTagToggle(tag.id)}
-                                        className={`p-4 border-2 rounded-lg cursor-pointer transition-all ${
-                                            selectedTags.includes(tag.id)
-                                                ? 'border-[var(--color-main)] bg-[var(--color-main)] text-white'
-                                                : 'border-gray-200 hover:border-[var(--color-main)]'
-                                        }`}
-                                    >
-                                        <h3 className="font-semibold text-center">{tag.name}</h3>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    </>
+                    <UserSelectionStep
+                        title="Inviter des Participants"
+                        subtitle="Sélectionnez les utilisateurs que vous souhaitez inviter à cet événement"
+                        currentUserId={user?.id || ''}
+                        selectedUserIds={selectedUserIds}
+                        onUserToggle={handleUserToggle}
+                    />
                 );
 
             default:
@@ -302,7 +279,7 @@ const CreateEventPage = () => {
                     {currentStep !== 2 && (
                         <div className='w-1/6'>
                             <MainButton
-                                text={currentStep === 3 ? "Créer l'événement" : "Continuer"}
+                                text={currentStep === 3 ? "Créer et inviter" : "Continuer"}
                                 onClick={handleNext}
                                 disabled={!canContinue()}
                                 color="bg-[var(--color-text)] font-poppins text-body-large"
