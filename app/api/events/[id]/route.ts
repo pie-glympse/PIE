@@ -67,7 +67,6 @@ export async function PATCH(req: Request) {
       where: { id: eventId },
       data: {
         title: body.title,
-        description: body.description,
       },
     });
 
