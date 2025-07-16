@@ -15,7 +15,7 @@ export async function GET() {
   try {
     const users = await prisma.user.findMany({
       include: {
-        events: true, // ⬅️ tu peux retirer ça si tu ne veux pas les events associés
+        events: true,
       },
     });
 
