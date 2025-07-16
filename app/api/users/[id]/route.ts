@@ -4,7 +4,7 @@ import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
 
-function safeJson(obj: any) {
+function safeJson(obj: unknown) {
   return JSON.parse(
     JSON.stringify(obj, (_, value) =>
       typeof value === "bigint" ? value.toString() : value
@@ -54,7 +54,14 @@ export async function PUT(
     const { name, email, password, photoUrl } = body;
 
     // Prepare update data
-    const updateData: any = {
+    type UserUpdateInput = {
+      name?: string;
+      email?: string;
+      photoUrl?: string;
+      password?: string;
+    };
+
+    const updateData: UserUpdateInput = {
       name,
       email,
       photoUrl
