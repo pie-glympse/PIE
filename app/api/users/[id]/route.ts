@@ -18,7 +18,6 @@ export async function GET(
 ) {
   try {
     const userId = params.id;
-    console.log("Fetching user with ID:", userId); // Debug log
     
     // Convert to BigInt for Prisma query
     const user = await prisma.user.findUnique({
@@ -32,14 +31,11 @@ export async function GET(
       }
     });
 
-    console.log("Found user:", user); // Debug log
-
     if (!user) {
       return NextResponse.json({ error: "Utilisateur non trouvé" }, { status: 404 });
     }
 
     const safeUser = safeJson(user);
-    console.log("Returning safe user:", safeUser); // Debug log
 
     return NextResponse.json(safeUser, { status: 200 });
   } catch (error) {
@@ -56,8 +52,6 @@ export async function PUT(
     const userId = params.id;
     const body = await request.json();
     const { name, email, password, photoUrl } = body;
-
-    console.log("Updating user:", userId, body); // Debug log
 
     // Prepare update data
     const updateData: any = {

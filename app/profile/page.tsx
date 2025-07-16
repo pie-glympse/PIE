@@ -52,11 +52,8 @@ export default function ProfilePage() {
       
       try {
         setLoading(true);
-        console.log("Current user from context:", user); // Debug log
         
         const response = await fetch(`/api/users/${user.id}`);
-        console.log("Response from user fetch:", response);
-        console.log("Request URL:", `/api/users/${user.id}`); // Debug log
         
         if (!response.ok) {
           const errorText = await response.text();
@@ -65,7 +62,6 @@ export default function ProfilePage() {
         }
         
         const userData = await response.json();
-        console.log("User data received:", userData);
         
         const userDataFormatted: UserInfo = {
           name: userData.name || '',
@@ -73,9 +69,7 @@ export default function ProfilePage() {
           password: '', // Never show actual password
           photoUrl: userData.photoUrl || ''
         };
-        
-        console.log("Formatted user data:", userDataFormatted); // Debug log
-        
+                
         setSavedUserInfo(userDataFormatted);
         setUserInfo(userDataFormatted);
         
