@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import Header from "@/components/header/header";
 import { useUser } from "../../context/UserContext";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import GCalendar from "@/components/Gcalendar/Gcalendar";
 import Gcard from "@/components/Gcard/Gcard";
 
@@ -145,11 +146,11 @@ export default function HomePage() {
             >
               +
             </button>
-          </div>
           <div className="flex justify-end">
-            <a href="/events" className="text-gray-500 mt-2">
+            <Link href="/events" className="text-gray-500 mt-2">
               voir plus
-            </a>
+            </Link>
+          </div>
           </div>
         </section>
       </main>
