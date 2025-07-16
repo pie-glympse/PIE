@@ -33,12 +33,12 @@ model Event {
   updatedAt     DateTime
   uuid          String                @unique @default(uuid())
   activityType  String?
+  city          String?
   endDate       DateTime?
   endTime       DateTime?
+  maxDistance   Float?
   startDate     DateTime?
   startTime     DateTime?
-  city          String?
-  maxDistance   Float?
   location      EventLocation?
   preferences   EventUserPreference[]
   photos        EventsUsersPhoto[]
