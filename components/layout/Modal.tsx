@@ -1,10 +1,13 @@
 import React from 'react';
 import MainButton from '../ui/MainButton';
+import Image from 'next/image';
 
 interface StepContent {
     title: string;
     text: string;
     buttonText?: string;
+    image?: string;
+    imagePosition?: 'center' | 'right';
 }
 
 interface ModalProps {
@@ -72,7 +75,23 @@ const Modal: React.FC<ModalProps> = ({
                 onClick={e => e.stopPropagation()}
             >
                 {/* Top rounded div */}
-                <div className="w-full h-[279px] bg-[#E9F1FE] rounded-2xl flex items-center justify-center mb-4" />
+                <div className={`w-full h-[279px] bg-[#E9F1FE] rounded-2xl flex items-end mb-4 ${
+                    currentContent.imagePosition === 'right' ? 'justify-end pr-8' : 'justify-center'
+                }`}>
+                    {currentContent.image ? (
+                        <Image 
+                            src={currentContent.image}
+                            alt={`Step ${validCurrentStep} illustration`}
+                            width={266}
+                            height={279}
+                            className="object-contain"
+                        />
+                    ) : (
+                        <div className="text-gray-400 text-lg">
+                            Step {validCurrentStep}
+                        </div>
+                    )}
+                </div>
                 
                 {/* Title div */}
                 <div className="mb-2 text-center">

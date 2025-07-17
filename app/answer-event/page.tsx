@@ -150,7 +150,7 @@ const AnswerEventPage = () => {
     const handleModalButtonClick = () => {
         // Fermer la modal et rediriger
         setIsModalOpen(false);
-        router.push('/events'); // Remplacez par votre route
+        router.push('/home'); // Remplacez par votre route
     };
 
     // Fonction pour obtenir le contenu de l'étape actuelle
@@ -287,6 +287,13 @@ const AnswerEventPage = () => {
                 title="Félicitations !"
                 text="Vos préférences ont été enregistrées avec succès."
                 buttonText="Continuer"
+                stepContents={[{
+                    title: "Félicitations !",
+                    text: "Vos préférences ont été enregistrées avec succès.",
+                    buttonText: "Continuer",
+                    image: "/images/mascotte/joy.png",
+                    imagePosition: 'center' as const
+                }]}
             />
         </>
     );

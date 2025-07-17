@@ -69,15 +69,21 @@ export default function HomePage() {
     {
       title: "Bienvenue",
       text: "Commençons votre parcours d'inscription",
-      buttonText: "Commencer"
+      buttonText: "Commencer",
+      image: "/images/mascotte/base.png",
+      imagePosition: 'right' as const
     },
     {
       title: "Vos informations",
-      text: "Veuillez renseigner vos données personnelles"
+      text: "Veuillez renseigner vos données personnelles",
+      image: "/images/mascotte/base.png",
+      imagePosition: 'right' as const
     },
     {
       title: "Confirmation",
-      text: "Vérifiez vos informations avant validation"
+      text: "Vérifiez vos informations avant validation",
+      image: "/images/mascotte/joy.png",
+      imagePosition: 'center' as const
     }
   ]
 
