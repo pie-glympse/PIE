@@ -8,7 +8,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'supersecretkey';
 const protectedRoutes = ['/events', '/dashboard', '/home', '/create-event', '/profile'];
 
 // Routes publiques (pas besoin d'authentification)
-const publicRoutes = ['/login', '/register', '/forgot-password'];
+const publicRoutes = ['/', '/login', '/register', '/forgot-password'];
 
 async function verifyToken(token: string): Promise<boolean> {
   try {
@@ -29,17 +29,6 @@ export async function middleware(request: NextRequest) {
   
   // Vérifier si le token est valide
   const isTokenValid = token ? await verifyToken(token) : false;
-
-  // ✅ REDIRECTION AUTOMATIQUE DEPUIS LA RACINE
-  if (pathname === '/') {
-    if (isTokenValid) {
-      // Utilisateur connecté → rediriger vers home
-      return NextResponse.redirect(new URL('/home', request.url));
-    } else {
-      // Utilisateur non connecté → rediriger vers login
-      return NextResponse.redirect(new URL('/login', request.url));
-    }
-  }
 
   // ✅ GESTION DES ROUTES PUBLIQUES
   const isPublicRoute = publicRoutes.some((route) =>
