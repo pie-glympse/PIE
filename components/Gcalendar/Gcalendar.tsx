@@ -38,7 +38,7 @@ interface MiniCalendarProps {
   eventsData?: Event[];
 }
 
-const MiniCalendar = ({ year = 2024, eventsData = [] }: MiniCalendarProps) => {
+const MiniCalendar = ({ year = 2025, eventsData = [] }: MiniCalendarProps) => {
   const { user, isLoading } = useUser();
   const [hoveredDay, setHoveredDay] = useState<HoveredDay | null>(null);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
@@ -233,7 +233,7 @@ const MiniCalendar = ({ year = 2024, eventsData = [] }: MiniCalendarProps) => {
         {months.map((month, index) => (
           <div
             key={month}
-            className="min-w-[240px] bg-gray-50 p-3 rounded-lg snap-center shrink-0"
+            className="min-w-[240px]  p-3 rounded-lg snap-center shrink-0"
           >
             <h3 className="text-sm font-semibold text-left mb-2 text-gray-700">
               {month} {year}

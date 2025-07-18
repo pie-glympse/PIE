@@ -78,7 +78,16 @@ const ForgotPasswordPage = () => {
     return (
         <section className="flex flex-row h-screen items-center gap-10 p-10">
             <div className="h-full w-full md:w-1/2 flex flex-col gap-6 items-start p-10">
-                <p className='text-left'>LOGO ICI</p>
+                {/* mettre le lien vers la landing page de promotion */}
+                <Link href="/login" aria-label="Retour à l'accueil" >
+                <Image
+                    src="/images/logo/Logotype.svg"
+                    alt="Logo Glymps"
+                    width={150}
+                    height={150}
+                    priority
+                />
+                </Link>
                 <BackArrow onClick={() => router.back()} className="" />
 
                 <div className="w-full flex justify-between">

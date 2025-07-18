@@ -61,7 +61,7 @@ export default function HomePage() {
     }
   }, [isLoading, user]);
 
-  // Fonction pour adapter les données de l'API au format attendu par Gcard
+
   const adaptEventForGcard = (event: EventType) => {
     // Assigner différentes images de fond selon les tags
     const getBackgroundUrl = (tags: { id: string; name: string }[]) => {
@@ -85,19 +85,12 @@ export default function HomePage() {
 
   return (
     <>
-      <main className="h-screen overflow-y-auto md:overflow-hidden bg-gray-50 p-6 flex flex-col gap-8">
-        <Header />
+      <main className="h-screen overflow-y-auto md:overflow-hidden p-6 flex flex-col gap-8">
         
         {/* Section Bienvenue */}
-        <section className="mt-20">
+        <section className="mt-10">
           <div className="flex justify-between items-center mb-1">
             <h1 className="text-2xl font-bold text-gray-900">Bienvenue,</h1>
-            <button
-              onClick={handleLogout}
-              className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition text-sm"
-            >
-              Se déconnecter
-            </button>
           </div>
           <div className="flex items-center gap-3">
             <p className="text-3xl font-semibold text-gray-800">
@@ -132,6 +125,7 @@ export default function HomePage() {
             
             {events.slice(0, 3).map((event) => (
               <Gcard 
+                eventId={event.id}
                 key={event.id} 
                 {...adaptEventForGcard(event)} 
                 className="w-100 h-60 flex-shrink-0" 

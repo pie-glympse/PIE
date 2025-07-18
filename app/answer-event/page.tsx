@@ -236,7 +236,6 @@ const AnswerEventPage = () => {
             <section className="flex flex-row h-screen items-center gap-10 p-10">
                 {/* Section gauche */}
                 <div className="h-full w-full flex flex-col gap-6 items-start p-10">
-                    <p className='text-left'>LOGO ICI</p>
                     <div>
                         <BackArrow onClick={handleBack} className="" />
                     </div>

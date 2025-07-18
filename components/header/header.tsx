@@ -1,12 +1,37 @@
+"use client";
+
 import Link from "next/link";
 import Image from "next/image";
+import React, { useState } from "react";
+import { useUser } from "../../context/UserContext";
+import { useRouter } from "next/navigation";
 
 export default function Header() {
+  const { user, isLoading, logout } = useUser();
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    try {
+      // Appeler l'API de logout
+      await fetch("/api/logout", { method: "POST" });
+      
+      // Nettoyer le context
+      logout();
+      
+      // Rediriger vers login
+      router.push("/login");
+    } catch (error) {
+      console.error("Erreur lors de la déconnexion:", error);
+      // Fallback: forcer la suppression et rediriger
+      logout();
+      router.push("/login");
+    }
+  };
   return (
-    <header className="w-full">
-      <div className="mx-auto flex items-center justify-between ">
+    <header className="w-full p-6">
+      <div className="mx-auto flex items-center justify-between">
         {/* Left: Menu + Logo */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center ">
           {/* Menu button */}
           <button
             className="w-10 h-10 flex items-center justify-center"
@@ -24,12 +49,12 @@ export default function Header() {
           </button>
 
           {/* Logo */}
-          <Link href="/" aria-label="Retour à l'accueil">
+          <Link href="/home" aria-label="Retour à l'accueil" className="ml-4">
             <Image
-              src="/images/Qrcode.svg"
+              src="/images/logo/Logotype.svg"
               alt="Logo Glymps"
-              width={60}
-              height={40}
+              width={150}
+              height={150}
               priority
             />
           </Link>
@@ -37,8 +62,16 @@ export default function Header() {
 
         {/* Right: Avatars */}
         <div className="flex items-center gap-4">
+          <button
+              onClick={handleLogout}
+              className="w-35 h-12 bg-red-600 text-white rounded hover:bg-red-700 transition text-sm"
+            >
+              Se déconnecter
+            </button>
           <div className="w-12 h-12 rounded-sm bg-gray-200 border border-white" />
-          <div className="w-12 h-12 rounded-full bg-gray-200 border border-white" />
+          <Link href="/profile" className="w-12 h-12 rounded-full bg-gray-200 border border-white">
+
+          </Link>
         </div>
       </div>
     </header>
