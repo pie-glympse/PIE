@@ -2,6 +2,13 @@
 import React, { useState, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import MainButton from '@/components/ui/MainButton';
+import dynamic from 'next/dynamic';
+
+// Déplacer le dynamic import EN DEHORS du composant pour éviter les re-renders
+const AutocompleteInput = dynamic(() => import('@/components/ui/SimpleAutocomplete'), {
+  ssr: false
+});
+
 
 interface EventFormProps {
     title: React.ReactNode;
@@ -212,14 +219,16 @@ const EventForm: React.FC<EventFormProps> = ({
             <div className="flex flex-col md:flex-row gap-4 mb-6">
                 <div className="flex-1">
                     <label htmlFor="city" className="block mb-1 text-body-large font-poppins text-[var(--color-grey-three)]">Ville</label>
-                    <input
+                    {/* <input
                         id="city"
                         type="text"
                         value={city}
                         onChange={e => setCity(e.target.value)}
                         placeholder="Ville"
                         className="w-full px-5 py-2 text-base border-2 border-[var(--color-grey-two)] rounded placeholder:font-poppins placeholder:text-[#EAEAEF]"
-                    />
+                    /> */}
+                    <AutocompleteInput value={city} onChange={setCity} placeholder="Ville ou adresse" />
+
                 </div>
                 <div className="flex-1">
                     <label htmlFor="maxDistance" className="block mb-1 text-body-large font-poppins text-[var(--color-grey-three)]">Distance max (km)</label>

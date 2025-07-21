@@ -19,6 +19,7 @@ type EventDetails = {
   maxPersons?: string;
   costPerPerson?: string;
   state?: string;
+  city?: string; // Ajouter le champ city
   tags: { id: string; name: string }[];
   users: {
     id: string;

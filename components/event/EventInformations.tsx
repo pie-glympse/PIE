@@ -8,6 +8,7 @@ interface EventInformationsProps {
     date?: string;
     maxPersons?: string;
     costPerPerson?: string;
+    city?: string; // Ajouter le champ city pour l'adresse
     tags: { id: string; name: string }[];
   };
 }
@@ -101,7 +102,7 @@ const EventInformations = ({ event }: EventInformationsProps) => {
               Lieu
             </p>
             <p style={{ fontSize: '18px' }} className="font-medium text-[var(--color-text)]">
-              Vapiano de Clichy
+              {event.city || "Lieu non défini"}
             </p>
           </div>
         </div>
@@ -141,7 +142,7 @@ const EventInformations = ({ event }: EventInformationsProps) => {
           className="w-full h-64 rounded overflow-hidden"
           style={{ backgroundColor: '#F4F4F4' }}
         >
-          <Map />
+          <Map address={event.city} />
         </div>
       </div>
     </div>
