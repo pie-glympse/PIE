@@ -100,8 +100,8 @@ body {
   height: 6px;    /* Épaisseur horizontale */
 }
 
-.custom-scroll::-webkit-scrollbar-track {
-  background: transparent;
+.custom-scroll::-webkit-scrollbar-track { 
+  background: transparent; 
 }
 
 .custom-scroll::-webkit-scrollbar-thumb {

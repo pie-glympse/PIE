@@ -106,7 +106,6 @@ export default function HomePage() {
 
         {/* Calendrier */}
         <section>
-          <h2 className="text-xl font-bold text-gray-800 mb-4">Calendrier des évènements</h2>
           <GCalendar year={2025} />
         </section>
 
