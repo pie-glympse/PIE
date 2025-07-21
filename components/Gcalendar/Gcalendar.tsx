@@ -10,7 +10,8 @@ interface APIEvent {
   uuid: string;
   title: string;
   description?: string;
-  date?: string;
+  startDate?: string;  // Changé de 'date' vers 'startDate'
+  endDate?: string;    // Ajouté pour gérer les événements sur plusieurs jours
   maxPersons?: string;
   costPerPerson?: string;
   state?: string;
@@ -25,6 +26,9 @@ interface Event {
   description: string;
   time: string;
   type: "urgent" | "important" | "meeting" | "task" | "event";
+  isMultiDay?: boolean;
+  originalStartDate?: string;
+  originalEndDate?: string;
 }
 
 interface HoveredDay {
@@ -40,6 +44,7 @@ interface MiniCalendarProps {
 
 const MiniCalendar = ({ year = 2025, eventsData = [] }: MiniCalendarProps) => {
   const { user, isLoading } = useUser();
+  const [hoveredDayNumber, setHoveredDayNumber] = useState<{day: number, month: number} | null>(null);
   const [hoveredDay, setHoveredDay] = useState<HoveredDay | null>(null);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [events, setEvents] = useState<Event[]>([]);
@@ -60,8 +65,23 @@ const MiniCalendar = ({ year = 2025, eventsData = [] }: MiniCalendarProps) => {
     "Décembre",
   ];
 
+  // Fonction pour générer tous les jours entre deux dates
+  const generateDateRange = (startDate: string, endDate: string): string[] => {
+    const dates: string[] = [];
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    
+    const current = new Date(start);
+    while (current <= end) {
+      dates.push(current.toISOString().split('T')[0]);
+      current.setDate(current.getDate() + 1);
+    }
+    
+    return dates;
+  };
+
   // Fonction pour convertir les événements de l'API au format du calendrier
-  const convertAPIEventToCalendarEvent = (apiEvent: APIEvent): Event => {
+  const convertAPIEventToCalendarEvent = (apiEvent: APIEvent): Event[] => {
     // Déterminer le type basé sur les tags
     const getEventType = (tags: { id: string; name: string }[]): Event['type'] => {
       const tagNames = tags.map(tag => tag.name.toLowerCase());
@@ -86,14 +106,24 @@ const MiniCalendar = ({ year = 2025, eventsData = [] }: MiniCalendarProps) => {
       return new Date(dateString).toISOString().split('T')[0];
     };
 
-    return {
-      id: parseInt(apiEvent.id),
-      date: formatDateForCalendar(apiEvent.date),
+    const startDate = formatDateForCalendar(apiEvent.startDate);
+    const endDate = apiEvent.endDate ? formatDateForCalendar(apiEvent.endDate) : startDate;
+    const isMultiDay = startDate !== endDate;
+
+    // Si l'événement s'étend sur plusieurs jours, créer un événement pour chaque jour
+    const dateRange = generateDateRange(startDate, endDate);
+    
+    return dateRange.map((date, index) => ({
+      id: parseInt(apiEvent.id) + index * 0.1, // ID unique pour chaque occurrence
+      date: date,
       title: apiEvent.title,
       description: apiEvent.description || '',
-      time: getTimeFromDate(apiEvent.date),
-      type: getEventType(apiEvent.tags)
-    };
+      time: getTimeFromDate(apiEvent.startDate),
+      type: getEventType(apiEvent.tags),
+      isMultiDay: isMultiDay,
+      originalStartDate: startDate,
+      originalEndDate: endDate
+    }));
   };
 
   // Récupérer les événements depuis l'API
@@ -106,7 +136,11 @@ const MiniCalendar = ({ year = 2025, eventsData = [] }: MiniCalendarProps) => {
         })
         .then((data: APIEvent[]) => {
           // Convertir les événements de l'API au format du calendrier
-          const convertedEvents = data.map(convertAPIEventToCalendarEvent);
+          const convertedEvents: Event[] = [];
+          data.forEach(apiEvent => {
+            const eventDays = convertAPIEventToCalendarEvent(apiEvent);
+            convertedEvents.push(...eventDays);
+          });
           setEvents(convertedEvents);
           setFetchError(null);
         })
@@ -165,6 +199,7 @@ const MiniCalendar = ({ year = 2025, eventsData = [] }: MiniCalendarProps) => {
     month: number,
     event: React.MouseEvent<HTMLDivElement>
   ) => {
+    setHoveredDayNumber({ day, month });
     const dayEvents = getDayEvents(day, month);
     if (dayEvents.length > 0) {
       setHoveredDay({ day, month, events: dayEvents });
@@ -179,10 +214,11 @@ const MiniCalendar = ({ year = 2025, eventsData = [] }: MiniCalendarProps) => {
   };
 
   const handleMouseLeave = () => {
+    setHoveredDayNumber(null);
     setHoveredDay(null);
   };
 
-  const generateMonthDays = (month: number): React.ReactElement[] => {
+  const  generateMonthDays = (month: number): React.ReactElement[] => {
     const daysInMonth = getDaysInMonth(month, year);
     const firstDay = getFirstDayOfMonth(month, year);
     const days: React.ReactElement[] = [];
@@ -192,17 +228,19 @@ const MiniCalendar = ({ year = 2025, eventsData = [] }: MiniCalendarProps) => {
       days.push(<div key={`empty-${i}`} className="w-6 h-6"></div>);
     }
 
-    // Ajouter les jours du mois
+    // Ajouter les jours du mois  
     for (let day = 1; day <= daysInMonth; day++) {
       const colorClass = getDayColor(day, month);
       days.push(
         <div
           key={day}
-          className={`w-6 h-6 ${colorClass} cursor-pointer rounded-sm transition-colors duration-200 flex items-center justify-center text-xs font-medium`}
+          className={`w-6 h-6 ${colorClass} cursor-pointer rounded-sm transition-colors duration-200 flex items-center justify-center text-xs font-medium text-white hover:transition-all hover:duration-300 hover:ease-in-out`}
           onMouseEnter={(e) => handleMouseEnter(day, month, e)}
           onMouseMove={handleMouseMove}
           onMouseLeave={handleMouseLeave}
-        ></div>
+        >
+          {hoveredDayNumber?.day === day && hoveredDayNumber?.month === month ? day : ''}
+        </div>
       );
     }
 
@@ -238,14 +276,13 @@ const MiniCalendar = ({ year = 2025, eventsData = [] }: MiniCalendarProps) => {
             <h3 className="text-sm font-semibold text-left mb-2 text-gray-700">
               {month} {year}
             </h3>
-            <div className="grid grid-cols-13 gap-2">
+            <div className="grid grid-cols-10 gap-1">
               {generateMonthDays(index)}
             </div>
           </div>
         ))}
       </div>
 
-      {/* Tooltip pour afficher les événements */}
       {hoveredDay && (
         <div
           className="fixed z-50 bg-white text-gray-600 p-3 rounded-lg shadow-xl max-w-xs pointer-events-none"
@@ -261,7 +298,14 @@ const MiniCalendar = ({ year = 2025, eventsData = [] }: MiniCalendarProps) => {
           <div className="space-y-1">
             {hoveredDay.events.map((event, index) => (
               <div key={index} className="text-xs">
-                <div className="font-medium">{event.title}</div>
+                <div className="font-medium">
+                  {event.title}
+                  {event.isMultiDay && (
+                    <span className="ml-1 text-xs text-gray-400">
+                      (Multi-jour)
+                    </span>
+                  )}
+                </div>
                 {event.description && (
                   <div className="text-gray-500 text-xs">
                     {event.description}
@@ -279,4 +323,4 @@ const MiniCalendar = ({ year = 2025, eventsData = [] }: MiniCalendarProps) => {
   );
 };
 
-export default MiniCalendar;
+export default MiniCalendar;  
