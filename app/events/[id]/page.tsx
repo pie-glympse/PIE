@@ -9,6 +9,7 @@ import TabNavigation from "@/components/ui/TabNavigation";
 import EventInformations from "@/components/event/EventInformations";
 import EventParticipants from "@/components/event/EventParticipants";
 import EventDocuments from "@/components/event/EventDocuments";
+import Map from "@/components/Map";
 
 type EventDetails = {
   id: string;
