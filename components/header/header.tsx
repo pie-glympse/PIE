@@ -27,8 +27,9 @@ export default function Header() {
       router.push("/login");
     }
   };
+
   return (
-    <header className="w-full p-6">
+    <header className="fixed top-0 left-0 right-0 w-full p-6 bg-white z-50 border-b border-gray-100">
       <div className="mx-auto flex items-center justify-between">
         {/* Left: Menu + Logo */}
         <div className="flex items-center ">
@@ -63,14 +64,13 @@ export default function Header() {
         {/* Right: Avatars */}
         <div className="flex items-center gap-4">
           <button
-              onClick={handleLogout}
-              className="w-35 h-12 bg-red-600 text-white rounded hover:bg-red-700 transition text-sm"
-            >
-              Se déconnecter
-            </button>
+            onClick={handleLogout}
+            className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition text-sm"
+          >
+            Se déconnecter
+          </button>
           <div className="w-12 h-12 rounded-sm bg-gray-200 border border-white" />
           <Link href="/profile" className="w-12 h-12 rounded-full bg-gray-200 border border-white">
-
           </Link>
         </div>
       </div>

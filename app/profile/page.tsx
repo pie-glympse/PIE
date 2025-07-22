@@ -182,7 +182,7 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
+    <div className="p-6 pt-24 max-w-7xl mx-auto">
       {/* Avatar Section */}
       <div className="relative h-48 rounded-lg bg-gray-200 flex items-center justify-center">
         <div className="relative w-32 h-32 rounded-full border-4 border-white overflow-hidden group cursor-pointer bg-gray-300">

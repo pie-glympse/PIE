@@ -26,7 +26,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="fr">
       <body className={`${poppins.variable} ${urbanist.variable} antialiased bg-red-500`}>
         <AppShell>
-          {children}
+          <div className="h-screen">
+            {children}
+          </div>
+
         </AppShell>
       </body>
     </html>

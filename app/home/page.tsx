@@ -85,7 +85,7 @@ export default function HomePage() {
 
   return (
     <>
-      <main className="h-screen overflow-y-auto md:overflow-hidden p-6 flex flex-col gap-8">
+      <main className="h-screen overflow-y-auto md:overflow-hidden pt-24 p-6 flex flex-col gap-8">
         
         {/* Section Bienvenue */}
         <section className="mt-10">
@@ -117,7 +117,8 @@ export default function HomePage() {
             <p className="text-red-600 font-semibold mb-4">Erreur: {fetchError}</p>
           )}
           
-          <div className="flex gap-4 overflow-x-auto pb-2">
+          {/* Container responsive pour les cartes */}
+          <div className="flex flex-col md:flex-row gap-4 md:overflow-x-auto md:pb-2">
             {events.length === 0 && !fetchError && (
               <p className="text-gray-500">Aucun événement trouvé.</p>
             )}
@@ -127,23 +128,24 @@ export default function HomePage() {
                 eventId={event.id}
                 key={event.id} 
                 {...adaptEventForGcard(event)} 
-                className="w-100 h-60 flex-shrink-0" 
+                className="w-full md:w-100 h-60 md:flex-shrink-0" 
               />
             ))}
-
 
             {/* Bouton Ajouter */}
             <button
               aria-label="Ajouter un évènement"
-              className="w-20 h-60 flex-shrink-0 flex items-center justify-center border border-gray-300 rounded-xl hover:bg-gray-100 transition text-3xl text-gray-500"
+              className="w-full md:w-20 h-60 md:flex-shrink-0 flex items-center justify-center border border-gray-300 rounded-xl hover:bg-gray-100 transition text-3xl text-gray-500"
             >
               +
             </button>
-          <div className="flex justify-end">
-            <Link href="/events" className="text-gray-500 mt-2">
+          </div>
+          
+          {/* Lien "voir plus" */}
+          <div className="flex justify-end mt-4">
+            <Link href="/events" className="text-gray-500">
               voir plus
             </Link>
-          </div>
           </div>
         </section>
       </main>

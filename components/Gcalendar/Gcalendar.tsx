@@ -56,6 +56,7 @@ const MiniCalendar = ({ year = 2025, eventsData = [] }: MiniCalendarProps) => {
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
+  const [isMobile, setIsMobile] = useState(false);
 
   const months = [
     "Janvier",
@@ -71,6 +72,18 @@ const MiniCalendar = ({ year = 2025, eventsData = [] }: MiniCalendarProps) => {
     "Novembre",
     "Décembre",
   ];
+
+  // Détecter si on est sur mobile
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768); // md breakpoint de Tailwind
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   // Fonction pour générer tous les jours entre deux dates
   const generateDateRange = (startDate: string, endDate: string): string[] => {
@@ -166,9 +179,9 @@ const MiniCalendar = ({ year = 2025, eventsData = [] }: MiniCalendarProps) => {
     }
   }, [eventsData]);
 
-  // Vérifier l'état du scroll pour afficher/masquer les boutons
+  // Vérifier l'état du scroll pour afficher/masquer les boutons (seulement pour desktop)
   const checkScrollPosition = () => {
-    if (scrollContainerRef.current) {
+    if (scrollContainerRef.current && !isMobile) {
       const { scrollLeft, scrollWidth, clientWidth } = scrollContainerRef.current;
       setCanScrollLeft(scrollLeft > 0);
       setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 1);
@@ -178,7 +191,7 @@ const MiniCalendar = ({ year = 2025, eventsData = [] }: MiniCalendarProps) => {
   // Écouter les changements de scroll
   useEffect(() => {
     const scrollContainer = scrollContainerRef.current;
-    if (scrollContainer) {
+    if (scrollContainer && !isMobile) {
       scrollContainer.addEventListener('scroll', checkScrollPosition);
       checkScrollPosition(); // Vérification initiale
       
@@ -186,11 +199,11 @@ const MiniCalendar = ({ year = 2025, eventsData = [] }: MiniCalendarProps) => {
         scrollContainer.removeEventListener('scroll', checkScrollPosition);
       };
     }
-  }, []);
+  }, [isMobile]);
 
-  // Navigation avec les boutons flèches
+  // Navigation avec les boutons flèches (seulement pour desktop)
   const scrollToDirection = (direction: 'left' | 'right') => {
-    if (scrollContainerRef.current) {
+    if (scrollContainerRef.current && !isMobile) {
       const scrollAmount = 264; // Largeur d'un mois + gap
       const currentScroll = scrollContainerRef.current.scrollLeft;
       const newScroll = direction === 'left' 
@@ -331,44 +344,54 @@ const MiniCalendar = ({ year = 2025, eventsData = [] }: MiniCalendarProps) => {
 
   return (
     <div>
-      
-       <div className="flex justify-between items-center">
+      <div className="flex justify-between items-center">
         {title && (
-        <div className="text-xl font-bold text-gray-800 mb-4">Calendrier des évenements</div>
-      )}
-      <div>
-        <button
-          onClick={() => scrollToDirection('left')}
-          className=" left-0 z-10 p-4 bg-gray-200 rounded ml-2"
-          aria-label="Mois précédent"
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-          </svg>
-        </button>
+          <div className="text-xl font-bold text-gray-800 mb-4">Calendrier des évenements</div>
+        )}
+        {/* Boutons de navigation - cachés sur mobile */}
+        {!isMobile && (
+          <div>
+            <button
+              onClick={() => scrollToDirection('left')}
+              className="left-0 z-10 p-4 bg-gray-200 rounded ml-2"
+              aria-label="Mois précédent"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
 
-
-        <button
-          onClick={() => scrollToDirection('right')}
-          className="right-0 z-10 p-4 bg-gray-200 rounded ml-2"
-          aria-label="Mois suivant"
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-          </svg>
-        </button>
-        </div>
-       </div>
+            <button
+              onClick={() => scrollToDirection('right')}
+              className="right-0 z-10 p-4 bg-gray-200 rounded ml-2"
+              aria-label="Mois suivant"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+          </div>
+        )}
+      </div>
 
       {/* Container de scroll avec tous les mois */}
       <div 
         ref={scrollContainerRef}
-        className="flex overflow-hidden space-x-4 snap-x snap-mandatory px-1 py-5 custom-scroll gap-6"
+        className={`flex space-x-4 snap-x snap-mandatory px-1 py-5 gap-6 ${
+          isMobile 
+            ? 'overflow-x-auto' // Scroll libre sur mobile
+            : 'overflow-hidden' // Scroll contrôlé par les boutons sur desktop
+        }`}
+        style={{
+          // Styles pour un scroll fluide sur mobile
+          WebkitOverflowScrolling: 'touch',
+          scrollBehavior: 'smooth'
+        }}
       >
         {months.map((month, index) => (
           <div
             key={month}
-            className="min-w-[240px]  p-3 rounded-lg snap-center shrink-0"
+            className="min-w-[240px] p-3 rounded-lg snap-center shrink-0"
           >
             <h3 className="text-sm font-semibold text-left mb-2 text-gray-700">
               {month} {year}
@@ -379,6 +402,8 @@ const MiniCalendar = ({ year = 2025, eventsData = [] }: MiniCalendarProps) => {
           </div>
         ))}
       </div>
+
+
 
       {/* Tooltip des événements */}
       {hoveredDay && (
