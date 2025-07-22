@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import { useUser } from "../../context/UserContext";
 import { useRouter } from "next/navigation";
 import { title } from "process";
+import "./Gcalendar.css";
 
 // Type pour les événements de l'API
 interface APIEvent {
@@ -12,8 +13,8 @@ interface APIEvent {
   uuid: string;
   title: string;
   description?: string;
-  startDate?: string;  // Changé de 'date' vers 'startDate'
-  endDate?: string;    // Ajouté pour gérer les événements sur plusieurs jours
+  startDate?: string;
+  endDate?: string;
   maxPersons?: string;
   costPerPerson?: string;
   state?: string;
@@ -27,11 +28,11 @@ interface Event {
   title: string;
   description: string;
   time: string;
-  type: "urgent" | "important" | "meeting" | "task" | "event";
+  tags: { id: string; name: string }[];
   isMultiDay?: boolean;
   originalStartDate?: string;
   originalEndDate?: string;
-  uuid?: string; // UUID de l'événement pour la redirection
+  uuid?: string;
 }
 
 interface HoveredDay {
@@ -73,10 +74,23 @@ const MiniCalendar = ({ year = 2025, eventsData = [] }: MiniCalendarProps) => {
     "Décembre",
   ];
 
+  // Mapping des couleurs pour les 5 tags de votre BDD
+  const getColorForTag = (tagName: string): string => {
+    const tagColors: Record<string, string> = {
+      'Restauration': 'red red:hover',
+      'Afterwork': 'violet violet:hover',
+      'Team Building': 'yellow yellow:hover',
+      'Séminaire': 'green green:hover',
+      'Autre': 'grey grey:hover',
+    };
+
+    return tagColors[tagName] || 'bg-gray-400 hover:bg-gray-500';
+  };
+
   // Détecter si on est sur mobile
   useEffect(() => {
     const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768); // md breakpoint de Tailwind
+      setIsMobile(window.innerWidth < 768);
     };
     
     checkMobile();
@@ -102,17 +116,6 @@ const MiniCalendar = ({ year = 2025, eventsData = [] }: MiniCalendarProps) => {
 
   // Fonction pour convertir les événements de l'API au format du calendrier
   const convertAPIEventToCalendarEvent = (apiEvent: APIEvent): Event[] => {
-    // Déterminer le type basé sur les tags
-    const getEventType = (tags: { id: string; name: string }[]): Event['type'] => {
-      const tagNames = tags.map(tag => tag.name.toLowerCase());
-      
-      if (tagNames.includes('urgent')) return 'urgent';
-      if (tagNames.includes('important')) return 'important';
-      if (tagNames.includes('séminaire')) return 'meeting';
-      if (tagNames.includes('team building')) return 'task';
-      return 'event'; // Par défaut
-    };
-
     // Extraire l'heure de la date
     const getTimeFromDate = (dateString?: string): string => {
       if (!dateString) return '00:00';
@@ -134,16 +137,16 @@ const MiniCalendar = ({ year = 2025, eventsData = [] }: MiniCalendarProps) => {
     const dateRange = generateDateRange(startDate, endDate);
     
     return dateRange.map((date, index) => ({
-      id: parseInt(apiEvent.id) + index * 0.1, // ID unique pour chaque occurrence
+      id: parseInt(apiEvent.id) + index * 0.1,
       date: date,
       title: apiEvent.title,
       description: apiEvent.description || '',
       time: getTimeFromDate(apiEvent.startDate),
-      type: getEventType(apiEvent.tags),
+      tags: apiEvent.tags, // Conserver les tags originaux
       isMultiDay: isMultiDay,
       originalStartDate: startDate,
       originalEndDate: endDate,
-      uuid: apiEvent.uuid // UUID de l'événement original
+      uuid: apiEvent.uuid
     }));
   };
 
@@ -156,7 +159,6 @@ const MiniCalendar = ({ year = 2025, eventsData = [] }: MiniCalendarProps) => {
           return res.json();
         })
         .then((data: APIEvent[]) => {
-          // Convertir les événements de l'API au format du calendrier
           const convertedEvents: Event[] = [];
           data.forEach(apiEvent => {
             const eventDays = convertAPIEventToCalendarEvent(apiEvent);
@@ -193,7 +195,7 @@ const MiniCalendar = ({ year = 2025, eventsData = [] }: MiniCalendarProps) => {
     const scrollContainer = scrollContainerRef.current;
     if (scrollContainer && !isMobile) {
       scrollContainer.addEventListener('scroll', checkScrollPosition);
-      checkScrollPosition(); // Vérification initiale
+      checkScrollPosition();
       
       return () => {
         scrollContainer.removeEventListener('scroll', checkScrollPosition);
@@ -204,7 +206,7 @@ const MiniCalendar = ({ year = 2025, eventsData = [] }: MiniCalendarProps) => {
   // Navigation avec les boutons flèches (seulement pour desktop)
   const scrollToDirection = (direction: 'left' | 'right') => {
     if (scrollContainerRef.current && !isMobile) {
-      const scrollAmount = 264; // Largeur d'un mois + gap
+      const scrollAmount = 264;
       const currentScroll = scrollContainerRef.current.scrollLeft;
       const newScroll = direction === 'left' 
         ? currentScroll - scrollAmount 
@@ -236,28 +238,19 @@ const MiniCalendar = ({ year = 2025, eventsData = [] }: MiniCalendarProps) => {
     const dayEvents = getDayEvents(day, month);
     if (dayEvents.length === 0) return "bg-gray-200 hover:bg-gray-300";
 
-    const priority: Record<string, string> = {
-      urgent: "bg-red-400 hover:bg-red-500",
-      important: "bg-orange-400 hover:bg-orange-500",
-      meeting: "bg-blue-400 hover:bg-blue-500",
-      task: "bg-green-400 hover:bg-green-500",
-      event: "bg-purple-400 hover:bg-purple-500",
-    };
-
-    for (const [type, color] of Object.entries(priority)) {
-      if (dayEvents.some((event) => event.type === type)) {
-        return color;
-      }
+    // Prendre la couleur du premier tag du premier événement
+    const firstEvent = dayEvents[0];
+    if (firstEvent.tags.length > 0) {
+      return getColorForTag(firstEvent.tags[0].name);
     }
 
-    return "bg-indigo-700 hover:bg-indigo-800";
+    return 'bg-gray-400 hover:bg-gray-500';
   };
 
   // Fonction pour gérer le clic sur un jour avec événement
   const handleDayClick = (day: number, month: number) => {
     const dayEvents = getDayEvents(day, month);
     if (dayEvents.length > 0) {
-      // Rediriger vers le premier événement de la journée
       const firstEvent = dayEvents[0];
       if (firstEvent.uuid) {
         router.push(`/events/${firstEvent.id}`);
@@ -346,7 +339,7 @@ const MiniCalendar = ({ year = 2025, eventsData = [] }: MiniCalendarProps) => {
     <div>
       <div className="flex justify-between items-center">
         {title && (
-          <div className="text-xl font-bold text-gray-800 mb-4">Calendrier des évenements</div>
+          <div className="text-xl font-bold text-gray-800 mb-4">Calendrier des événements</div>
         )}
         {/* Boutons de navigation - cachés sur mobile */}
         {!isMobile && (
@@ -379,11 +372,10 @@ const MiniCalendar = ({ year = 2025, eventsData = [] }: MiniCalendarProps) => {
         ref={scrollContainerRef}
         className={`flex space-x-4 snap-x snap-mandatory px-1 py-5 gap-6 ${
           isMobile 
-            ? 'overflow-x-auto' // Scroll libre sur mobile
-            : 'overflow-hidden' // Scroll contrôlé par les boutons sur desktop
+            ? 'overflow-x-auto'
+            : 'overflow-hidden'
         }`}
         style={{
-          // Styles pour un scroll fluide sur mobile
           WebkitOverflowScrolling: 'touch',
           scrollBehavior: 'smooth'
         }}
@@ -402,8 +394,6 @@ const MiniCalendar = ({ year = 2025, eventsData = [] }: MiniCalendarProps) => {
           </div>
         ))}
       </div>
-
-
 
       {/* Tooltip des événements */}
       {hoveredDay && (
@@ -436,6 +426,19 @@ const MiniCalendar = ({ year = 2025, eventsData = [] }: MiniCalendarProps) => {
                 )}
                 {event.time && (
                   <div className="text-gray-400 text-xs">{event.time}</div>
+                )}
+                {/* Afficher les tags dans le tooltip */}
+                {event.tags.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {event.tags.map((tag) => (
+                      <span 
+                        key={tag.id}
+                        className={`px-1.5 py-0.5 text-xs rounded-full text-white ${getColorForTag(tag.name).split(' ')[0]}-500`}
+                      >
+                        {tag.name}
+                      </span>
+                    ))}
+                  </div>
                 )}
               </div>
             ))}

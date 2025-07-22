@@ -1,0 +1,39 @@
+.red {
+    background-color: #FF5B5B; /* Tailwind bg-red-500 */
+    transition: background-color 0.2s;
+}
+.red:hover {
+    background-color: #df4f4f; /* Tailwind bg-red-600 */
+}
+
+.violet {
+    background-color: #F78AFF; /* Tailwind bg-blue-500 */
+    transition: background-color 0.2s;
+}
+.violet:hover {
+    background-color: #c16bc7; /* Tailwind bg-blue-600 */
+}
+
+.yellow {
+    background-color: #FCC638; /* Tailwind bg-green-500 */
+    transition: background-color 0.2s;
+}
+.yellow:hover {
+    background-color: #ca9e2d; /* Tailwind bg-green-600 */
+}
+
+.green {
+    background-color: #57B454; /* Tailwind bg-purple-500 */
+    transition: background-color 0.2s;
+}
+.green:hover {
+    background-color: #4b9948; /* Tailwind bg-purple-600 */
+}
+
+.grey {
+    background-color: #686868; /* Custom color */
+    transition: background-color 0.2s;
+}
+.grey:hover {
+    background-color: #414141; /* Tailwind bg-orange-600 */
+}
