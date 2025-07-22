@@ -86,6 +86,8 @@ export default function HomePage() {
     return <div>Chargement...</div>;
   }
 
+  const isAuthorized = user ? ["ADMIN", "SUPER_ADMIN"].includes(user.role) : false;
+
   return (
     <>
       <main className="h-screen overflow-y-auto md:overflow-hidden pt-24 p-6 flex flex-col gap-8">
@@ -136,12 +138,14 @@ export default function HomePage() {
             ))}
 
             {/* Bouton Ajouter */}
-            <button
+            {isAuthorized && (
+              <button
               aria-label="Ajouter un évènement"
               className="w-full md:w-20 h-60 md:flex-shrink-0 flex items-center justify-center border border-gray-300 rounded-xl hover:bg-gray-100 transition text-3xl text-gray-500"
             >
               +
             </button>
+            )}
           </div>
           
           {/* Lien "voir plus" */}

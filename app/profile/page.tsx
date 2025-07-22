@@ -170,7 +170,7 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
+    <div className="mt-24 p-6 max-w-7xl mx-auto">
       {/* Bannière */}
       <div className="relative h-48 rounded-lg bg-gray-200 group cursor-pointer">
         {banner && (
