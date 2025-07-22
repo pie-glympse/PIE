@@ -1,12 +1,12 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import Header from "@/components/header/header";
 import { useUser } from "../../context/UserContext";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import GCalendar from "@/components/Gcalendar/Gcalendar";
 import Gcard from "@/components/Gcard/Gcard";
+
 
 type EventType = {
   id: string;
