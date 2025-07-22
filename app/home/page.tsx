@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import * as React from "react";
+import { useState, useEffect } from "react";
 import { useUser } from "../../context/UserContext";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -61,6 +62,8 @@ export default function HomePage() {
     }
   }, [isLoading, user]);
 
+  console.log("User:", user);
+
 
   const adaptEventForGcard = (event: EventType) => {
     // Assigner différentes images de fond selon les tags
@@ -94,7 +97,7 @@ export default function HomePage() {
           </div>
           <div className="flex items-center gap-3">
             <p className="text-3xl font-semibold text-gray-800">
-              {user?.name || "invité"}
+              {user?.firstName || "invité"}
             </p>
             <img
               src="/images/icones/pastille.svg"

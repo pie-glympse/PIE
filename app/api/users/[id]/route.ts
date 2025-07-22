@@ -17,17 +17,16 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const userId = (await params).id;
+    const { id: userId } = await params;
 
-    // Convert to BigInt for Prisma query
     const user = await prisma.user.findUnique({
       where: { id: BigInt(userId) },
       select: {
         id: true,
+        firstName: true,
+        lastName: true,
         email: true,
-        name: true,
         role: true,
-        photoUrl: true,
       }
     });
 
@@ -35,9 +34,7 @@ export async function GET(
       return NextResponse.json({ error: "Utilisateur non trouvé" }, { status: 404 });
     }
 
-    const safeUser = safeJson(user);
-
-    return NextResponse.json(safeUser, { status: 200 });
+    return NextResponse.json(safeJson(user), { status: 200 });
   } catch (error) {
     console.error("Erreur récupération utilisateur:", error);
     return NextResponse.json({ error: "Erreur serveur" }, { status: 500 });
@@ -49,22 +46,20 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const userId = (await params).id;
+    const { id: userId } = await params;
     const body = await request.json();
-    const { name, email, password, photoUrl } = body;
+    const { firstName, lastName, email, password } = body;
 
-    // Prepare update data
-    type UserUpdateInput = {
-      name?: string;
-      email?: string;
-      photoUrl?: string;
+    const updateData: {
+      firstName: string;
+      lastName: string;
+      email: string;
       password?: string;
-    };
-
-    const updateData: UserUpdateInput = {
-      name,
+    } = {
+      firstName,
+      lastName,
       email,
-      photoUrl
+      password
     };
 
     // Hash password if provided
@@ -77,10 +72,10 @@ export async function PUT(
       data: updateData,
       select: {
         id: true,
+        firstName: true,
+        lastName: true,
         email: true,
-        name: true,
         role: true,
-        photoUrl: true,
       }
     });
 

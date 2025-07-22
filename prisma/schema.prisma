@@ -10,7 +10,8 @@ datasource db {
 
 model User {
   id           BigInt                @id @default(autoincrement())
-  name         String
+  firstName    String                @default("")
+  lastName     String                @default("")
   email        String                @unique
   password     String
   role         String                @default("STANDARD")

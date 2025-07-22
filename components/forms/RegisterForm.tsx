@@ -1,6 +1,7 @@
 "use client"
 import React, { useState, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
+import { useUser } from '../../context/UserContext'; // ✅ Ajouter l'import
 import MainButton from '@/components/ui/MainButton';
 
 interface RegisterFormProps {
@@ -22,25 +23,29 @@ const RegisterForm: React.FC<RegisterFormProps> = ({
     placeholderText,
     placeholderTextPswrd
 }) => {
+    // ✅ Ajouter les hooks UserContext comme dans LoginForm
+    const { setUser, setToken } = useUser();
     const router = useRouter();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    const [firstname, setFirstname] = useState('');
-    const [name, setName] = useState('');
+    const [firstName, setFirstName] = useState('');
+    const [lastName, setLastName] = useState('');
     const [companyName, setCompanyName] = useState('');
     const [address, setAddress] = useState('');
     const [postalCode, setPostalCode] = useState('');
+    // ✅ Ajouter l'état d'erreur comme dans LoginForm
+    const [errorMsg, setErrorMsg] = useState('');
 
     const handleSubmit = async (e: FormEvent) => {
         e.preventDefault();
+        setErrorMsg(''); // ✅ Reset l'erreur
         
         try {
             const formData = {
                 email,
                 password,
-                name: `${firstname} ${name}`.trim(),
-                firstname,
-                lastname: name,
+                firstName,
+                lastName,
                 companyName,
                 address,
                 postalCode
@@ -52,16 +57,37 @@ const RegisterForm: React.FC<RegisterFormProps> = ({
                 body: JSON.stringify(formData),
             });
 
-            if (response.ok) {
-                // ✅ Redirection automatique vers /home
-                router.push('/home');
-            } else {
-                const error = await response.json();
-                alert(error?.error || 'Erreur lors de l\'inscription');
+            // ✅ Gérer la réponse comme dans LoginForm
+            if (!response.ok) {
+                const errorData = await response.json();
+                setErrorMsg(errorData.error || 'Erreur lors de l\'inscription');
+                return;
             }
+
+            // ✅ Récupérer les données comme dans LoginForm
+            const data = await response.json();
+            
+            // ✅ Vérifier que les données nécessaires sont présentes
+            if (!data.token || !data.user) {
+                console.error("Données manquantes dans la réponse:", data);
+                setErrorMsg("Erreur serveur: données incomplètes");
+                return;
+            }
+            
+            // ✅ Initialiser le UserContext comme dans LoginForm
+            setToken(data.token);
+            setUser(data.user);
+            
+            // ✅ Persistance locale comme dans LoginForm
+            localStorage.setItem("token", data.token);
+            localStorage.setItem("user", JSON.stringify(data.user));
+            
+            // ✅ Redirection vers /home
+            router.push('/home');
+
         } catch (err) {
-            console.error(err);
-            alert('Erreur réseau ou serveur');
+            console.error("Erreur lors de l'inscription:", err);
+            setErrorMsg("Erreur de connexion au serveur");
         }
     };
 
@@ -76,20 +102,20 @@ const RegisterForm: React.FC<RegisterFormProps> = ({
                     <input
                         id="firstname"
                         type="text"
-                        value={firstname}
-                        onChange={e => setFirstname(e.target.value)}
+                        value={firstName}
+                        onChange={e => setFirstName(e.target.value)}
                         placeholder="Prénom"
                         required
                         className="w-full px-5 py-2 text-base border-2 border-[var(--color-grey-two)] rounded placeholder:font-poppins placeholder:text-[#EAEAEF]"
                     />
                 </div>
                 <div className="flex-1">
-                    <label htmlFor="name" className="block mb-1 text-body-large font-poppins text-[var(--color-grey-three)]">Nom</label>
+                    <label htmlFor="lastname" className="block mb-1 text-body-large font-poppins text-[var(--color-grey-three)]">Nom</label>
                     <input
-                        id="name"
+                        id="lastname"
                         type="text"
-                        value={name}
-                        onChange={e => setName(e.target.value)}
+                        value={lastName}
+                        onChange={e => setLastName(e.target.value)}
                         placeholder="Nom"
                         required
                         className="w-full px-5 py-2 text-base border-2 border-[var(--color-grey-two)] rounded placeholder:font-poppins placeholder:text-[#EAEAEF]"
@@ -163,6 +189,13 @@ const RegisterForm: React.FC<RegisterFormProps> = ({
                     className="w-full px-5 py-2 text-base border-2 border-[var(--color-grey-two)] rounded placeholder:font-poppins placeholder:text-[#EAEAEF] mb-6"
                 />
             </div>
+
+            {/* ✅ Ajouter l'affichage d'erreur comme dans LoginForm */}
+            {errorMsg && (
+                <div className="mb-4 text-red-600 text-body-small font-poppins">
+                    {errorMsg}
+                </div>
+            )}
 
             <div className='md:w-1/5 w-full mb-8'>
                 {/* Submit button */}

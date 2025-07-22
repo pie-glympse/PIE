@@ -319,7 +319,7 @@ const handleDeleteEvent = async (eventId: string) => {
 
   return (
     <div className="max-w-xl mx-auto space-y-6">
-      <div>Bonjour {user?.name || "invité"}</div>
+      <div>Bonjour {`${user?.firstName} ${user?.lastName}` || "invité"}</div>
 
       {isAuthorized ? (
         <form onSubmit={handleSubmit} className="space-y-4">

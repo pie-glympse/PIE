@@ -30,7 +30,8 @@ export async function POST(req: Request) {
       {
         id: user.id.toString(),
         email: user.email,
-        name: user.name,
+        firstName: user.firstName,
+        lastName: user.lastName,
         role: user.role
       },
       JWT_SECRET,
@@ -42,7 +43,8 @@ export async function POST(req: Request) {
       user: { 
         id: user.id.toString(), 
         email: user.email, 
-        name: user.name, 
+        firstName: user.firstName,
+        lastName: user.lastName,
         role: user.role 
       },
       token: token  // ✅ Ajouter le token dans la réponse JSON

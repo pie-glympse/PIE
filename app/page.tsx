@@ -4,7 +4,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import MainButton from '@/components/ui/MainButton'
-import LoginForm from '@/components/forms/LoginForm'
 import Modal from '@/components/layout/Modal'
 import CategoryBtn from '@/components/ui/CategoryBtn'
 
@@ -115,7 +114,7 @@ export default function HomePage() {
       <ul className="space-y-2">
         {users.map((user) => (
           <li key={user.id} className="bg-gray-500 p-2 rounded">
-            <p><strong>{user.name}</strong></p>
+            <p><strong>{user.firstName} {user.lastName}</strong></p>
             <p>{user.email}</p>
           </li>
         ))}
