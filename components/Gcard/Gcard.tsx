@@ -93,7 +93,7 @@ export default function EventCard({
         src={backgroundUrl}
         alt=""
         aria-hidden="true"
-        className="absolute right-[-25px] bottom-[-25px] pointer-events-none opacity-80"
+        className="absolute right-[-25px] bottom-[-25px] pointer-events-none"
         style={{
           width: backgroundSize,
           height: 200,
