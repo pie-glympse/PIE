@@ -3,9 +3,18 @@ import { useRouter } from "next/navigation";
 import LoginForm from '@/components/forms/LoginForm';
 import Link from "next/link";
 import Image from 'next/image';
+import { useEffect } from 'react';
 
 export default function LoginPage() {
     const router = useRouter();
+
+    // Désactiver le scroll uniquement sur cette page
+    useEffect(() => {
+        document.body.style.overflow = 'hidden';
+        return () => {
+            document.body.style.overflow = 'unset';
+        };
+    }, []);
 
     const handleForgotPassword = () => {
         // Logique pour mot de passe oublié
@@ -21,7 +30,7 @@ export default function LoginPage() {
     };
 
     return (
-        <section className="flex flex-row h-screen items-center gap-10 p-10">
+        <section className="flex flex-row h-screen items-center gap-10 p-10 overflow-hidden">
             <div className="h-full w-full md:w-1/2 flex flex-col gap-6 justify-between items-start p-10">
                 {/* mettre le lien vers la landing page de promotion */}
                 <Link href="/login" aria-label="Retour à l'accueil" >
@@ -57,8 +66,10 @@ export default function LoginPage() {
                 </div>
             </div>
             
-            <div className="bg-[#E9F1FE] hidden md:w-1/2 md:h-full md:flex  relative rounded-4xl">
-                <div className="absolute left-1/2 bottom-8 transform -translate-x-1/2 w-[90%] bg-white flex flex-row gap-10 items-center p-6 rounded-lg">
+            <div className="bg-[#E9F1FE] hidden md:w-1/2 md:h-full md:flex relative rounded-4xl">
+                
+                {/* Card QR Code par-dessus l'image */}
+                <div className="absolute left-1/2 bottom-8 transform -translate-x-1/2 w-[90%] bg-white flex flex-row gap-10 items-center p-6 rounded-lg z-10">
                     <div>
                         <Image
                             src="/images/Qrcode.svg"
@@ -73,6 +84,14 @@ export default function LoginPage() {
                         <span className='text-body-large font-poppins text-[var(--color-grey-three)]'>Scannez pour télécharger</span>
                     </div>
                 </div>
+            </div>
+            <div className="hidden md:block md:w-1/2  absolute right-10 aspect-[738/1049]">
+                <Image
+                    src="/images/mascotte/login-light.png"
+                    alt="Image de connexion"
+                    fill
+                    className="object-cover rounded-4xl"
+                />
             </div>
         </section>
     );
