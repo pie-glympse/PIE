@@ -6,11 +6,16 @@ import { useRouter } from "next/navigation";
 import { ShareEventModal } from "@/components/layout/ShareEventModal";
 
 const TAGS = [
-  { id: 1, name: "Restauration" },
-  { id: 2, name: "Afterwork" },
-  { id: 3, name: "Team Building" },
-  { id: 4, name: "Séminaire" },
-  { id: 5, name: "Autre" },
+  { id: 1, name: "Activité Sportive" },
+  { id: 2, name: "Activité Créative" },
+  { id: 3, name: "Activité Culturelle" },
+  { id: 4, name: "Restaurant" },
+  { id: 5, name: "Parcs" },
+  { id: 6, name: "Spa / Soins" },
+  { id: 7, name: "Escape Game" },
+  { id: 8, name: "Parc d'Attraction" },
+  { id: 9, name: "Shopping" },
+  { id: 10, name: "Festival" },
 ];
 
 type EventType = {
@@ -216,6 +221,11 @@ const handleDeleteEvent = async (eventId: string) => {
       tagId: selectedTagId,
       preferredDate,
     };
+
+    console.log("userID => " + body.userId)
+    console.log("eventID => " + body.eventId)
+    console.log("tagID => " + body.tagId)
+    console.log("prefferedDate => " + body.preferredDate)
 
     try {
       const res = await fetch(`/api/events/${selectedEvent.id}/preferences`, {

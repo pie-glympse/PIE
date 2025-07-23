@@ -7,10 +7,14 @@ export async function POST(request: NextRequest) {
   try {
     // 🔥 Récupérer l'id depuis l'URL
     const url = new URL(request.url);
-    const id = url.pathname.split('/').filter(Boolean).pop(); // "preferences" -> "[id]"
-    if (!id) {
+    // Correction: extraire l'id juste avant "preferences"
+    const pathParts = url.pathname.split('/').filter(Boolean);
+    const preferencesIndex = pathParts.indexOf('preferences');
+    const id =
+      preferencesIndex > 0 ? pathParts[preferencesIndex - 1] : undefined;
+    if (!id || isNaN(Number(id))) {
       return NextResponse.json(
-        { message: 'Paramètre id manquant dans l’URL' },
+        { message: 'Paramètre id manquant ou invalide dans l’URL' },
         { status: 400 }
       );
     }
