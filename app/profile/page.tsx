@@ -219,7 +219,7 @@ export default function ProfilePage() {
             <>
               <button 
                 onClick={handleEdit}
-                className="px-4 py-2 bg-[var(--color-grey-one)] text-h3 font-poppins text-[var(--color-grey-three)] rounded-lg hover: transition cursor-pointer"
+                className="px-4 py-2 bg-[var(--color-grey-one)] hover:bg-white text-h3 font-poppins text-[var(--color-grey-three)] rounded-lg hover: transition cursor-pointer"
               >
                 Editer le profil
               </button>
@@ -232,7 +232,7 @@ export default function ProfilePage() {
               <button 
                 onClick={handleSave}
                 disabled={loading}
-                className="px-4 py-2 bg-[var(--color-grey-one)] text-h3 font-poppins text-[var(--color-grey-three)] rounded-lg hover: transition cursor-pointer disabled:opacity-50"
+                className="px-4 py-2 bg-[var(--color-secondary)] text-h3 font-poppins text-white rounded-lg hover: transition cursor-pointer disabled:opacity-50"
               >
                 {loading ? 'Sauvegarde...' : 'Enregistrer'}
               </button>
