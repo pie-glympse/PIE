@@ -9,7 +9,6 @@ import TabNavigation from "@/components/ui/TabNavigation";
 import EventInformations from "@/components/event/EventInformations";
 import EventParticipants from "@/components/event/EventParticipants";
 import EventDocuments from "@/components/event/EventDocuments";
-import Map from "@/components/Map";
 
 type EventDetails = {
   id: string;
@@ -23,7 +22,8 @@ type EventDetails = {
   tags: { id: string; name: string }[];
   users: {
     id: string;
-    name: string;
+    firstName: string;
+    lastName: string;
     email: string;
   }[];
   createdAt: string;
@@ -120,7 +120,7 @@ export default function SingleEventPage() {
   if (loading) {
     return (
       <div className="flex h-screen items-center justify-center">
-        <div>Chargement de l'événement...</div>
+        <div>Chargement de l&apos;événement...</div>
       </div>
     );
   }
@@ -149,7 +149,6 @@ export default function SingleEventPage() {
     <section className="flex flex-row h-screen items-start gap-10 p-10">
       <div className="h-full w-full flex flex-col gap-6 items-start p-10">
         {/* Header avec logo et back arrow */}
-        <p className="text-left">LOGO ICI</p>
         <BackArrow onClick={handleBack} className="" />
 
         {/* Header de l'événement */}
@@ -159,7 +158,7 @@ export default function SingleEventPage() {
               {event.title}
             </h1>
             <p className="text-body-large font-poppins text-[var(--color-text)]">
-              Organisé par {organizer?.name || "Organisateur inconnu"}
+              Organisé par {`${organizer?.firstName} ${organizer?.lastName}` || "Organisateur inconnu"}
             </p>
           </div>
           <ShareButton onClick={handleShare} />

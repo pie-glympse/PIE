@@ -131,7 +131,8 @@ export async function POST(request: Request) {
           select: {
             id: true,
             email: true,
-            name: true,
+            firstName: true,
+            lastName: true,
           }
         },
       },

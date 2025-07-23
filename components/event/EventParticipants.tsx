@@ -3,7 +3,8 @@ import Image from 'next/image';
 
 interface Participant {
     id: number;
-    name: string;
+    firstName: string;
+    lastName: string;
     email: string;
 }
 
@@ -14,12 +15,12 @@ interface EventParticipantsProps {
 const EventParticipants: React.FC<EventParticipantsProps> = ({ participants = [] }) => {
 
     const mockParticipants: Participant[] = [
-        { id: 1, name: 'Olivia Rhye', email: 'oliviarhye@gmail.com' },
-        { id: 2, name: 'John Doe', email: 'john.doe@example.com' },
-        { id: 3, name: 'Jane Smith', email: 'jane.smith@example.com' },
-        { id: 4, name: 'Mike Johnson', email: 'mike.johnson@example.com' },
-        { id: 5, name: 'Sarah Wilson', email: 'sarah.wilson@example.com' },
-        { id: 6, name: 'David Brown', email: 'david.brown@example.com' },
+        { id: 1, firstName: 'Olivia', lastName: 'Rhye', email: 'oliviarhye@gmail.com' },
+        { id: 2, firstName: 'John', lastName: 'Doe', email: 'john.doe@example.com' },
+        { id: 3, firstName: 'Jane', lastName: 'Smith', email: 'jane.smith@example.com' },
+        { id: 4, firstName: 'Mike', lastName: 'Johnson', email: 'mike.johnson@example.com' },
+        { id: 5, firstName: 'Sarah', lastName: 'Wilson', email: 'sarah.wilson@example.com' },
+        { id: 6, firstName: 'David', lastName: 'Brown', email: 'david.brown@example.com' },
     ];
 
     const displayParticipants = participants.length > 0 ? participants : mockParticipants;
@@ -40,7 +41,7 @@ const EventParticipants: React.FC<EventParticipantsProps> = ({ participants = []
                                 <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
                                 <Image
                                     src="/icons/round.png"  
-                                        alt={`Avatar de ${participant.name}`}
+                                        alt={`Avatar de ${participant.firstName} ${participant.lastName}`}
                                         width={48}
                                         height={48}
                                         className="rounded-full object-cover"
@@ -53,7 +54,7 @@ const EventParticipants: React.FC<EventParticipantsProps> = ({ participants = []
                                         className="font-bold text-[var(--color-text)]"
                                         style={{ fontSize: '22px' }}
                                     >
-                                        {participant.name}
+                                        {participant.firstName} {participant.lastName}
                                     </h4>
                                     <p 
                                         className="text-[var(--color-grey-three)]"
