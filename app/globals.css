@@ -2,7 +2,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100..900;1,100..900&display=swap');
 @import "tailwindcss";
 
-:root {
+@theme {
   --font-urbanist: var(--font-urbanist, "Urbanist", sans-serif);
   --font-poppins: var(--font-poppins, "Poppins", sans-serif);
 
@@ -100,8 +100,8 @@ body {
   height: 6px;    /* Épaisseur horizontale */
 }
 
-.custom-scroll::-webkit-scrollbar-track {
-  background: transparent;
+.custom-scroll::-webkit-scrollbar-track { 
+  background: transparent; 
 }
 
 .custom-scroll::-webkit-scrollbar-thumb {

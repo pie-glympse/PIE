@@ -1,9 +1,7 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
 import { Urbanist, Poppins } from 'next/font/google'
-
 import "./globals.css";
-import { UserProvider } from "../context/UserContext"; // adapte le chemin selon où est ton context
+import AppShell from "@/app/AppShell";
 
 const urbanist = Urbanist({
   subsets: ['latin'],
@@ -27,9 +25,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="fr">
       <body className={`${poppins.variable} ${urbanist.variable} antialiased bg-red-500`}>
-        <UserProvider>
-          {children}
-        </UserProvider>
+        <AppShell>
+          <div className="h-screen">
+            {children}
+          </div>
+
+        </AppShell>
       </body>
     </html>
   );

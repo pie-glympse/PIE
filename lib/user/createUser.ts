@@ -7,11 +7,12 @@ const prisma = new PrismaClient();
 interface CreateUserParams {
   email: string;
   password: string;
-  name?: string;
+  firstName?: string;
+  lastName?: string;
   role?: "ADMIN" | "STANDARD";
 }
 
-export async function createUser({ email, password, name, role = "STANDARD" }: CreateUserParams) {
+export async function createUser({ email, password, firstName, lastName, role = "STANDARD" }: CreateUserParams) {
   if (!email || !password) {
     throw new Error("Email et mot de passe requis");
   }
@@ -27,7 +28,8 @@ export async function createUser({ email, password, name, role = "STANDARD" }: C
     data: {
       email,
       password: hashed,
-      name: name ?? "Utilisateur_" + Math.floor(Math.random() * 10000),
+      firstName: firstName ?? "Utilisateur_" + Math.floor(Math.random() * 10000),
+      lastName: lastName ?? "Utilisateur_" + Math.floor(Math.random() * 10000),
       role,
       photoUrl: "https://via.placeholder.com/150",
     },
@@ -36,7 +38,8 @@ export async function createUser({ email, password, name, role = "STANDARD" }: C
   return {
     id: user.id,
     email: user.email,
-    name: user.name,
+    firstName: user.firstName,
+    lastName: user.lastName,
     role: user.role,
   };
 }

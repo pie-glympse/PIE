@@ -6,21 +6,22 @@ const JWT_SECRET = process.env.JWT_SECRET || "supersecretkey";
 
 export async function POST(req: Request) {
   try {
-    const { email, password, name } = await req.json();
+    const { email, password, firstName, lastName } = await req.json();
 
-    const user = await createUser({ email, password, name });
+    const user = await createUser({ email, password, firstName, lastName });
 
     // Conversion de l'id BigInt en string pour le payload JWT et la réponse
     const payload = {
       id: user.id.toString(),
       email: user.email,
-      name: user.name,
+      firstName: user.firstName,
+      lastName: user.lastName,
       role: user.role,
     };
 
     const token = jwt.sign(payload, JWT_SECRET, { expiresIn: "7d" });
 
-    const response = NextResponse.json({ user: payload });
+    const response = NextResponse.json({ user: payload, token: token });
 
     // Ajout du cookie sécurisé
     response.cookies.set("token", token, {
@@ -32,10 +33,10 @@ export async function POST(req: Request) {
     });
 
     return response;
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Erreur d'inscription :", error);
     return NextResponse.json(
-      { error: error.message ?? "Erreur serveur" },
+      { error: (error as Error).message ?? "Erreur serveur" },
       { status: 500 }
     );
   }

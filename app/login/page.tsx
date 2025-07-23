@@ -1,6 +1,7 @@
 "use client" // src/app/login/page.tsx
 import { useRouter } from "next/navigation";
 import LoginForm from '@/components/forms/LoginForm';
+import Link from "next/link";
 import Image from 'next/image';
 
 export default function LoginPage() {
@@ -22,7 +23,16 @@ export default function LoginPage() {
     return (
         <section className="flex flex-row h-screen items-center gap-10 p-10">
             <div className="h-full w-full md:w-1/2 flex flex-col gap-6 justify-between items-start p-10">
-                <p className='text-left'>LOGO ICI</p>
+                {/* mettre le lien vers la landing page de promotion */}
+                <Link href="/login" aria-label="Retour à l'accueil" >
+                <Image
+                    src="/images/logo/Logotype.svg"
+                    alt="Logo Glymps"
+                    width={150}
+                    height={150}
+                    priority
+                />
+                </Link>
                 
                 <div className="w-full flex justify-center">
                     <LoginForm

@@ -1,7 +1,9 @@
 "use client";
 import React from "react";
+import { useRouter } from "next/navigation";
 
 interface EventCardProps {
+  eventId: string;
   title: string;
   date: string;
   profiles: string[];
@@ -18,6 +20,7 @@ interface EventCardProps {
 }
 
 export default function EventCard({
+  eventId,
   title,
   date,
   profiles,
@@ -32,12 +35,24 @@ export default function EventCard({
   onDelete,
   showPreferencesButton = false,
 }: EventCardProps) {
+  const router = useRouter();
   const displayProfiles = profiles.slice(0, 5);
+
+  const handleCardClick = () => {
+    router.push(`/events/${eventId}`);
+  };
+
+  const handleMenuClick = (e: React.MouseEvent) => {
+    e.stopPropagation(); // Empêche le clic sur la carte
+    // Logique du menu ici
+  };
 
   return (
     <div
-      className={`relative rounded-xl border-1 border-gray-200 p-6 overflow-hidden ${className}`}
+      className={`relative rounded-xl border border-gray-200 p-6 overflow-hidden cursor-pointer hover:shadow-lg transition-shadow duration-200 ${className}`}
+      onClick={handleCardClick}
     >
+      {/* Contenu principal */}
       <div className="relative z-10">
         <div className="flex">
           <h3 className="text-lg font-semibold text-gray-900 mb-2">{title}</h3>
@@ -115,37 +130,45 @@ export default function EventCard({
             )}
           </div>
         </div>
-        
+
+        {/* Date */}
         <p className="text-sm text-gray-500 mb-4 drop-shadow">
           {new Date(date).toLocaleString("fr-FR", {
             dateStyle: "medium",
             timeStyle: "short",
           })}
         </p>
+
+        {/* Profils */}
         <div className="flex -space-x-3">
           {displayProfiles.map((url, idx) => (
             <img
               key={idx}
               src={url}
               alt={`Profil ${idx + 1}`}
-              className="w-10 h-10 rounded-full border-3 border-white object-cover bg-gray-200"
+              className="w-10 h-10 rounded-full border-2 border-white object-cover bg-gray-200"
             />
           ))}
+          {profiles.length > 5 && (
+            <div className="w-10 h-10 rounded-full border-2 border-white bg-gray-300 flex items-center justify-center">
+              <span className="text-xs text-gray-600 font-medium">
+                +{profiles.length - 5}
+              </span>
+            </div>
+          )}
         </div>
       </div>
       
+      {/* Image d'arrière-plan */}
       <img
         src={backgroundUrl}
         alt=""
         aria-hidden="true"
+        className="absolute right-[-25px] bottom-[-25px] pointer-events-none"
         style={{
-          position: "absolute",
-          right: -25,
-          bottom: -25,
           width: backgroundSize,
           height: 200,
           objectFit: "contain",
-          pointerEvents: "none",
           zIndex: 1,
         }}
       />
