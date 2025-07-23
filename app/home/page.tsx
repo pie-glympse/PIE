@@ -3,8 +3,8 @@
 import * as React from "react";
 import { useState, useEffect } from "react";
 import { useUser } from "../../context/UserContext";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import GCalendar from "@/components/Gcalendar/Gcalendar";
 import Gcard from "@/components/Gcard/Gcard";
 
@@ -22,29 +22,9 @@ type EventType = {
 };
 
 export default function HomePage() {
-  const { user, isLoading, logout } = useUser();
-  const router = useRouter();
+  const { user, isLoading } = useUser();
   const [events, setEvents] = useState<EventType[]>([]);
   const [fetchError, setFetchError] = useState<string | null>(null);
-
-  // Fonction de déconnexion
-  const handleLogout = async () => {
-    try {
-      // Appeler l'API de logout
-      await fetch("/api/logout", { method: "POST" });
-      
-      // Nettoyer le context
-      logout();
-      
-      // Rediriger vers login
-      router.push("/login");
-    } catch (error) {
-      console.error("Erreur lors de la déconnexion:", error);
-      // Fallback: forcer la suppression et rediriger
-      logout();
-      router.push("/login");
-    }
-  };
 
   // Récupérer les événements depuis l'API
   useEffect(() => {
@@ -100,12 +80,15 @@ export default function HomePage() {
           <div className="flex items-center gap-3">
             <p className="text-3xl font-semibold text-gray-800">
               {user?.firstName || "invité"}
+              <Image
+                src="/images/icones/pastille.svg"
+                alt="Statut utilisateur"
+                width={24}
+                height={24}
+                className="w-6 h-6"
+              />
             </p>
-            <img
-              src="/images/icones/pastille.svg"
-              alt="Statut utilisateur"
-              className="w-6 h-6"
-            />
+  
           </div>
         </section>
 
@@ -139,12 +122,13 @@ export default function HomePage() {
 
             {/* Bouton Ajouter */}
             {isAuthorized && (
-              <button
-              aria-label="Ajouter un évènement"
-              className="w-full md:w-20 h-60 md:flex-shrink-0 flex items-center justify-center border border-gray-300 rounded-xl hover:bg-gray-100 transition text-3xl text-gray-500"
-            >
-              +
-            </button>
+              <Link
+                href="/create-event"
+                aria-label="Ajouter un évènement"
+                className="w-full md:w-20 h-60 md:flex-shrink-0 flex items-center justify-center border border-gray-300 rounded-xl hover:bg-gray-100 transition text-3xl text-gray-500"
+              >
+                +
+              </Link>
             )}
           </div>
           
