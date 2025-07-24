@@ -10,12 +10,12 @@ datasource db {
 
 model User {
   id           BigInt                @id @default(autoincrement())
-  firstName    String                @default("")
-  lastName     String                @default("")
   email        String                @unique
   password     String
   role         String                @default("STANDARD")
   photoUrl     String                @default("")
+  firstName    String                @default("")
+  lastName     String                @default("")
   companyStats CompanyStats?
   preferences  EventUserPreference[]
   photos       EventsUsersPhoto[]

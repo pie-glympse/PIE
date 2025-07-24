@@ -51,6 +51,7 @@ export default function EventForm() {
   const [preferredDate, setPreferredDate] = useState("");
   const [preferences, setPreferences] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [eventsLoading, setEventsLoading] = useState(true);
   const [selectedEvent, setSelectedEvent] = useState<EventType | null>(null);
   const [showPreferenceForm, setShowPreferenceForm] = useState(false);
 
@@ -82,6 +83,7 @@ export default function EventForm() {
   // Charger les events du user
   useEffect(() => {
     if (!isLoading && user) {
+      setEventsLoading(true);
       fetch(`/api/events?userId=${user.id}`)
         .then((res) => {
           if (!res.ok)
@@ -92,7 +94,8 @@ export default function EventForm() {
           setUserEvents(data);
           setFetchError(null);
         })
-        .catch((err) => setFetchError(err.message));
+        .catch((err) => setFetchError(err.message))
+        .finally(() => setEventsLoading(false));
     }
   }, [isLoading, user]);
 
@@ -157,13 +160,11 @@ export default function EventForm() {
     // Only run when user or selectedEvent changes
   }, [user, selectedEvent]);
 
-  if (isLoading) {
+  if (isLoading || eventsLoading) {
     return <div>Chargement...</div>;
   }
 
   if (!user) return null;
-
-  if (loading) return <p>Chargement...</p>;
 
   // Fonction pour supprimer un événement
   const handleDeleteEvent = async (eventId: string) => {
@@ -316,13 +317,13 @@ export default function EventForm() {
               <img src="/icons/calendar.svg" alt="Vue Calendrier" className="" />
             </button>
             <button 
-              className={`p-2 rounded ${viewMode === 'list' ? 'bg-blue-100' : 'hover:bg-gray-100'}`}
+              className={`p-2 rounded ${viewMode === 'list' ? 'bg-[var(--color-grey-one)]' : 'hover:bg-gray-100'}`}
               onClick={() => setViewMode('list')}
             >
               <img src="/icons/list.svg" alt="Vue Liste" className="" />
             </button>
             <button 
-              className={`p-2 rounded ${viewMode === 'grid' ? 'bg-blue-100' : 'hover:bg-gray-100'}`}
+              className={`p-2 rounded ${viewMode === 'grid' ? 'bg-[var(--color-grey-one)]' : 'hover:bg-gray-100'}`}
               onClick={() => setViewMode('grid')}
             >
               <img src="/icons/grid.svg" alt="Vue grid" className="" />
@@ -350,12 +351,12 @@ export default function EventForm() {
             >
               À venir
             </button>
-            <button 
+            {/* <button 
               className={`px-2 py-1 rounded text-body-large ${statusFilter === 'preparation' ? 'bg-black text-white' : 'bg-[var(--color-grey-one)] text-[var(--color-text)]'}`}
               onClick={() => setStatusFilter('preparation')}
             >
               En préparation
-            </button>
+            </button> */}
         </div>
 
         {/* Liste des événements */}
@@ -367,11 +368,11 @@ export default function EventForm() {
             
             {filteredEvents.length === 0 ? (
               <div className="flex flex-col items-center justify-center w-full min-h-96 py-16">
-                <div className="text-center space-y-8">
+                <div className="text-center space-y-3">
                   <img
                     src="/images/mascotte/sad.png"
                     alt="Mascotte triste"
-                    className="mx-auto object-contain opacity-80"
+                    className="mx-auto object-contain opacity-80 w-60 h-60"
                   />
                   <div className="space-y-4">
                     <h3 className="text-2xl font-semibold text-gray-800 font-urbanist">
@@ -383,9 +384,9 @@ export default function EventForm() {
                   </div>
                   <div className="pt-4">
                     <MainButton 
-                      color="primary"
-                      text="Créer mon premier événement"
                       onClick={() => router.push('/create-event')}
+                      text="Créer mon premier événement" 
+                      color={"bg-[var(--color-main)]"}                   
                     />
                   </div>
                 </div>
@@ -401,25 +402,20 @@ export default function EventForm() {
                         className="cursor-pointer"
                       >
                         <Gcard
-                          {...adaptEventForGcard(event)}
-                          className="w-full h-60"
-                          dropdownOpen={dropdownEvent === event.id}
-                          onDropdownToggle={() =>
-                            setDropdownEvent(
-                              dropdownEvent === event.id ? null : event.id
-                            )
-                          }
-                          isAuthorized={isAuthorized}
-                          onShare={() => openShareModal(event.id, event.title)}
-                          onPreferences={() => {
-                            setSelectedEvent(event);
-                            setShowPreferenceForm(true);
-                          }}
-                          onDelete={() => handleDeleteEvent(event.id)}
-                          showPreferencesButton={
-                            !userEventPreferences.has(Number(event.id))
-                          }
-                        />
+                        eventId={""} {...adaptEventForGcard(event)}
+                        className="w-full h-60"
+                        dropdownOpen={dropdownEvent === event.id}
+                        onDropdownToggle={() => setDropdownEvent(
+                          dropdownEvent === event.id ? null : event.id
+                        )}
+                        isAuthorized={isAuthorized}
+                        onShare={() => openShareModal(event.id, event.title)}
+                        onPreferences={() => {
+                          setSelectedEvent(event);
+                          setShowPreferenceForm(true);
+                        } }
+                        onDelete={() => handleDeleteEvent(event.id)}
+                        showPreferencesButton={!userEventPreferences.has(Number(event.id))}                        />
                       </div>
                     ))}
                     {/* Bouton Ajouter */}
@@ -440,25 +436,20 @@ export default function EventForm() {
                         className="cursor-pointer"
                       >
                         <Gcard
-                          {...adaptEventForGcard(event)}
-                          className="w-full h-24"
-                          dropdownOpen={dropdownEvent === event.id}
-                          onDropdownToggle={() =>
-                            setDropdownEvent(
-                              dropdownEvent === event.id ? null : event.id
-                            )
-                          }
-                          isAuthorized={isAuthorized}
-                          onShare={() => openShareModal(event.id, event.title)}
-                          onPreferences={() => {
-                            setSelectedEvent(event);
-                            setShowPreferenceForm(true);
-                          }}
-                          onDelete={() => handleDeleteEvent(event.id)}
-                          showPreferencesButton={
-                            !userEventPreferences.has(Number(event.id))
-                          }
-                        />
+                        eventId={""} {...adaptEventForGcard(event)}
+                        className="w-full h-24"
+                        dropdownOpen={dropdownEvent === event.id}
+                        onDropdownToggle={() => setDropdownEvent(
+                          dropdownEvent === event.id ? null : event.id
+                        )}
+                        isAuthorized={isAuthorized}
+                        onShare={() => openShareModal(event.id, event.title)}
+                        onPreferences={() => {
+                          setSelectedEvent(event);
+                          setShowPreferenceForm(true);
+                        } }
+                        onDelete={() => handleDeleteEvent(event.id)}
+                        showPreferencesButton={!userEventPreferences.has(Number(event.id))}                        />
                       </div>
                     ))}
                     {/* Bouton Ajouter en mode liste */}
