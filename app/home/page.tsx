@@ -80,15 +80,14 @@ export default function HomePage() {
           <div className="flex items-center gap-3">
             <p className="text-3xl font-semibold text-gray-800">
               {user?.firstName || "invité"}
-              <Image
+            </p>
+            <Image
                 src="/images/icones/pastille.svg"
                 alt="Statut utilisateur"
                 width={24}
                 height={24}
                 className="w-6 h-6"
               />
-            </p>
-  
           </div>
         </section>
 
