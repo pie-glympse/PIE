@@ -34,6 +34,10 @@ export default function HomePage() {
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [dropdownEvent, setDropdownEvent] = useState<string | null>(null);
 
+  const handleFillPreferences = (event: EventType) => {
+    router.push(`/answer-event/${event.id}?eventTitle=${encodeURIComponent(event.title)}`);
+  };
+
   // Récupérer les événements depuis l'API
   useEffect(() => {
     if (!isLoading && user) {
@@ -140,14 +144,14 @@ export default function HomePage() {
           <div className="flex items-center gap-3">
             <p className="text-3xl font-semibold text-gray-800">
               {user?.firstName || "invité"}
-              <Image
+            </p>
+            <Image
                 src="/images/icones/pastille.svg"
                 alt="Statut utilisateur"
                 width={24}
                 height={24}
                 className="w-6 h-6"
               />
-            </p>
           </div>
         </section>
 
@@ -182,7 +186,7 @@ export default function HomePage() {
                 )}
                 isAuthorized={isAuthorized}
                 onShare={() => handleShare(event.id, event.title)}
-                onPreferences={() => handlePreferences(event.id)}
+                onPreferences={() => handleFillPreferences(event)}
                 onDelete={() => handleDeleteEvent(event.id)}
                 showPreferencesButton={true} // ou logique selon si l'utilisateur a déjà des préférences
               />

@@ -17,7 +17,7 @@ const TAGS = [
   { id: 5, name: "Autre" },
 ];
 
-type EventType = {
+export type EventType = {
   id: string;
   uuid: string;
   title: string;
@@ -46,8 +46,8 @@ export default function EventForm() {
 
   const [userEvents, setUserEvents] = useState<EventType[]>([]);
   const [userEventPreferences, setUserEventPreferences] = useState<
-    Map<number, { eventId: number; preferredDate: string; tagId: number }>
-  >(new Map());
+    Set<string>
+  >(new Set());
   const [users, setUsers] = useState<
     { id: string; name?: string; email?: string }[]
   >([]);
@@ -139,6 +139,30 @@ export default function EventForm() {
     }
   }, [userEvents.length > 0 && !userEvents[0]?.users]);
 
+  // ✅ Charger les préférences existantes de l'utilisateur
+  useEffect(() => {
+    if (!isLoading && user) {
+      const fetchUserPreferences = async () => {
+        try {
+          const response = await fetch(`/api/user-event-preferences?userId=${user.id}`);
+          if (response.ok) {
+            const preferences = await response.json();
+            // Créer un Set avec les eventIds pour lesquels l'utilisateur a des préférences
+            type UserEventPreference = { event: { id: string } };
+            const eventIdsWithPreferences = new Set<string>(
+              preferences.map((pref: UserEventPreference) => String(pref.event.id))
+            );
+            setUserEventPreferences(eventIdsWithPreferences);
+          }
+        } catch (error) {
+          console.error('Erreur lors du chargement des préférences:', error);
+        }
+      };
+
+      fetchUserPreferences();
+    }
+  }, [isLoading, user]);
+
   useEffect(() => {
     if (userEvents.length > 0 && user) {
       const fetchPreferences = async () => {
@@ -146,13 +170,11 @@ export default function EventForm() {
           `/api/user-event-preferences?userId=${user.id}`
         );
         const data = await res.json();
-        const preferenceMap = new Map();
-        data.forEach(
-          (pref: { eventId: number; preferredDate: string; tagId: number }) => {
-            preferenceMap.set(pref.eventId, pref);
-          }
+        // Extract event IDs and store in a Set<string>
+        const eventIds = new Set<string>(
+          data.map((pref: { eventId: string | number }) => String(pref.eventId))
         );
-        setUserEventPreferences(preferenceMap);
+        setUserEventPreferences(eventIds);
       };
       fetchPreferences();
     }
@@ -206,6 +228,8 @@ export default function EventForm() {
   // Fonction pour supprimer un événement
   const handleDeleteEvent = async (eventId: string) => {
     if (!confirm("Voulez-vous vraiment supprimer cet événement ?")) return;
+  const handleDeleteEvent = async (eventId: string) => {
+    if (!confirm("Voulez-vous vraiment supprimer cet événement ?")) return;
 
     try {
       const res = await fetch(`/api/events/${eventId}`, {
@@ -222,43 +246,25 @@ export default function EventForm() {
       alert("Erreur réseau lors de la suppression.");
     }
   };
-
-  const handleSubmitPreferences = async () => {
-    if (!user || !selectedEvent || !selectedTagId || !preferredDate) return;
-
-    const body = {
-      userId: user.id,
-      eventId: selectedEvent.id,
-      tagId: selectedTagId,
-      preferredDate,
-    };
-
     try {
-      const res = await fetch(`/api/events/${selectedEvent.id}/preferences`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
+      const res = await fetch(`/api/events/${eventId}`, {
+        method: "DELETE",
       });
-
       if (res.ok) {
-        alert("Préférences enregistrées !");
-        setShowPreferenceForm(false);
-        setSelectedEvent(null);
-        setSelectedTagId(null);
-        setPreferredDate("");
-        setStep(1);
-
-        const updatedPrefs = await res.json();
-        setUserEventPreferences(
-          (prev) => new Map(prev.set(Number(selectedEvent.id), updatedPrefs))
-        );
+        setUserEvents((prev) => prev.filter((event) => event.id !== eventId));
+        alert("Événement supprimé avec succès !");
       } else {
-        alert("Erreur lors de l'envoi des préférences");
+        alert("Erreur lors de la suppression de l'événement.");
       }
-    } catch (err) {
-      console.error(err);
-      alert("Erreur réseau");
+    } catch (error) {
+      console.error("Erreur réseau lors de la suppression :", error);
+      alert("Erreur réseau lors de la suppression.");
     }
+  };
+
+  // ✅ Nouvelle fonction pour rediriger vers answer-event
+  const handleFillPreferences = (event: EventType) => {
+    router.push(`/answer-event/${event.id}?eventTitle=${encodeURIComponent(event.title)}`);
   };
 
   const adaptEventForGcard = (event: EventType) => {
@@ -323,10 +329,9 @@ export default function EventForm() {
   const filteredEvents = getFilteredEvents();
 
   return (
-    <section className="flex flex-row h-screen items-start gap-10 p-4 md:p-10">
+    <section className="h-screen overflow-y-auto md:overflow-hidden pt-24 p-6 flex flex-col gap-8">
       <div className="h-full w-full flex flex-col gap-6 items-start p-4 md:p-10">
         {/* Header avec logo et back arrow */}
-        <p className="text-left">LOGO ICI</p>
         <BackArrow onClick={() => router.back()} className="" />
 
         {/* Header de la page */}
@@ -437,7 +442,7 @@ export default function EventForm() {
                             setShowPreferenceForm(true);
                           }}
                           onDelete={() => handleDeleteEvent(event.id)}
-                          showPreferencesButton={!userEventPreferences.has(Number(event.id))}
+                          showPreferencesButton={!userEventPreferences.has(event.id)}
                         />
                       </div>
                     ))}
@@ -473,7 +478,7 @@ export default function EventForm() {
                             setShowPreferenceForm(true);
                           }}
                           onDelete={() => handleDeleteEvent(event.id)}
-                          showPreferencesButton={!userEventPreferences.has(Number(event.id))}
+                          showPreferencesButton={!userEventPreferences.has(event.id)}
                         />
                       </div>
                     ))}
@@ -552,7 +557,7 @@ export default function EventForm() {
                     </button>
                     <button
                       className="px-4 py-2 bg-green-600 text-white rounded"
-                      onClick={handleSubmitPreferences}
+                      onClick={() => handleFillPreferences(selectedEvent)}
                       disabled={!preferredDate}
                     >
                       Envoyer

@@ -146,10 +146,10 @@ export default function SingleEventPage() {
   const organizer = event.users?.[0];
 
   return (
-    <section className="flex flex-row h-screen items-start gap-10 p-10">
-      <div className="h-full w-full flex flex-col gap-6 items-start p-10">
+    <section className="h-screen overflow-y-auto md:overflow-hidden pt-24 p-6 flex flex-col gap-8">
+      <div className="h-full w-full flex flex-col gap-6 items-start p-4 md:p-10">
         {/* Header avec logo et back arrow */}
-        <BackArrow onClick={handleBack} className="" />
+        <BackArrow onClick={() => router.back()} className="" />
 
         {/* Header de l'événement */}
         <div className="flex justify-between items-start w-full">

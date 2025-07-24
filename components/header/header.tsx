@@ -38,15 +38,22 @@ export default function Header() {
               aria-label="Ouvrir le menu"
               type="button"
             >
-              <div className="grid grid-cols-3 grid-rows-3 gap-1.5 cursor-pointer">
-                {[...Array(9)].map((_, i) => (
-                  <span
-                    key={i}
-                    className={`w-1.5 h-1.5 rounded-full transition-all duration-200 ${
-                      isMenuHovered ? "bg-gray-700 scale-110" : "bg-gray-500"
-                    }`}
-                  />
-                ))}
+              <div className="flex flex-col gap-1.5 cursor-pointer">
+                <span
+                  className={`w-7 h-1 rounded-full transition-all duration-200 ${
+                    isMenuHovered ? "bg-gray-700" : "bg-gray-500"
+                  }`}
+                />
+                <span
+                  className={`w-7 h-1 rounded-full transition-all duration-200 ${
+                    isMenuHovered ? "bg-gray-700" : "bg-gray-500"
+                  }`}
+                />
+                <span
+                  className={`w-5 h-1 rounded-full transition-all duration-200 ${
+                    isMenuHovered ? "bg-gray-700" : "bg-gray-500"
+                  }`}
+                />
               </div>
             </button>
 
@@ -134,18 +141,37 @@ export default function Header() {
         </div>
 
         {/* Right: Avatars */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-8">
           <button
             onClick={handleLogout}
             className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition text-sm"
           >
             Se déconnecter
           </button>
-          <div className="w-12 h-12 rounded-sm bg-gray-200 border border-white" />
+          <div className="w-10 h-10 relative cursor-pointer">
+            <Image
+              src="/images/icones/notification.svg"
+              alt="notification"
+              width={48}
+              height={48}
+              className="w-full h-full object-cover rounded-sm"
+            />
+            <span className="absolute top-0 right-0 bg-[var(--color-tertiary)] text-white text-xs font-medium px-1 rounded-full">
+              3
+            </span>
+          </div>
           <Link
             href="/profile"
-            className="w-12 h-12 rounded-full bg-gray-200 border border-white"
-          ></Link>
+            className="w-12 h-12 rounded-full transition ease-in-out bg-gray-200 hover:bg-gray-300 border border-white"
+          >
+            <Image
+              src="/images/mascotte/joy.png"
+              alt="Avatar utilisateur"
+              width={48}
+              height={48}
+              className="w-full h-full object-cover rounded-full"
+            />
+          </Link>
         </div>
       </div>
     </header>
