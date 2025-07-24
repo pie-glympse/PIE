@@ -18,6 +18,7 @@ interface APIEvent {
   maxPersons?: string;
   costPerPerson?: string;
   state?: string;
+  activityType?: string; // ✅ Ajouter activityType
   tags: { id: string; name: string }[];
 }
 
@@ -28,6 +29,7 @@ interface Event {
   title: string;
   description: string;
   time: string;
+  activityType?: string; // ✅ Ajouter activityType
   tags: { id: string; name: string }[];
   isMultiDay?: boolean;
   originalStartDate?: string;
@@ -74,17 +76,18 @@ const MiniCalendar = ({ year = 2025, eventsData = [] }: MiniCalendarProps) => {
     "Décembre",
   ];
 
-  // Mapping des couleurs pour les 5 tags de votre BDD
-  const getColorForTag = (tagName: string): string => {
-    const tagColors: Record<string, string> = {
-      'Restauration': 'red red:hover',
-      'Afterwork': 'violet violet:hover',
-      'Team Building': 'yellow yellow:hover',
-      'Séminaire': 'green green:hover',
-      'Autre': 'grey grey:hover',
+  // Mapping des couleurs pour les types d'événements (activityType)
+  const getColorForActivityType = (activityType: string): string => {
+    const activityColors: Record<string, string> = {
+      'Conférence': 'bg-indigo-500 hover:bg-indigo-600',
+      'Atelier': 'bg-orange-500 hover:bg-orange-600',
+      'Séminaire': 'bg-green-500 hover:bg-green-600',
+      'Formation': 'bg-teal-500 hover:bg-teal-600',
+      'Webinaire': 'bg-pink-500 hover:bg-pink-600',
     };
 
-    return tagColors[tagName] || 'bg-gray-400 hover:bg-gray-500';
+    console.log('Recherche couleur pour activityType:', activityType, 'Couleur trouvée:', activityColors[activityType]);
+    return activityColors[activityType] || 'bg-gray-400 hover:bg-gray-500';
   };
 
   // Détecter si on est sur mobile
@@ -142,7 +145,8 @@ const MiniCalendar = ({ year = 2025, eventsData = [] }: MiniCalendarProps) => {
       title: apiEvent.title,
       description: apiEvent.description || '',
       time: getTimeFromDate(apiEvent.startDate),
-      tags: apiEvent.tags, // Conserver les tags originaux
+      activityType: apiEvent.activityType, // ✅ Conserver activityType
+      tags: apiEvent.tags,
       isMultiDay: isMultiDay,
       originalStartDate: startDate,
       originalEndDate: endDate,
@@ -238,12 +242,19 @@ const MiniCalendar = ({ year = 2025, eventsData = [] }: MiniCalendarProps) => {
     const dayEvents = getDayEvents(day, month);
     if (dayEvents.length === 0) return "bg-gray-200 hover:bg-gray-300";
 
-    // Prendre la couleur du premier tag du premier événement
+    // Debug: voir quels events et activityType sont trouvés
+    console.log(`Jour ${day}/${month + 1}: ${dayEvents.length} événements trouvés`);
+    
     const firstEvent = dayEvents[0];
-    if (firstEvent.tags.length > 0) {
-      return getColorForTag(firstEvent.tags[0].name);
+    console.log('Premier événement:', firstEvent.title, 'ActivityType:', firstEvent.activityType);
+    
+    if (firstEvent.activityType) {
+      const color = getColorForActivityType(firstEvent.activityType);
+      console.log(`ActivityType "${firstEvent.activityType}" -> Couleur: ${color}`);
+      return color;
     }
 
+    console.log('Aucun activityType trouvé, utilisation de la couleur par défaut');
     return 'bg-gray-400 hover:bg-gray-500';
   };
 
@@ -424,16 +435,21 @@ const MiniCalendar = ({ year = 2025, eventsData = [] }: MiniCalendarProps) => {
                     {event.description}
                   </div>
                 )}
+                {event.activityType && (
+                  <div className="text-gray-400 text-xs">
+                    Type: {event.activityType}
+                  </div>
+                )}
                 {event.time && (
                   <div className="text-gray-400 text-xs">{event.time}</div>
                 )}
-                {/* Afficher les tags dans le tooltip */}
+                {/* Afficher les tags dans le tooltip si nécessaire */}
                 {event.tags.length > 0 && (
                   <div className="flex flex-wrap gap-1 mt-1">
                     {event.tags.map((tag) => (
                       <span 
                         key={tag.id}
-                        className={`px-1.5 py-0.5 text-xs rounded-full text-white ${getColorForTag(tag.name).split(' ')[0]}-500`}
+                        className="px-1.5 py-0.5 text-xs rounded-full bg-gray-200 text-gray-700"
                       >
                         {tag.name}
                       </span>
