@@ -17,11 +17,14 @@ type EventDetails = {
   date?: string;
   maxPersons?: string;
   costPerPerson?: string;
+  activityType?: string;
   state?: string;
+  city?: string; // Ajouter le champ city
   tags: { id: string; name: string }[];
   users: {
     id: string;
-    name: string;
+    firstName: string;
+    lastName: string;
     email: string;
   }[];
   createdAt: string;
@@ -37,6 +40,9 @@ export default function SingleEventPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("informations");
+
+  // État pour gérer l'accordéon
+  const [isStateDropdownOpen, setIsStateDropdownOpen] = useState(false);
 
   const tabs = [
     {
@@ -93,6 +99,81 @@ export default function SingleEventPage() {
     console.log("Partager l'événement");
   };
 
+  // Fonction pour changer l'état de l'événement (Admin seulement)
+  const handleChangeEventState = async (newState: string) => {
+    if (!event) return;
+
+    try {
+      const response = await fetch(`/api/events/${event.id}/state`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ state: newState }),
+      });
+
+      if (response.ok) {
+        const updatedEvent = await response.json();
+
+        // ✅ Mettre à jour l'événement local avec toutes les nouvelles données
+        setEvent((prev) => (prev ? { 
+          ...prev, 
+          state: updatedEvent.state,
+          activityType: updatedEvent.activityType || prev.activityType,
+          date: updatedEvent.startDate || prev.date,
+        } : null));
+        setIsStateDropdownOpen(false);
+
+        console.log(`État de l'événement changé vers: ${updatedEvent.state}`);
+        
+        // ✅ Recharger la page si on a finalisé l'événement pour voir les changements
+        if (newState === 'confirmed') {
+          window.location.reload();
+        }
+      } else {
+        alert("Erreur lors du changement d'état de l'événement.");
+      }
+    } catch (error) {
+      console.error("Erreur réseau lors du changement d'état :", error);
+      alert("Erreur réseau lors du changement d'état.");
+    }
+  };
+
+  // Fonction pour obtenir le texte du bouton selon l'état actuel
+  const getStateButtonText = (state: string) => {
+    switch (state?.toLowerCase()) {
+      case "pending":
+        return "Finaliser avec les votes";
+      case "confirmed":
+        return "Planifier l'événement";
+      case "planned":
+        return "Réouvrir les votes";
+      default:
+        return "Confirmer l'événement";
+    }
+  };
+
+  // Fonction pour obtenir la couleur de la pastille selon l'état
+  const getStateColor = (state: string) => {
+    switch (state?.toLowerCase()) {
+      case "pending":
+        return "bg-yellow-500";
+      case "confirmed":
+        return "bg-green-500";
+      case "planned":
+        return "bg-blue-500";
+      default:
+        return "bg-gray-500";
+    }
+  };
+
+  // Liste des états possibles
+  const availableStates = [
+    { value: "pending", label: "En attente", color: "bg-yellow-500" },
+    { value: "confirmed", label: "Confirmé", color: "bg-green-500" },
+    { value: "planned", label: "Planifié", color: "bg-blue-500" },
+  ];
+
   const renderTabContent = () => {
     if (!event) return null;
 
@@ -118,7 +199,7 @@ export default function SingleEventPage() {
   if (loading) {
     return (
       <div className="flex h-screen items-center justify-center">
-        <div>Chargement de l'événement...</div>
+        <div>Chargement de l&apos;événement...</div>
       </div>
     );
   }
@@ -142,13 +223,13 @@ export default function SingleEventPage() {
   }
 
   const organizer = event.users?.[0];
+  const isAuthorized = true; // Remplacez ceci par votre logique d'autorisation
 
   return (
-    <section className="flex flex-row h-screen items-start gap-10 p-10">
-      <div className="h-full w-full flex flex-col gap-6 items-start p-10">
+    <section className="h-screen overflow-y-auto md:overflow-hidden pt-24 p-6 flex flex-col gap-8">
+      <div className="h-full w-full flex flex-col gap-6 items-start p-4 md:p-10">
         {/* Header avec logo et back arrow */}
-        <p className="text-left">LOGO ICI</p>
-        <BackArrow onClick={handleBack} className="" />
+        <BackArrow onClick={() => router.back()} className="" />
 
         {/* Header de l'événement */}
         <div className="flex justify-between items-start w-full">
@@ -157,10 +238,141 @@ export default function SingleEventPage() {
               {event.title}
             </h1>
             <p className="text-body-large font-poppins text-[var(--color-text)]">
-              Organisé par {organizer?.name || "Organisateur inconnu"}
+              Organisé par{" "}
+              {`${organizer?.firstName} ${organizer?.lastName}` || "Organisateur inconnu"}
             </p>
+
+            {/* ✅ Afficher les résultats des votes si l'événement est confirmé */}
+            {event.state?.toLowerCase() === 'confirmed' && (
+              <div className="mt-6 p-6 rounded-lg shadow-sm">
+                <div className="flex items-start gap-4">
+                  <div className="flex-shrink-0">
+                    <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
+                      <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    </div>
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-h3 font-urbanist font-semibold mb-3">
+                      Événement finalisé avec succès !
+                    </h3>
+                    <div className="space-y-3">
+                      {event.activityType && (
+                        <div className="flex items-center gap-3">
+                          <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                          <div>
+                            <span className="text-body-large font-poppins font-medium text-[var(--color-text)]">
+                              Activité sélectionnée :
+                            </span>
+                            <span className="ml-2 text-body-large font-poppins text-green-700 font-semibold">
+                              {event.activityType}
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                      {event.date && (
+                        <div className="flex items-center gap-3">
+                          <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                          <div>
+                            <span className="text-body-large font-poppins font-medium text-[var(--color-text)]">
+                              Date retenue :
+                            </span>
+                            <span className="ml-2 text-body-large font-poppins text-green-700 font-semibold">
+                              {new Date(event.date).toLocaleDateString('fr-FR', {
+                                weekday: 'long',
+                                year: 'numeric',
+                                month: 'long',
+                                day: 'numeric'
+                              })}
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    <div className="mt-4 pt-3 border-t border-green-200">
+                      <p className="text-body-small font-poppins text-green-600 italic">
+                        Résultats basés sur les votes des participants
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
-          <ShareButton onClick={handleShare} />
+          <div>
+            <ShareButton onClick={handleShare} />
+                        {isAuthorized && (
+              <button
+              className="p-4"
+              onClick={() => setIsStateDropdownOpen(!isStateDropdownOpen)}
+              
+            >
+          <div className="relative content-center w-fit flex align-center gap-2">
+            <div
+                className={`w-3 h-3 rounded-full ${getStateColor(
+                  event.state || "pending"
+                )}`}
+              ></div>
+            <div className="flex items-center gap-2 rounded-full transition-all">
+              
+              <svg
+                className={`w-4 h-4 text-black transition-transform ${
+                  isStateDropdownOpen ? "rotate-180" : ""
+                }`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M19 9l-7 7-7-7"
+                />
+              </svg>
+            </div>
+            
+
+            {/* Dropdown des états */}
+            {isStateDropdownOpen && (
+              <div className="absolute top-full mt-2 right-0 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50 min-w-48">
+                {availableStates.map((stateOption) => (
+                  <button
+                    key={stateOption.value}
+                    onClick={() => handleChangeEventState(stateOption.value)}
+                    className={`w-full flex items-center gap-3 px-4 py-2 text-left hover:bg-gray-50 transition-colors ${
+                      event.state?.toLowerCase() === stateOption.value
+                        ? "bg-gray-100"
+                        : ""
+                    }`}
+                  >
+                    <div
+                      className={`w-3 h-3 rounded-full ${stateOption.color}`}
+                    ></div>
+                    <span className="text-gray-700">{stateOption.label}</span>
+                    {event.state?.toLowerCase() === stateOption.value && (
+                      <svg
+                        className="w-4 h-4 text-green-600 ml-auto"
+                        fill="currentColor"
+                        viewBox="0 0 20 20"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </button>
+
+        )}
+          </div>
         </div>
 
         {/* Navigation par onglets */}
@@ -170,6 +382,9 @@ export default function SingleEventPage() {
 
         {/* Contenu de l'onglet actif */}
         <div className="w-full flex-1 overflow-auto">{renderTabContent()}</div>
+
+        {/* ✅ Pastille avec accordéon pour changer l'état (Admin seulement) */}
+        
 
         {/* Image en bas à droite - fixe pour toutes les sections */}
         <div className="fixed bottom-0 right-0 z-[-1] pointer-events-none">

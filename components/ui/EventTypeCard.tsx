@@ -35,8 +35,16 @@ const EventTypeCard: React.FC<EventTypeCardProps> = ({
         onClick={disabled ? undefined : onClick}
     >
         <div className="flex flex-col h-full">
-            {/* Section colorée du haut */}
-            <div className="h-44 bg-[#E9F1FE] rounded-md"></div>
+            {/* Section colorée du haut avec image */}
+            <div className="h-44 bg-[#E9F1FE] rounded-md flex items-end justify-start pl-4">
+                <Image 
+                    src="/images/mascotte/base.png"
+                    alt="Event Type"
+                    width={120}
+                    height={120}
+                    className="object-contain transform -scale-x-100"
+                />
+            </div>
             
             {/* Section texte du bas */}
             <div className={`

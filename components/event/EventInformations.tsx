@@ -1,5 +1,6 @@
 import React from 'react';
 import Image from 'next/image';
+import Map from '@/components/Map';
 
 interface EventInformationsProps {
   event: {
@@ -7,6 +8,7 @@ interface EventInformationsProps {
     date?: string;
     maxPersons?: string;
     costPerPerson?: string;
+    city?: string; // Ajouter le champ city pour l'adresse
     tags: { id: string; name: string }[];
   };
 }
@@ -100,7 +102,7 @@ const EventInformations = ({ event }: EventInformationsProps) => {
               Lieu
             </p>
             <p style={{ fontSize: '18px' }} className="font-medium text-[var(--color-text)]">
-              Vapiano de Clichy
+              {event.city || "Lieu non défini"}
             </p>
           </div>
         </div>
@@ -131,13 +133,16 @@ const EventInformations = ({ event }: EventInformationsProps) => {
         </div>
       </div>
 
-      {/* Placeholder pour la map */}
+      {/* Section Map */}
       <div>
+        <h3 className="text-body-large font-poppins mb-4 text-[var(--color-text)]">
+          Localisation
+        </h3>
         <div 
-          className="w-full h-64 rounded flex items-center justify-center"
+          className="w-full h-64 rounded overflow-hidden"
           style={{ backgroundColor: '#F4F4F4' }}
         >
-          <p className="text-[var(--color-grey-three)]">Map à venir...</p>
+          <Map address={event.city} />
         </div>
       </div>
     </div>

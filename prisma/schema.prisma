@@ -10,11 +10,12 @@ datasource db {
 
 model User {
   id           BigInt                @id @default(autoincrement())
-  name         String
   email        String                @unique
   password     String
   role         String                @default("STANDARD")
   photoUrl     String                @default("")
+  firstName    String                @default("")
+  lastName     String                @default("")
   companyStats CompanyStats?
   preferences  EventUserPreference[]
   photos       EventsUsersPhoto[]
@@ -33,12 +34,12 @@ model Event {
   updatedAt     DateTime
   uuid          String                @unique @default(uuid())
   activityType  String?
+  city          String?
   endDate       DateTime?
   endTime       DateTime?
+  maxDistance   Float?
   startDate     DateTime?
   startTime     DateTime?
-  city          String?
-  maxDistance   Float?
   location      EventLocation?
   preferences   EventUserPreference[]
   photos        EventsUsersPhoto[]

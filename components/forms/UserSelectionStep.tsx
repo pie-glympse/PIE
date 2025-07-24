@@ -4,7 +4,8 @@ import React, { useState, useEffect } from "react";
 
 type User = {
   id: string;
-  name?: string;
+  firstName?: string;
+  lastName?: string;
   email?: string;
 };
 
@@ -61,9 +62,10 @@ export const UserSelectionStep = ({
     // Filtrer par email ou nom (insensible à la casse)
     const searchTerm = searchEmail.toLowerCase().trim();
     const emailMatch = user.email?.toLowerCase().includes(searchTerm);
-    const nameMatch = user.name?.toLowerCase().includes(searchTerm);
-    
-    return emailMatch || nameMatch;
+    const firstNameMatch = user.firstName?.toLowerCase().includes(searchTerm);
+    const lastNameMatch = user.lastName?.toLowerCase().includes(searchTerm);
+
+    return emailMatch || firstNameMatch || lastNameMatch;
   });
 
   const handleImportUser = () => {
@@ -157,7 +159,7 @@ export const UserSelectionStep = ({
                 >
                   <div className="flex-1">
                     <p className="font-medium font-poppins text-[var(--color-text)]">
-                      {user.name || "Nom inconnu"}
+                      {`${user.firstName} ${user.lastName}` || "Nom inconnu"}
                     </p>
                     <p className="text-sm text-[var(--color-grey-three)] font-poppins">
                       {user.email || "Email inconnu"}

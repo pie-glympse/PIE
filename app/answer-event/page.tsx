@@ -150,7 +150,7 @@ const AnswerEventPage = () => {
     const handleModalButtonClick = () => {
         // Fermer la modal et rediriger
         setIsModalOpen(false);
-        router.push('/events'); // Remplacez par votre route
+        router.push('/home'); // Remplacez par votre route
     };
 
     // Fonction pour obtenir le contenu de l'étape actuelle
@@ -236,7 +236,6 @@ const AnswerEventPage = () => {
             <section className="flex flex-row h-screen items-center gap-10 p-10">
                 {/* Section gauche */}
                 <div className="h-full w-full flex flex-col gap-6 items-start p-10">
-                    <p className='text-left'>LOGO ICI</p>
                     <div>
                         <BackArrow onClick={handleBack} className="" />
                     </div>
@@ -287,6 +286,13 @@ const AnswerEventPage = () => {
                 title="Félicitations !"
                 text="Vos préférences ont été enregistrées avec succès."
                 buttonText="Continuer"
+                stepContents={[{
+                    title: "Félicitations !",
+                    text: "Vos préférences ont été enregistrées avec succès.",
+                    buttonText: "Continuer",
+                    image: "/images/mascotte/joy.png",
+                    imagePosition: 'center' as const
+                }]}
             />
         </>
     );

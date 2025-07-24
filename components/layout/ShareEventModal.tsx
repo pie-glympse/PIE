@@ -4,7 +4,8 @@ import React from "react";
 
 type User = {
   id: string;
-  name?: string;
+  firstName?: string;
+  lastName?: string;
   email?: string;
 };
 
@@ -131,7 +132,7 @@ export const ShareEventModal = ({
                   >
                     <div>
                       <p className="font-medium">
-                        {user.name || "Nom inconnu"}
+                        {`${user.firstName} ${user.lastName}` || "Nom inconnu"}
                       </p>
                       <p className="text-sm text-gray-500">
                         {user.email || "Email inconnu"}

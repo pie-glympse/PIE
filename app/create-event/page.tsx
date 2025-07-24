@@ -104,7 +104,7 @@ const CreateEventPage = () => {
                     // Ajouter type d'événement sélectionné depuis l'étape 1
                     activityType: eventTypes.find(type => type.id === selectedEventType)?.text || '',
                     // Ajouter état par défaut
-                    state: 'Brouillon',
+                    state: 'pending',
                     // Les tags seront ajoutés plus tard, pour l'instant on se concentre sur les utilisateurs
                     tags: [], // Vide pour l'instant
                     // Ajouter l'utilisateur créateur
@@ -245,7 +245,6 @@ const CreateEventPage = () => {
             <section className="flex flex-row h-screen items-center gap-10 p-10">
                 {/* Section gauche */}
                 <div className="h-full w-full flex flex-col gap-6 items-start p-10">
-                    <p className='text-left'>LOGO ICI</p>
                     <div>
                         <BackArrow onClick={handleBack} className="" />
                     </div>

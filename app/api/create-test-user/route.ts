@@ -13,7 +13,8 @@ export async function POST() {
       data: {
         email: "test@test.com",
         password: hashedPassword,
-        name: "Utilisateur Test",
+        firstName: "Test",
+        lastName: "User",
         role: "ADMIN",
       },
     });
@@ -23,7 +24,8 @@ export async function POST() {
       user: {
         id: testUser.id.toString(),
         email: testUser.email,
-        name: testUser.name,
+        firstName: testUser.firstName,
+        lastName: testUser.lastName,
         role: testUser.role
       }
     });

@@ -22,8 +22,6 @@ export async function POST(request: Request) {
       invitedUsers = [], // Nouveaux utilisateurs invités
     } = await request.json();
 
-    console.log("Données reçues:", { userId, title, tags, invitedUsers }); // Debug plus complet
-
     if (!userId) {
       return NextResponse.json({ error: "userId manquant" }, { status: 400 });
     }
@@ -32,7 +30,6 @@ export async function POST(request: Request) {
     const userExists = await prisma.user.findUnique({
       where: { id: BigInt(userId) }
     });
-    console.log("Utilisateur existe:", !!userExists, "ID:", userId);
 
     if (!userExists) {
       return NextResponse.json({ 
@@ -47,14 +44,11 @@ export async function POST(request: Request) {
           id: { in: invitedUsers.map((id: number) => BigInt(id)) }
         }
       });
-      console.log("Utilisateurs invités demandés:", invitedUsers);
-      console.log("Utilisateurs existants:", existingUsers.map(u => ({ id: u.id.toString(), email: u.email })));
       
       if (existingUsers.length !== invitedUsers.length) {
         const missingUsers = invitedUsers.filter(userId => 
           !existingUsers.some(existingUser => existingUser.id === BigInt(userId))
         );
-        console.log("Utilisateurs manquants:", missingUsers);
         return NextResponse.json({ 
           error: `Utilisateurs manquants avec les IDs: ${missingUsers.join(', ')}` 
         }, { status: 400 });
@@ -68,21 +62,16 @@ export async function POST(request: Request) {
           id: { in: tags.map((id: number) => BigInt(id)) }
         }
       });
-      console.log("Tags demandés:", tags);
-      console.log("Tags existants:", existingTags.map(t => ({ id: t.id.toString(), name: t.name })));
       
       if (existingTags.length !== tags.length) {
         const missingTags = tags.filter(tagId => 
           !existingTags.some(existingTag => existingTag.id === BigInt(tagId))
         );
-        console.log("Tags manquants:", missingTags);
         return NextResponse.json({ 
           error: `Tags manquants avec les IDs: ${missingTags.join(', ')}` 
         }, { status: 400 });
       }
     }
-
-    console.log("Dates reçues:", { startDate, endDate, startTime, endTime }); // Debug
 
     // Helper pour créer une date sans heure (seulement la date)
     const createDateOnly = (dateString: string) => {
@@ -142,7 +131,8 @@ export async function POST(request: Request) {
           select: {
             id: true,
             email: true,
-            name: true,
+            firstName: true,
+            lastName: true,
           }
         },
       },
