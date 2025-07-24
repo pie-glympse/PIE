@@ -79,11 +79,11 @@ const MiniCalendar = ({ year = 2025, eventsData = [] }: MiniCalendarProps) => {
   // Mapping des couleurs pour les types d'événements (activityType)
   const getColorForActivityType = (activityType: string): string => {
     const activityColors: Record<string, string> = {
-      'Conférence': 'bg-indigo-500 hover:bg-indigo-600',
-      'Atelier': 'bg-orange-500 hover:bg-orange-600',
-      'Séminaire': 'bg-green-500 hover:bg-green-600',
-      'Formation': 'bg-teal-500 hover:bg-teal-600',
-      'Webinaire': 'bg-pink-500 hover:bg-pink-600',
+      'Conférence': 'bg-[var(--color-main)]',
+      'Atelier': 'bg-[var(--color-secondary)]',
+      'Séminaire': 'bg-[var(--color-tertiary)]',
+      'Formation': 'bg-green-500',
+      'Webinaire': 'bg-orange-500',
     };
 
     console.log('Recherche couleur pour activityType:', activityType, 'Couleur trouvée:', activityColors[activityType]);
