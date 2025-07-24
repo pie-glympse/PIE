@@ -51,18 +51,75 @@ export async function PATCH(
       );
     }
 
-    // Mettre à jour l'événement avec le nouvel état
-    const updatedEvent = await prisma.event.update({
-      where: { id: eventId },
-      data: { state: newState },
-      select: {
-        id: true,
-        title: true,
-        state: true
-      }
-    });
+    // ✅ Si on passe à "confirmed", finaliser l'événement avec les votes
+    if (newState.toLowerCase() === 'confirmed') {
+      // Récupérer le tag le plus voté
+      const mostVotedTag = await prisma.eventUserPreference.groupBy({
+        by: ['tagId'],
+        where: { eventId: eventId },
+        _count: { tagId: true },
+        orderBy: { _count: { tagId: 'desc' } },
+        take: 1,
+      });
 
-    return NextResponse.json(safeJson(updatedEvent), { status: 200 });
+      // Récupérer la date la plus votée
+      const mostVotedDate = await prisma.eventUserPreference.groupBy({
+        by: ['preferredDate'],
+        where: { eventId: eventId },
+        _count: { preferredDate: true },
+        orderBy: { _count: { preferredDate: 'desc' } },
+        take: 1,
+      });
+
+      let updateData: any = {
+        state: newState,
+      };
+
+      // Si on a un tag gagnant, récupérer son nom et l'ajouter à l'activité
+      if (mostVotedTag.length > 0) {
+        const tagDetails = await prisma.tag.findUnique({
+          where: { id: mostVotedTag[0].tagId },
+          select: { name: true },
+        });
+        
+        if (tagDetails) {
+          updateData.activityType = tagDetails.name;
+        }
+      }
+
+      // Si on a une date gagnante, l'utiliser comme nouvelle date de début
+      if (mostVotedDate.length > 0) {
+        updateData.startDate = mostVotedDate[0].preferredDate;
+      }
+
+      // Mettre à jour l'événement avec les résultats des votes
+      const updatedEvent = await prisma.event.update({
+        where: { id: eventId },
+        data: updateData,
+        select: {
+          id: true,
+          title: true,
+          state: true,
+          activityType: true,
+          startDate: true,
+        }
+      });
+
+      return NextResponse.json(safeJson(updatedEvent), { status: 200 });
+    } else {
+      // ✅ Pour les autres états, mise à jour simple
+      const updatedEvent = await prisma.event.update({
+        where: { id: eventId },
+        data: { state: newState },
+        select: {
+          id: true,
+          title: true,
+          state: true
+        }
+      });
+
+      return NextResponse.json(safeJson(updatedEvent), { status: 200 });
+    }
   } catch (error) {
     console.error('Erreur lors de la mise à jour du state:', error);
     return NextResponse.json(

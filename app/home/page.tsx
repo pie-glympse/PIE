@@ -90,6 +90,7 @@ export default function HomePage() {
       date: event.date || new Date().toISOString(),
       participants: event.users && event.users.length > 0 ? event.users : generateMockParticipants(event.id),
       backgroundUrl: getBackgroundUrl(event.tags),
+      state: event.state, // ✅ Ajouter l'état de l'événement
     };
   };
 

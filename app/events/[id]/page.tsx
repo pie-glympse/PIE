@@ -17,6 +17,7 @@ type EventDetails = {
   date?: string;
   maxPersons?: string;
   costPerPerson?: string;
+  activityType?: string;
   state?: string;
   city?: string; // Ajouter le champ city
   tags: { id: string; name: string }[];
@@ -103,7 +104,6 @@ export default function SingleEventPage() {
     if (!event) return;
 
     try {
-      // Simuler l'appel API avec le nouvel état directement
       const response = await fetch(`/api/events/${event.id}/state`, {
         method: "PATCH",
         headers: {
@@ -115,17 +115,41 @@ export default function SingleEventPage() {
       if (response.ok) {
         const updatedEvent = await response.json();
 
-        // Mettre à jour l'événement local
-        setEvent((prev) => (prev ? { ...prev, state: newState } : null));
+        // ✅ Mettre à jour l'événement local avec toutes les nouvelles données
+        setEvent((prev) => (prev ? { 
+          ...prev, 
+          state: updatedEvent.state,
+          activityType: updatedEvent.activityType || prev.activityType,
+          date: updatedEvent.startDate || prev.date,
+        } : null));
         setIsStateDropdownOpen(false);
 
-        console.log(`État de l'événement changé vers: ${newState}`);
+        console.log(`État de l'événement changé vers: ${updatedEvent.state}`);
+        
+        // ✅ Recharger la page si on a finalisé l'événement pour voir les changements
+        if (newState === 'confirmed') {
+          window.location.reload();
+        }
       } else {
         alert("Erreur lors du changement d'état de l'événement.");
       }
     } catch (error) {
       console.error("Erreur réseau lors du changement d'état :", error);
       alert("Erreur réseau lors du changement d'état.");
+    }
+  };
+
+  // Fonction pour obtenir le texte du bouton selon l'état actuel
+  const getStateButtonText = (state: string) => {
+    switch (state?.toLowerCase()) {
+      case "pending":
+        return "Finaliser avec les votes";
+      case "confirmed":
+        return "Planifier l'événement";
+      case "planned":
+        return "Réouvrir les votes";
+      default:
+        return "Confirmer l'événement";
     }
   };
 
@@ -218,6 +242,63 @@ export default function SingleEventPage() {
               {`${organizer?.firstName} ${organizer?.lastName}` || "Organisateur inconnu"}
             </p>
 
+            {/* ✅ Afficher les résultats des votes si l'événement est confirmé */}
+            {event.state?.toLowerCase() === 'confirmed' && (
+              <div className="mt-6 p-6 rounded-lg shadow-sm">
+                <div className="flex items-start gap-4">
+                  <div className="flex-shrink-0">
+                    <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
+                      <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    </div>
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-h3 font-urbanist font-semibold mb-3">
+                      Événement finalisé avec succès !
+                    </h3>
+                    <div className="space-y-3">
+                      {event.activityType && (
+                        <div className="flex items-center gap-3">
+                          <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                          <div>
+                            <span className="text-body-large font-poppins font-medium text-[var(--color-text)]">
+                              Activité sélectionnée :
+                            </span>
+                            <span className="ml-2 text-body-large font-poppins text-green-700 font-semibold">
+                              {event.activityType}
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                      {event.date && (
+                        <div className="flex items-center gap-3">
+                          <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                          <div>
+                            <span className="text-body-large font-poppins font-medium text-[var(--color-text)]">
+                              Date retenue :
+                            </span>
+                            <span className="ml-2 text-body-large font-poppins text-green-700 font-semibold">
+                              {new Date(event.date).toLocaleDateString('fr-FR', {
+                                weekday: 'long',
+                                year: 'numeric',
+                                month: 'long',
+                                day: 'numeric'
+                              })}
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    <div className="mt-4 pt-3 border-t border-green-200">
+                      <p className="text-body-small font-poppins text-green-600 italic">
+                        Résultats basés sur les votes des participants
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
           <div>
             <ShareButton onClick={handleShare} />

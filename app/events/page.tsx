@@ -289,6 +289,7 @@ export default function EventForm() {
       date: event.startDate || new Date().toISOString(),
       participants: event.users || [],
       backgroundUrl: getBackgroundUrl(event.tags),
+      state: event.state, // ✅ Ajouter l'état de l'événement
     };
   };
 
@@ -450,7 +451,7 @@ export default function EventForm() {
                             setShowPreferenceForm(true);
                           }}
                           onDelete={() => handleDeleteEvent(event.id)}
-                          showPreferencesButton={!userEventPreferences.has(event.id)}
+                          showPreferencesButton={!userEventPreferences.has(event.id) && event.state?.toLowerCase() !== 'confirmed'}
                         />
                       </div>
                     ))}
@@ -486,7 +487,7 @@ export default function EventForm() {
                             setShowPreferenceForm(true);
                           }}
                           onDelete={() => handleDeleteEvent(event.id)}
-                          showPreferencesButton={!userEventPreferences.has(event.id)}
+                          showPreferencesButton={!userEventPreferences.has(event.id) && event.state?.toLowerCase() !== 'confirmed'}
                         />
                       </div>
                     ))}
@@ -521,7 +522,7 @@ export default function EventForm() {
 
               {step === 1 && (
                 <>
-                  <p className="mb-4">Choisissez un type d'activité :</p>
+                  <p className="mb-4">Choisissez un type d&apos;activité :</p>
                   <div className="flex gap-4 flex-wrap">
                     {TAGS.map((tag) => (
                       <button
