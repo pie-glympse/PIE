@@ -3,11 +3,11 @@
 import * as React from "react";
 import { useState, useEffect } from "react";
 import { useUser } from "../../context/UserContext";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import GCalendar from "@/components/Gcalendar/Gcalendar";
 import Gcard from "@/components/Gcard/Gcard";
-
 
 type EventType = {
   id: string;
@@ -19,12 +19,20 @@ type EventType = {
   costPerPerson?: string;
   state?: string;
   tags: { id: string; name: string }[];
+  users?: { // Ajouter users pour les participants
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+  }[];
 };
 
 export default function HomePage() {
   const { user, isLoading } = useUser();
+  const router = useRouter();
   const [events, setEvents] = useState<EventType[]>([]);
   const [fetchError, setFetchError] = useState<string | null>(null);
+  const [dropdownEvent, setDropdownEvent] = useState<string | null>(null);
 
   // Récupérer les événements depuis l'API
   useEffect(() => {
@@ -44,7 +52,6 @@ export default function HomePage() {
 
   console.log("User:", user);
 
-
   const adaptEventForGcard = (event: EventType) => {
     // Assigner différentes images de fond selon les tags
     const getBackgroundUrl = (tags: { id: string; name: string }[]) => {
@@ -54,12 +61,65 @@ export default function HomePage() {
       return "/images/illustration/roundstar.svg"; // Par défaut
     };
 
+    // Générer des participants mockés pour la démo
+    const generateMockParticipants = (eventId: string) => {
+      const baseParticipants = [
+        { id: "1", firstName: "Olivia", lastName: "Rhye", email: "olivia.rhye@example.com" },
+        { id: "2", firstName: "John", lastName: "Doe", email: "john.doe@example.com" },
+        { id: "3", firstName: "Jane", lastName: "Smith", email: "jane.smith@example.com" },
+        { id: "4", firstName: "Mike", lastName: "Johnson", email: "mike.johnson@example.com" },
+        { id: "5", firstName: "Sarah", lastName: "Wilson", email: "sarah.wilson@example.com" },
+        { id: "6", firstName: "David", lastName: "Brown", email: "david.brown@example.com" },
+        { id: "7", firstName: "Emma", lastName: "Davis", email: "emma.davis@example.com" },
+        { id: "8", firstName: "Alex", lastName: "Miller", email: "alex.miller@example.com" },
+      ];
+      
+      // Utiliser l'ID de l'événement pour déterminer le nombre de participants (entre 0 et 8)
+      const eventIdNum = parseInt(eventId) || 1;
+      const participantCount = (eventIdNum % 9); // 0 à 8 participants
+      
+      return baseParticipants.slice(0, participantCount);
+    };
+
     return {
       title: event.title,
       date: event.date || new Date().toISOString(),
-      profiles: ["/img/user1.jpg", "/img/user2.jpg", "/img/user3.jpg", "/img/user4.jpg", "/img/user5.jpg"], 
+      participants: event.users && event.users.length > 0 ? event.users : generateMockParticipants(event.id),
       backgroundUrl: getBackgroundUrl(event.tags),
     };
+  };
+
+  // Fonction pour supprimer un événement
+  const handleDeleteEvent = async (eventId: string) => {
+    if (!confirm("Voulez-vous vraiment supprimer cet événement ?")) return;
+
+    try {
+      const res = await fetch(`/api/events/${eventId}`, {
+        method: "DELETE",
+      });
+      if (res.ok) {
+        // Mise à jour locale en supprimant l'event supprimé
+        setEvents((prev) => prev.filter((event) => event.id !== eventId));
+        alert("Événement supprimé avec succès !");
+      } else {
+        alert("Erreur lors de la suppression de l'événement.");
+      }
+    } catch (error) {
+      console.error("Erreur réseau lors de la suppression :", error);
+      alert("Erreur réseau lors de la suppression.");
+    }
+  };
+
+  const handleShare = (eventId: string, eventTitle: string) => {
+    // Logique de partage - vous pouvez adapter selon vos besoins
+    console.log("Partager l'événement:", eventId, eventTitle);
+    alert(`Partager l'événement: ${eventTitle}`);
+  };
+
+  const handlePreferences = (eventId: string) => {
+    // Rediriger vers la page de préférences ou ouvrir un modal
+    console.log("Ouvrir préférences pour:", eventId);
+    router.push(`/events/${eventId}/preferences`); // Adaptez selon votre routing
   };
 
   if (isLoading) {
@@ -88,7 +148,6 @@ export default function HomePage() {
                 className="w-6 h-6"
               />
             </p>
-  
           </div>
         </section>
 
@@ -116,7 +175,16 @@ export default function HomePage() {
                 eventId={event.id}
                 key={event.id} 
                 {...adaptEventForGcard(event)} 
-                className="w-full md:w-100 h-60 md:flex-shrink-0" 
+                className="w-full md:w-100 h-60 md:flex-shrink-0"
+                dropdownOpen={dropdownEvent === event.id}
+                onDropdownToggle={() => setDropdownEvent(
+                  dropdownEvent === event.id ? null : event.id
+                )}
+                isAuthorized={isAuthorized}
+                onShare={() => handleShare(event.id, event.title)}
+                onPreferences={() => handlePreferences(event.id)}
+                onDelete={() => handleDeleteEvent(event.id)}
+                showPreferencesButton={true} // ou logique selon si l'utilisateur a déjà des préférences
               />
             ))}
 

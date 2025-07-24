@@ -1,12 +1,20 @@
 "use client";
 import React from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
+
+interface Participant {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+}
 
 interface EventCardProps {
   eventId: string;
   title: string;
   date: string;
-  profiles: string[];
+  participants?: Participant[]; 
   backgroundUrl: string;
   backgroundSize?: number; 
   className?: string;
@@ -23,7 +31,7 @@ export default function EventCard({
   eventId,
   title,
   date,
-  profiles,
+  participants = [],
   backgroundUrl,
   backgroundSize = 200,
   className = "",
@@ -36,7 +44,8 @@ export default function EventCard({
   showPreferencesButton = false,
 }: EventCardProps) {
   const router = useRouter();
-  const displayProfiles = profiles.slice(0, 5);
+  const displayParticipants = participants.slice(0, 5);
+  const remainingCount = participants.length - 5;
 
   const handleCardClick = () => {
     router.push(`/events/${eventId}`);
@@ -44,7 +53,6 @@ export default function EventCard({
 
   const handleMenuClick = (e: React.MouseEvent) => {
     e.stopPropagation(); // Empêche le clic sur la carte
-    // Logique du menu ici
   };
 
   return (
@@ -139,22 +147,38 @@ export default function EventCard({
           })}
         </p>
 
-        {/* Profils */}
-        <div className="flex -space-x-3">
-          {displayProfiles.map((url, idx) => (
-            <img
-              key={idx}
-              src={url}
-              alt={`Profil ${idx + 1}`}
-              className="w-10 h-10 rounded-full border-2 border-white object-cover bg-gray-200"
-            />
+        {/* Avatars des participants - adaptés selon la hauteur */}
+        <div className={`flex -space-x-3 ${className?.includes('h-24') || className?.includes('h-20') ? 'scale-50 origin-left' : ''}`}>
+          {displayParticipants.map((participant, idx) => (
+            <div
+              key={participant.id}
+              className="w-10 h-10 rounded-full border-2 border-white bg-gray-200 overflow-hidden relative"
+              title={`${participant.firstName} ${participant.lastName}`}
+            >
+              <Image
+                src="/icons/round.png"
+                alt={`Avatar de ${participant.firstName} ${participant.lastName}`}
+                width={40}
+                height={40}
+                className="rounded-full object-cover"
+              />
+            </div>
           ))}
-          {profiles.length > 5 && (
+          
+          {/* Affichage du nombre restant si plus de 5 participants */}
+          {remainingCount > 0 && (
             <div className="w-10 h-10 rounded-full border-2 border-white bg-gray-300 flex items-center justify-center">
               <span className="text-xs text-gray-600 font-medium">
-                +{profiles.length - 5}
+                +{remainingCount}
               </span>
             </div>
+          )}
+          
+          {/* Si aucun participant, afficher un message */}
+          {participants.length === 0 && (
+            <p className={`text-gray-500 italic ${className?.includes('h-24') || className?.includes('h-20') ? 'text-xs' : 'text-sm'}`}>
+              Encore aucun participant
+            </p>
           )}
         </div>
       </div>

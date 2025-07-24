@@ -32,6 +32,12 @@ type EventType = {
   city?: string;
   maxDistance?: number;
   tags: { id: string; name: string }[];
+  users: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+  }[];
 };
 
 export default function EventForm() {
@@ -99,20 +105,54 @@ export default function EventForm() {
     }
   }, [isLoading, user]);
 
+  // Charger les participants pour chaque événement séparément
+  useEffect(() => {
+    if (userEvents.length > 0) {
+      const fetchParticipants = async () => {
+        const eventsWithParticipants = await Promise.all(
+          userEvents.map(async (event) => {
+            try {
+              const participantsRes = await fetch(`/api/events/${event.id}/users`);
+              if (participantsRes.ok) {
+                const participantsData = await participantsRes.json();
+                return { 
+                  ...event, 
+                  users: participantsData.users || participantsData.userIds?.map((id: string) => ({
+                    id,
+                    firstName: "User",
+                    lastName: id,
+                    email: `user${id}@example.com`
+                  })) || []
+                };
+              }
+              return { ...event, users: [] };
+            } catch (error) {
+              console.error(`Erreur récupération participants pour event ${event.id}:`, error);
+              return { ...event, users: [] };
+            }
+          })
+        );
+        setUserEvents(eventsWithParticipants);
+      };
+      
+      fetchParticipants();
+    }
+  }, [userEvents.length > 0 && !userEvents[0]?.users]);
+
   useEffect(() => {
     if (userEvents.length > 0 && user) {
       const fetchPreferences = async () => {
         const res = await fetch(
           `/api/user-event-preferences?userId=${user.id}`
         );
-        const data = await res.json(); // Format: [{ eventId: X, preferredDate: ..., tagId: ... }]
+        const data = await res.json();
         const preferenceMap = new Map();
         data.forEach(
           (pref: { eventId: number; preferredDate: string; tagId: number }) => {
             preferenceMap.set(pref.eventId, pref);
           }
         );
-        setUserEventPreferences(preferenceMap); // New state
+        setUserEventPreferences(preferenceMap);
       };
       fetchPreferences();
     }
@@ -137,13 +177,11 @@ export default function EventForm() {
   useEffect(() => {
     async function fetchPreferences() {
       try {
-        // Only fetch if user and selectedEvent are defined
         if (!user || !selectedEvent) return;
         const res = await fetch(
           `/api/preferences?userId=${user.id}&eventId=${selectedEvent.id}`
         );
         if (!res.ok) {
-          // Pas de préférence en base
           setPreferences(null);
         } else {
           const data = await res.json();
@@ -157,7 +195,6 @@ export default function EventForm() {
     }
 
     fetchPreferences();
-    // Only run when user or selectedEvent changes
   }, [user, selectedEvent]);
 
   if (isLoading || eventsLoading) {
@@ -175,7 +212,6 @@ export default function EventForm() {
         method: "DELETE",
       });
       if (res.ok) {
-        // Mise à jour locale en supprimant l'event supprimé
         setUserEvents((prev) => prev.filter((event) => event.id !== eventId));
         alert("Événement supprimé avec succès !");
       } else {
@@ -212,7 +248,6 @@ export default function EventForm() {
         setPreferredDate("");
         setStep(1);
 
-        // Rafraîchir les préférences
         const updatedPrefs = await res.json();
         setUserEventPreferences(
           (prev) => new Map(prev.set(Number(selectedEvent.id), updatedPrefs))
@@ -226,9 +261,7 @@ export default function EventForm() {
     }
   };
 
-  // Fonction pour adapter les données de l'API au format attendu par Gcard
   const adaptEventForGcard = (event: EventType) => {
-    // Assigner différentes images de fond selon les tags
     const getBackgroundUrl = (tags: { id: string; name: string }[]) => {
       if (tags.some((tag) => tag.name === "Restauration"))
         return "/images/illustration/palm.svg";
@@ -236,19 +269,13 @@ export default function EventForm() {
         return "/images/illustration/stack.svg";
       if (tags.some((tag) => tag.name === "Team Building"))
         return "/images/illustration/roundstar.svg";
-      return "/images/illustration/roundstar.svg"; // Par défaut
+      return "/images/illustration/roundstar.svg";
     };
 
     return {
       title: event.title,
       date: event.startDate || new Date().toISOString(),
-      profiles: [
-        "/img/user1.jpg",
-        "/img/user2.jpg",
-        "/img/user3.jpg",
-        "/img/user4.jpg",
-        "/img/user5.jpg",
-      ],
+      participants: event.users || [],
       backgroundUrl: getBackgroundUrl(event.tags),
     };
   };
@@ -296,15 +323,15 @@ export default function EventForm() {
   const filteredEvents = getFilteredEvents();
 
   return (
-    <section className="flex flex-row h-screen items-start gap-10 p-10">
-      <div className="h-full w-full flex flex-col gap-6 items-start p-10">
+    <section className="flex flex-row h-screen items-start gap-10 p-4 md:p-10">
+      <div className="h-full w-full flex flex-col gap-6 items-start p-4 md:p-10">
         {/* Header avec logo et back arrow */}
         <p className="text-left">LOGO ICI</p>
         <BackArrow onClick={() => router.back()} className="" />
 
         {/* Header de la page */}
-        <div className="flex justify-between items-start w-full">
-          <div className="flex flex-row items-center gap-4">
+        <div className="flex flex-col md:flex-row md:justify-between md:items-start w-full gap-4">
+            <div className="flex flex-row items-center gap-4 ">
             <h1 className="text-h1 font-urbanist text-[var(--color-text)] mb-2">
               Tous vos événements
             </h1>
@@ -312,7 +339,7 @@ export default function EventForm() {
               <img src="/icons/filterIcon.svg" alt="Filtrer" className="" />
             </button>
           </div>
-          <div className="flex flex-row items-center gap-4">
+            <div className="hidden md:flex flex-row items-center gap-4">
             <button className="">
               <img src="/icons/calendar.svg" alt="Vue Calendrier" className="" />
             </button>
@@ -332,7 +359,7 @@ export default function EventForm() {
         </div>
 
         {/* Filtres des évenements par date */}
-        <div className="flex flex-row items-center gap-4 w-full">
+        <div className="flex flex-row items-center gap-4 w-full flex-wrap">
             <button 
               className={`px-2 py-1 rounded text-body-large ${statusFilter === 'all' ? 'bg-black text-white' : 'bg-[var(--color-grey-one)] text-[var(--color-text)]'}`}
               onClick={() => setStatusFilter('all')}
@@ -351,12 +378,6 @@ export default function EventForm() {
             >
               À venir
             </button>
-            {/* <button 
-              className={`px-2 py-1 rounded text-body-large ${statusFilter === 'preparation' ? 'bg-black text-white' : 'bg-[var(--color-grey-one)] text-[var(--color-text)]'}`}
-              onClick={() => setStatusFilter('preparation')}
-            >
-              En préparation
-            </button> */}
         </div>
 
         {/* Liste des événements */}
@@ -402,27 +423,29 @@ export default function EventForm() {
                         className="cursor-pointer"
                       >
                         <Gcard
-                        eventId={""} {...adaptEventForGcard(event)}
-                        className="w-full h-60"
-                        dropdownOpen={dropdownEvent === event.id}
-                        onDropdownToggle={() => setDropdownEvent(
-                          dropdownEvent === event.id ? null : event.id
-                        )}
-                        isAuthorized={isAuthorized}
-                        onShare={() => openShareModal(event.id, event.title)}
-                        onPreferences={() => {
-                          setSelectedEvent(event);
-                          setShowPreferenceForm(true);
-                        } }
-                        onDelete={() => handleDeleteEvent(event.id)}
-                        showPreferencesButton={!userEventPreferences.has(Number(event.id))}                        />
+                          eventId={event.id}
+                          {...adaptEventForGcard(event)}
+                          className="w-full h-60"
+                          dropdownOpen={dropdownEvent === event.id}
+                          onDropdownToggle={() => setDropdownEvent(
+                            dropdownEvent === event.id ? null : event.id
+                          )}
+                          isAuthorized={isAuthorized}
+                          onShare={() => openShareModal(event.id, event.title)}
+                          onPreferences={() => {
+                            setSelectedEvent(event);
+                            setShowPreferenceForm(true);
+                          }}
+                          onDelete={() => handleDeleteEvent(event.id)}
+                          showPreferencesButton={!userEventPreferences.has(Number(event.id))}
+                        />
                       </div>
                     ))}
                     {/* Bouton Ajouter */}
                     <button
                       onClick={() => router.push('/create-event')}
                       aria-label="Ajouter un évènement"
-                      className="w-20 h-60 flex-shrink-0 flex items-center bg-[var(--color-main)] justify-center rounded-xl hover:opacity-80 transition text-h1 text-white"
+                      className="w-full md:w-20 h-60 flex-shrink-0 flex items-center bg-[var(--color-main)] justify-center rounded-xl hover:opacity-80 transition text-h1 text-white"
                     >
                       +
                     </button>
@@ -436,20 +459,22 @@ export default function EventForm() {
                         className="cursor-pointer"
                       >
                         <Gcard
-                        eventId={""} {...adaptEventForGcard(event)}
-                        className="w-full h-24"
-                        dropdownOpen={dropdownEvent === event.id}
-                        onDropdownToggle={() => setDropdownEvent(
-                          dropdownEvent === event.id ? null : event.id
-                        )}
-                        isAuthorized={isAuthorized}
-                        onShare={() => openShareModal(event.id, event.title)}
-                        onPreferences={() => {
-                          setSelectedEvent(event);
-                          setShowPreferenceForm(true);
-                        } }
-                        onDelete={() => handleDeleteEvent(event.id)}
-                        showPreferencesButton={!userEventPreferences.has(Number(event.id))}                        />
+                          eventId={event.id}
+                          {...adaptEventForGcard(event)}
+                          className="w-full ha-auto"
+                          dropdownOpen={dropdownEvent === event.id}
+                          onDropdownToggle={() => setDropdownEvent(
+                            dropdownEvent === event.id ? null : event.id
+                          )}
+                          isAuthorized={isAuthorized}
+                          onShare={() => openShareModal(event.id, event.title)}
+                          onPreferences={() => {
+                            setSelectedEvent(event);
+                            setShowPreferenceForm(true);
+                          }}
+                          onDelete={() => handleDeleteEvent(event.id)}
+                          showPreferencesButton={!userEventPreferences.has(Number(event.id))}
+                        />
                       </div>
                     ))}
                     {/* Bouton Ajouter en mode liste */}
