@@ -9,6 +9,7 @@ import TabNavigation from "@/components/ui/TabNavigation";
 import EventInformations from "@/components/event/EventInformations";
 import EventParticipants from "@/components/event/EventParticipants";
 import EventDocuments from "@/components/event/EventDocuments";
+import { useUser } from "@/context/UserContext";
 
 type EventDetails = {
   id: string;
@@ -34,6 +35,8 @@ type EventDetails = {
 export default function SingleEventPage() {
   const params = useParams();
   const router = useRouter();
+  const { user, isLoading } = useUser();
+
   const id = params.id as string;
 
   const [event, setEvent] = useState<EventDetails | null>(null);
@@ -221,9 +224,12 @@ export default function SingleEventPage() {
       </div>
     );
   }
+  // TODO: Remplacez ceci par la récupération réelle de l'utilisateur connecté depuis votre contexte d'authentification ou provider
+    
+    const isAuthorized = user && ["ADMIN", "SUPER_ADMIN"].includes(user.role);
+
 
   const organizer = event.users?.[0];
-  const isAuthorized = true; // Remplacez ceci par votre logique d'autorisation
 
   return (
     <section className="h-screen overflow-y-auto md:overflow-hidden pt-24 p-6 flex flex-col gap-8">
@@ -303,7 +309,7 @@ export default function SingleEventPage() {
           <div>
             <ShareButton onClick={handleShare} />
                         {isAuthorized && (
-              <button
+          <button
               className="p-4"
               onClick={() => setIsStateDropdownOpen(!isStateDropdownOpen)}
               

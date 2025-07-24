@@ -456,13 +456,15 @@ export default function EventForm() {
                       </div>
                     ))}
                     {/* Bouton Ajouter */}
-                    <button
+                    {isAuthorized && (
+                      <button
                       onClick={() => router.push('/create-event')}
                       aria-label="Ajouter un évènement"
                       className="w-full md:w-20 h-60 flex-shrink-0 flex items-center bg-[var(--color-main)] justify-center rounded-xl hover:opacity-80 transition text-h1 text-white"
                     >
                       +
                     </button>
+                    )}
                   </div>
                 ) : (
                   <div className="space-y-4">
