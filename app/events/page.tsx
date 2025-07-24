@@ -48,6 +48,9 @@ export default function EventForm() {
   const [userEventPreferences, setUserEventPreferences] = useState<
     Set<string>
   >(new Set());
+  const [eventPopularTags, setEventPopularTags] = useState<
+    Map<string, { id: string; name: string; count: number }>
+  >(new Map());
   const [users, setUsers] = useState<
     { id: string; name?: string; email?: string }[]
   >([]);
