@@ -7,15 +7,17 @@ import { Eye, EyeOff, Camera } from "lucide-react";
 import { useUser } from "../../context/UserContext";
 import { useRouter } from "next/navigation";
 
+
 export default function ProfilePage() {
   const { user, isLoading, setUser } = useUser();
-  const router = useRouter();
   
   const [banner, setBanner] = useState<string | null>(null);
   const [avatar, setAvatar] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(true);
+  const { logout } = useUser();
+  const router = useRouter();
   
   // Données sauvegardées
   const [savedUserInfo, setSavedUserInfo] = useState({
@@ -168,6 +170,18 @@ export default function ProfilePage() {
   if (!user) {
     return null;
   }
+
+    const handleLogout = async () => {
+    try {
+      await fetch("/api/logout", { method: "POST" });
+      logout();
+      router.push("/login");
+    } catch (error) {
+      console.error("Erreur lors de la déconnexion:", error);
+      logout();
+      router.push("/login");
+    }
+  };
 
   return (
     <div className="mt-24 p-6 max-w-7xl mx-auto">
@@ -325,9 +339,15 @@ export default function ProfilePage() {
                 >
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
+                
               </div>
             </div>
           </div>
+          <button
+                    onClick={handleLogout}
+                    className="mt-2 text-red-600 rounded hover:text-red-700 transition text-sm">
+                    Se déconnecter
+                </button>
         </div>
       </div>
     </div>

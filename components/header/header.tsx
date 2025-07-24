@@ -3,25 +3,10 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useState } from "react";
-import { useUser } from "../../context/UserContext";
-import { useRouter } from "next/navigation";
 
 export default function Header() {
-  const { logout } = useUser();
-  const router = useRouter();
-  const [isMenuHovered, setIsMenuHovered] = useState(false);
 
-  const handleLogout = async () => {
-    try {
-      await fetch("/api/logout", { method: "POST" });
-      logout();
-      router.push("/login");
-    } catch (error) {
-      console.error("Erreur lors de la déconnexion:", error);
-      logout();
-      router.push("/login");
-    }
-  };
+  const [isMenuHovered, setIsMenuHovered] = useState(false);
 
   return (
     <header className="fixed top-0 left-0 right-0 w-full p-6 bg-white z-50 border-b border-gray-100">
@@ -142,12 +127,6 @@ export default function Header() {
 
         {/* Right: Avatars */}
         <div className="flex items-center gap-8">
-          <button
-            onClick={handleLogout}
-            className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition text-sm"
-          >
-            Se déconnecter
-          </button>
           <div className="w-10 h-10 relative cursor-pointer">
             <Image
               src="/images/icones/notification.svg"

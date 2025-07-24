@@ -82,6 +82,9 @@ export default function EventForm() {
     eventTitle: "",
   });
 
+  // État pour gérer les accordéons de chaque événement
+  const [stateDropdowns, setStateDropdowns] = useState<Set<string>>(new Set());
+
   // Redirection si pas connecté
   useEffect(() => {
     if (!isLoading && !user) {
@@ -398,9 +401,11 @@ export default function EventForm() {
             {filteredEvents.length === 0 ? (
               <div className="flex flex-col items-center justify-center w-full min-h-96 py-16">
                 <div className="text-center space-y-3">
-                  <img
+                  <Image
                     src="/images/mascotte/sad.png"
                     alt="Mascotte triste"
+                    width={240}
+                    height={240}
                     className="mx-auto object-contain opacity-80 w-60 h-60"
                   />
                   <div className="space-y-4">
@@ -408,7 +413,7 @@ export default function EventForm() {
                       Aucun événement trouvé
                     </h3>
                     <p className="text-gray-500 text-lg max-w-md mx-auto font-poppins">
-                      Il semble qu'il n'y ait aucun événement correspondant à vos critères. Pourquoi ne pas créer le premier ?
+                      Il semble qu&apos;il n&apos;y ait aucun événement correspondant à vos critères. Pourquoi ne pas créer le premier ?
                     </p>
                   </div>
                   <div className="pt-4">

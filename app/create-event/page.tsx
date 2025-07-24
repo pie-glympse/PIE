@@ -104,7 +104,7 @@ const CreateEventPage = () => {
                     // Ajouter type d'événement sélectionné depuis l'étape 1
                     activityType: eventTypes.find(type => type.id === selectedEventType)?.text || '',
                     // Ajouter état par défaut
-                    state: 'Brouillon',
+                    state: 'pending',
                     // Les tags seront ajoutés plus tard, pour l'instant on se concentre sur les utilisateurs
                     tags: [], // Vide pour l'instant
                     // Ajouter l'utilisateur créateur
