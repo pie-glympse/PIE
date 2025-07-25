@@ -242,7 +242,7 @@ const CreateEventPage = () => {
 
     return (
         <>
-            <section className="flex flex-row h-screen items-center gap-10 p-10">
+            <section className="h-screen overflow-y-auto md:overflow-hidden pt-24 flex flex-col gap-8 flex flex-row h-screen items-center gap-10 p-10">
                 {/* Section gauche */}
                 <div className="h-full w-full flex flex-col gap-6 items-start p-10">
                     <div>

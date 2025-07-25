@@ -268,7 +268,6 @@ export default function EventForm() {
     }
   };
 
-  // ✅ Nouvelle fonction pour rediriger vers answer-event
   const handleFillPreferences = (event: EventType) => {
     router.push(`/answer-event/${event.id}?eventTitle=${encodeURIComponent(event.title)}`);
   };
@@ -289,7 +288,7 @@ export default function EventForm() {
       date: event.startDate || new Date().toISOString(),
       participants: event.users || [],
       backgroundUrl: getBackgroundUrl(event.tags),
-      state: event.state, // ✅ Ajouter l'état de l'événement
+      state: event.state, 
     };
   };
 
@@ -311,7 +310,6 @@ export default function EventForm() {
 
   const isAuthorized = ["ADMIN", "SUPER_ADMIN"].includes(user.role);
 
-  // Fonction pour filtrer les événements par statut
   const getFilteredEvents = () => {
     const now = new Date();
     return userEvents.filter(event => {
@@ -323,10 +321,10 @@ export default function EventForm() {
         return eventDate < now;
       }
       if (statusFilter === 'upcoming') {
-        return eventDate > now && event.state !== 'preparation';
+        return eventDate > now && event.state !== 'pending';
       }
       if (statusFilter === 'preparation') {
-        return event.state === 'preparation' || event.state === 'PREPARATION';
+        return event.state === 'pending';
       }
       
       return true;
@@ -339,7 +337,7 @@ export default function EventForm() {
     <section className="h-screen overflow-y-auto md:overflow-hidden pt-24 p-6 flex flex-col gap-8">
       <div className="h-full w-full flex flex-col gap-6 items-start p-4 md:p-10">
         {/* Header avec logo et back arrow */}
-        <BackArrow onClick={() => router.back()} className="" />
+        <BackArrow onClick={() => router.back()} className="!mb-0" />
 
         {/* Header de la page */}
         <div className="flex flex-col md:flex-row md:justify-between md:items-start w-full gap-4">
@@ -389,6 +387,12 @@ export default function EventForm() {
               onClick={() => setStatusFilter('upcoming')}
             >
               À venir
+            </button>
+            <button 
+              className={`px-2 py-1 rounded text-body-large ${statusFilter === 'preparation' ? 'bg-black text-white' : 'bg-[var(--color-grey-one)] text-[var(--color-text)]'}`}
+              onClick={() => setStatusFilter('preparation')}
+            >
+              En préparation
             </button>
         </div>
 
