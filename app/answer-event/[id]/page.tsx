@@ -1,7 +1,7 @@
 "use client"
 import { useParams, useSearchParams } from 'next/navigation';
 import { useRouter } from 'next/navigation';
-import { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react';
 import { useUser } from '../../../context/UserContext';
 import MainButton from '@/components/ui/MainButton';
 import BackArrow from '../../../components/ui/BackArrow';
