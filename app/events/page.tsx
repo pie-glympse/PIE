@@ -48,9 +48,7 @@ export default function EventForm() {
   const [userEventPreferences, setUserEventPreferences] = useState<
     Set<string>
   >(new Set());
-  const [eventPopularTags, setEventPopularTags] = useState<
-    Map<string, { id: string; name: string; count: number }>
-  >(new Map());
+
   const [users, setUsers] = useState<
     { id: string; name?: string; email?: string }[]
   >([]);
@@ -81,9 +79,6 @@ export default function EventForm() {
     eventId: "",
     eventTitle: "",
   });
-
-  // État pour gérer les accordéons de chaque événement
-  const [stateDropdowns, setStateDropdowns] = useState<Set<string>>(new Set());
 
   // Redirection si pas connecté
   useEffect(() => {
@@ -234,24 +229,7 @@ export default function EventForm() {
   // Fonction pour supprimer un événement
   const handleDeleteEvent = async (eventId: string) => {
     if (!confirm("Voulez-vous vraiment supprimer cet événement ?")) return;
-  const handleDeleteEvent = async (eventId: string) => {
-    if (!confirm("Voulez-vous vraiment supprimer cet événement ?")) return;
 
-    try {
-      const res = await fetch(`/api/events/${eventId}`, {
-        method: "DELETE",
-      });
-      if (res.ok) {
-        setUserEvents((prev) => prev.filter((event) => event.id !== eventId));
-        alert("Événement supprimé avec succès !");
-      } else {
-        alert("Erreur lors de la suppression de l'événement.");
-      }
-    } catch (error) {
-      console.error("Erreur réseau lors de la suppression :", error);
-      alert("Erreur réseau lors de la suppression.");
-    }
-  };
     try {
       const res = await fetch(`/api/events/${eventId}`, {
         method: "DELETE",
@@ -346,24 +324,24 @@ export default function EventForm() {
               Tous vos événements
             </h1>
             <button className="">
-              <img src="/icons/filterIcon.svg" alt="Filtrer" className="" />
+              <Image src="/icons/filterIcon.svg" alt="Filtrer" width={24} height={24} className="" />
             </button>
           </div>
             <div className="hidden md:flex flex-row items-center gap-4">
             <button className="">
-              <img src="/icons/calendar.svg" alt="Vue Calendrier" className="" />
+              <Image src="/icons/calendar.svg" alt="Vue Calendrier" width={24} height={24} className="" />
             </button>
             <button 
               className={`p-2 rounded ${viewMode === 'list' ? 'bg-[var(--color-grey-one)]' : 'hover:bg-gray-100'}`}
               onClick={() => setViewMode('list')}
             >
-              <img src="/icons/list.svg" alt="Vue Liste" className="" />
+              <Image src="/icons/list.svg" alt="Vue Liste" width={24} height={24} className="" />
             </button>
             <button 
               className={`p-2 rounded ${viewMode === 'grid' ? 'bg-[var(--color-grey-one)]' : 'hover:bg-gray-100'}`}
               onClick={() => setViewMode('grid')}
             >
-              <img src="/icons/grid.svg" alt="Vue grid" className="" />
+              <Image src="/icons/grid.svg" alt="Vue grid" width={24} height={24} className="" />
             </button>
           </div>
         </div>

@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
-import Image from "next/image";
 import BackArrow from "@/components/ui/BackArrow";
 import ShareButton from "@/components/ui/ShareButton";
 import TabNavigation from "@/components/ui/TabNavigation";
@@ -39,7 +38,7 @@ type EventDetails = {
 export default function SingleEventPage() {
   const params = useParams();
   const router = useRouter();
-  const { user, isLoading } = useUser();
+  const { user } = useUser();
 
   const id = params.id as string;
 
@@ -96,10 +95,6 @@ export default function SingleEventPage() {
       fetchEvent();
     }
   }, [id]);
-
-  const handleBack = () => {
-    router.back();
-  };
 
   const handleTabChange = (tabId: string) => {
     setActiveTab(tabId);
@@ -194,20 +189,6 @@ export default function SingleEventPage() {
     } catch (error) {
       console.error("Erreur réseau lors du changement d'état :", error);
       alert("Erreur réseau lors du changement d'état.");
-    }
-  };
-
-  // Fonction pour obtenir le texte du bouton selon l'état actuel
-  const getStateButtonText = (state: string) => {
-    switch (state?.toLowerCase()) {
-      case "pending":
-        return "Finaliser avec les votes";
-      case "confirmed":
-        return "Planifier l'événement";
-      case "planned":
-        return "Réouvrir les votes";
-      default:
-        return "Confirmer l'événement";
     }
   };
 
@@ -469,7 +450,7 @@ export default function SingleEventPage() {
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-white rounded-lg p-8 max-w-md w-full mx-4">
               <div className="text-center">
-                <h3 className="text-h3 font-urbanist mb-4">Partager l'événement</h3>
+                <h3 className="text-h3 font-urbanist mb-4">Partager l&apos;événement</h3>
                 <p className="text-body-large font-poppins text-[var(--color-grey-three)] mb-6">
                   Choisissez comment vous souhaitez partager cet événement
                 </p>

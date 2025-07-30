@@ -461,7 +461,7 @@ const MiniCalendar = ({ year = 2025, eventsData = [] }: MiniCalendarProps) => {
           </div>
           {hoveredDay.events.length > 0 && (
             <div className="text-xs text-blue-500 mt-2">
-              Cliquez pour voir l'événement
+              Cliquez pour voir l&apos;événement
             </div>
           )}
         </div>
