@@ -148,7 +148,6 @@ export default function ProfilePage() {
         email: updatedUser.email
       }));
       
-      console.log('Données sauvegardées:', userInfo);
     } catch (error) {
       console.error("Erreur lors de la sauvegarde:", error);
       alert("Erreur lors de la sauvegarde des données");

@@ -195,8 +195,6 @@ const AnswerEventPage = () => {
                 preferences: selectedPreferences
             };
 
-            console.log('Envoi des préférences:', requestBody);
-
             const response = await fetch(`/api/events/${eventId}/preferences`, {
                 method: 'POST',
                 headers: {
@@ -209,9 +207,6 @@ const AnswerEventPage = () => {
                 const errorData = await response.json();
                 throw new Error(errorData.message || 'Erreur lors de l\'envoi des préférences');
             }
-
-            const result = await response.json();
-            console.log('Préférences sauvegardées:', result);
             
             // Ouvrir la modal de succès
             setIsModalOpen(true);

@@ -53,8 +53,6 @@ export default function HomePage() {
     }
   }, [isLoading, user]);
 
-  console.log("User:", user);
-
   const adaptEventForGcard = (event: EventType) => {
     // Assigner différentes images de fond selon les tags
     const getBackgroundUrl = (tags: { id: string; name: string }[]) => {
@@ -116,14 +114,7 @@ export default function HomePage() {
 
   const handleShare = (eventId: string, eventTitle: string) => {
     // Logique de partage - vous pouvez adapter selon vos besoins
-    console.log("Partager l'événement:", eventId, eventTitle);
     alert(`Partager l'événement: ${eventTitle}`);
-  };
-
-  const handlePreferences = (eventId: string) => {
-    // Rediriger vers la page de préférences ou ouvrir un modal
-    console.log("Ouvrir préférences pour:", eventId);
-    router.push(`/events/${eventId}/preferences`); // Adaptez selon votre routing
   };
 
   if (isLoading) {
