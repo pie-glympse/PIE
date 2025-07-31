@@ -345,7 +345,7 @@ export default function SingleEventPage() {
           <div>
             {/* Boutons conditionnels à gauche du bouton partager */}
             <div className="flex items-center gap-3">
-              {activeTab === "participants" && (
+              {activeTab === "participants" && isAuthorized && (
                 <button
                   onClick={handleAddMembers}
                   className="px-4 py-2 bg-white text-[var(--color-grey-four)] text-body-large  font-poppins hover:opacity-90 transition-opacity border-2 border-[var(--color-grey-three)] hover:border-[var(--color-main)]"

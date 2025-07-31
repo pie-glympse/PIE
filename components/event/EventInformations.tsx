@@ -1,4 +1,3 @@
-import React from 'react';
 import Image from 'next/image';
 import Map from '@/components/Map';
 
@@ -20,17 +19,6 @@ interface EventInformationsProps {
 
 const EventInformations = ({ event }: EventInformationsProps) => {
   const isConfirmed = event.state?.toLowerCase() === 'confirmed';
-
-  // 🐛 Debug temporaire
-  console.log("📊 EventInformations - Données reçues:", {
-    state: event.state,
-    isConfirmed,
-    date: event.date,
-    startDate: event.startDate,
-    endDate: event.endDate,
-    startTime: event.startTime,
-    endTime: event.endTime
-  });
 
   // Formatter la date en français
   const formatDate = (dateString: string) => {
@@ -221,7 +209,7 @@ const EventInformations = ({ event }: EventInformationsProps) => {
             Informations Supplémentaires
           </h3>
           <p className="text-bodyLarge font-poppins text-[var(--color-text)] leading-relaxed">
-            Le transport sera assuré par l'entreprise, à partir de 18h vous trouverez des cars qui vous attendront.
+            Le transport sera assuré par l&apos;entreprise, à partir de 18h vous trouverez des cars qui vous attendront.
             <br />
             Pour le retour, des taxis seront mis à votre disposition si besoin.
           </p>

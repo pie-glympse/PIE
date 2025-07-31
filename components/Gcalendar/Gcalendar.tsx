@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import type { ReactNode } from "react";
 import { useUser } from "../../context/UserContext";
 import { useRouter } from "next/navigation";
 import { title } from "process";
@@ -86,7 +85,6 @@ const MiniCalendar = ({ year = 2025, eventsData = [] }: MiniCalendarProps) => {
       'Webinaire': 'bg-orange-500',
     };
 
-    console.log('Recherche couleur pour activityType:', activityType, 'Couleur trouvée:', activityColors[activityType]);
     return activityColors[activityType] || 'bg-gray-400 hover:bg-gray-500';
   };
 
@@ -103,23 +101,22 @@ const MiniCalendar = ({ year = 2025, eventsData = [] }: MiniCalendarProps) => {
   }, []);
 
   // Fonction pour générer tous les jours entre deux dates
-  const generateDateRange = (startDate: string, endDate: string): string[] => {
+  const generateDateRange = React.useCallback((startDate: string, endDate: string): string[] => {
     const dates: string[] = [];
     const start = new Date(startDate);
     const end = new Date(endDate);
-    
+
     const current = new Date(start);
     while (current <= end) {
       dates.push(current.toISOString().split('T')[0]);
       current.setDate(current.getDate() + 1);
     }
-    
+
     return dates;
-  };
+  }, []);
 
   // Fonction pour convertir les événements de l'API au format du calendrier
-  const convertAPIEventToCalendarEvent = (apiEvent: APIEvent): Event[] => {
-    // Extraire l'heure de la date
+  const convertAPIEventToCalendarEvent = React.useCallback((apiEvent: APIEvent): Event[] => {
     const getTimeFromDate = (dateString?: string): string => {
       if (!dateString) return '00:00';
       const date = new Date(dateString);
@@ -152,7 +149,7 @@ const MiniCalendar = ({ year = 2025, eventsData = [] }: MiniCalendarProps) => {
       originalEndDate: endDate,
       uuid: apiEvent.uuid
     }));
-  };
+  }, [generateDateRange]);
 
   // Récupérer les événements depuis l'API
   useEffect(() => {
@@ -176,7 +173,7 @@ const MiniCalendar = ({ year = 2025, eventsData = [] }: MiniCalendarProps) => {
           console.error("Erreur lors du chargement des événements:", err);
         });
     }
-  }, [isLoading, user]);
+  }, [isLoading, user, convertAPIEventToCalendarEvent]);
 
   // Utiliser les événements passés en props si disponibles
   useEffect(() => {
@@ -186,13 +183,13 @@ const MiniCalendar = ({ year = 2025, eventsData = [] }: MiniCalendarProps) => {
   }, [eventsData]);
 
   // Vérifier l'état du scroll pour afficher/masquer les boutons (seulement pour desktop)
-  const checkScrollPosition = () => {
+  const checkScrollPosition = React.useCallback(() => {
     if (scrollContainerRef.current && !isMobile) {
       const { scrollLeft, scrollWidth, clientWidth } = scrollContainerRef.current;
       setCanScrollLeft(scrollLeft > 0);
       setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 1);
     }
-  };
+  }, [isMobile]);
 
   // Écouter les changements de scroll
   useEffect(() => {
@@ -205,12 +202,12 @@ const MiniCalendar = ({ year = 2025, eventsData = [] }: MiniCalendarProps) => {
         scrollContainer.removeEventListener('scroll', checkScrollPosition);
       };
     }
-  }, [isMobile]);
+  }, [isMobile, checkScrollPosition]);
 
   // Navigation avec les boutons flèches (seulement pour desktop)
   const scrollToDirection = (direction: 'left' | 'right') => {
     if (scrollContainerRef.current && !isMobile) {
-      const scrollAmount = 264;
+      const scrollAmount = 264; // Largeur d'un mois + gap
       const currentScroll = scrollContainerRef.current.scrollLeft;
       const newScroll = direction === 'left' 
         ? currentScroll - scrollAmount 
@@ -242,19 +239,13 @@ const MiniCalendar = ({ year = 2025, eventsData = [] }: MiniCalendarProps) => {
     const dayEvents = getDayEvents(day, month);
     if (dayEvents.length === 0) return "bg-gray-200 hover:bg-gray-300";
 
-    // Debug: voir quels events et activityType sont trouvés
-    console.log(`Jour ${day}/${month + 1}: ${dayEvents.length} événements trouvés`);
-    
     const firstEvent = dayEvents[0];
-    console.log('Premier événement:', firstEvent.title, 'ActivityType:', firstEvent.activityType);
     
     if (firstEvent.activityType) {
       const color = getColorForActivityType(firstEvent.activityType);
-      console.log(`ActivityType "${firstEvent.activityType}" -> Couleur: ${color}`);
       return color;
     }
 
-    console.log('Aucun activityType trouvé, utilisation de la couleur par défaut');
     return 'bg-gray-400 hover:bg-gray-500';
   };
 
@@ -354,10 +345,15 @@ const MiniCalendar = ({ year = 2025, eventsData = [] }: MiniCalendarProps) => {
         )}
         {/* Boutons de navigation - cachés sur mobile */}
         {!isMobile && (
-          <div>
+          <div className="flex gap-2">
             <button
               onClick={() => scrollToDirection('left')}
-              className="left-0 z-10 p-4 bg-gray-200 rounded ml-2"
+              disabled={!canScrollLeft}
+              className={`z-10 p-2 rounded transition-all ${
+                canScrollLeft 
+                  ? 'bg-gray-200 hover:bg-gray-300 text-gray-700' 
+                  : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+              }`}
               aria-label="Mois précédent"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -367,7 +363,12 @@ const MiniCalendar = ({ year = 2025, eventsData = [] }: MiniCalendarProps) => {
 
             <button
               onClick={() => scrollToDirection('right')}
-              className="right-0 z-10 p-4 bg-gray-200 rounded ml-2"
+              disabled={!canScrollRight}
+              className={`z-10 p-2 rounded transition-all ${
+                canScrollRight 
+                  ? 'bg-gray-200 hover:bg-gray-300 text-gray-700' 
+                  : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+              }`}
               aria-label="Mois suivant"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -384,7 +385,7 @@ const MiniCalendar = ({ year = 2025, eventsData = [] }: MiniCalendarProps) => {
         className={`flex space-x-4 snap-x snap-mandatory px-1 py-5 gap-6 ${
           isMobile 
             ? 'overflow-x-auto'
-            : 'overflow-hidden'
+            : 'overflow-x-auto' // ✅ Changer de 'overflow-hidden' à 'overflow-x-auto'
         }`}
         style={{
           WebkitOverflowScrolling: 'touch',
