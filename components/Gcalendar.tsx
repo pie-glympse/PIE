@@ -1,10 +1,9 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { useUser } from "../../context/UserContext";
+import { useUser } from "../context/UserContext";
 import { useRouter } from "next/navigation";
 import { title } from "process";
-import "./Gcalendar.css";
 
 // Type pour les événements de l'API
 interface APIEvent {
@@ -78,14 +77,14 @@ const MiniCalendar = ({ year = 2025, eventsData = [] }: MiniCalendarProps) => {
   // Mapping des couleurs pour les types d'événements (activityType)
   const getColorForActivityType = (activityType: string): string => {
     const activityColors: Record<string, string> = {
-      'Conférence': 'bg-[var(--color-main)]',
-      'Atelier': 'bg-[var(--color-secondary)]',
-      'Séminaire': 'bg-[var(--color-tertiary)]',
-      'Formation': 'bg-green-500',
-      'Webinaire': 'bg-orange-500',
+      'Conférence': 'bg-[var(--color-main)] hover:bg-[#ca9e2d]',
+      'Atelier': 'bg-[var(--color-secondary)] hover:bg-[#df4f4f]',
+      'Séminaire': 'bg-[var(--color-tertiary)] hover:bg-[#c16bc7]',
+      'Formation': 'bg-[var(--color-calendar-green)] hover:bg-[var(--color-calendar-green-hover)]',
+      'Webinaire': 'bg-orange-500 hover:bg-orange-600',
     };
 
-    return activityColors[activityType] || 'bg-gray-400 hover:bg-gray-500';
+    return activityColors[activityType] || 'bg-[var(--color-calendar-grey)] hover:bg-[var(--color-calendar-grey-hover)]';
   };
 
   // Détecter si on est sur mobile

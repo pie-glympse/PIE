@@ -5,8 +5,8 @@ import { useUser } from "../../context/UserContext";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import GCalendar from "@/components/Gcalendar/Gcalendar";
-import Gcard from "@/components/Gcard/Gcard";
+import GCalendar from "@/components/Gcalendar";
+import Gcard from "@/components/Gcard";
 
 type EventType = {
   id: string;

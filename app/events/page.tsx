@@ -5,7 +5,7 @@ import { useUser } from "../../context/UserContext";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import BackArrow from "@/components/ui/BackArrow";
-import Gcard from "@/components/Gcard/Gcard";
+import Gcard from "@/components/Gcard";
 import { ShareEventModal } from "@/components/layout/ShareEventModal";
 import MainButton from "@/components/ui/MainButton";
 
