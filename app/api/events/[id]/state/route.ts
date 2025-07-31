@@ -71,38 +71,54 @@ export async function PATCH(
         take: 1,
       });
 
-      let updateData: any = {
+      const updateData: any = {
         state: newState,
       };
 
-      // Si on a un tag gagnant, récupérer son nom et l'ajouter à l'activité
-      if (mostVotedTag.length > 0) {
-        const tagDetails = await prisma.tag.findUnique({
-          where: { id: mostVotedTag[0].tagId },
-          select: { name: true },
-        });
-        
-        if (tagDetails) {
-          updateData.activityType = tagDetails.name;
-        }
-      }
-
-      // Si on a une date gagnante, l'utiliser comme nouvelle date de début
+      // ✅ Si on a une date gagnante, l'utiliser comme nouvelle date de début
       if (mostVotedDate.length > 0) {
         updateData.startDate = mostVotedDate[0].preferredDate;
       }
 
-      // Mettre à jour l'événement avec les résultats des votes
-      const updatedEvent = await prisma.event.update({
-        where: { id: eventId },
-        data: updateData,
-        select: {
-          id: true,
-          title: true,
-          state: true,
-          activityType: true,
-          startDate: true,
+      // ✅ Utiliser une transaction pour lier le tag gagnant à l'événement
+      const updatedEvent = await prisma.$transaction(async (tx) => {
+        // Mettre à jour l'événement avec la nouvelle date et l'état
+        const event = await tx.event.update({
+          where: { id: eventId },
+          data: updateData,
+          select: {
+            id: true,
+            title: true,
+            state: true,
+            activityType: true, // Garder l'activityType original
+            startDate: true,
+          }
+        });
+
+        // ✅ Si on a un tag gagnant, le lier à l'événement
+        if (mostVotedTag.length > 0) {
+          // D'abord, supprimer tous les tags existants pour cet événement
+          await tx.event.update({
+            where: { id: eventId },
+            data: {
+              tags: {
+                set: [] // Vider les tags existants
+              }
+            }
+          });
+
+          // Puis connecter le tag gagnant
+          await tx.event.update({
+            where: { id: eventId },
+            data: {
+              tags: {
+                connect: { id: mostVotedTag[0].tagId }
+              }
+            }
+          });
         }
+
+        return event;
       });
 
       return NextResponse.json(safeJson(updatedEvent), { status: 200 });
