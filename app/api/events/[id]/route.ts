@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextResponse, NextRequest } from "next/server";
 import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
@@ -20,18 +20,23 @@ function getEventIdFromUrl(req: Request): number | null {
   return isNaN(eventId) ? null : eventId;
 }
 
-export async function GET(req: Request) {
-  const eventId = getEventIdFromUrl(req);
-
-  if (eventId === null) {
-    return NextResponse.json({ error: "ID invalide" }, { status: 400 });
-  }
-
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
+    const resolvedParams = await params;
+    const eventId = BigInt(resolvedParams.id);
+
     const event = await prisma.event.findUnique({
       where: { id: eventId },
       include: {
-        tags: true,
+        tags: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
         users: {
           select: {
             id: true,
@@ -47,10 +52,15 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: "Événement non trouvé" }, { status: 404 });
     }
 
-    return NextResponse.json(safeJson(event), { status: 200 });
+    return NextResponse.json(
+      { event: safeJson(event) },
+      { status: 200 }
+    );
   } catch (error) {
-    console.error("Erreur:", error);
-    return NextResponse.json({ error: "Erreur serveur" }, { status: 500 });
+    console.error("Erreur récupération event:", error);
+    return NextResponse.json({ error: "Erreur récupération event" }, { status: 500 });
+  } finally {
+    await prisma.$disconnect();
   }
 }
 

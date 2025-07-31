@@ -300,15 +300,30 @@ export default function SingleEventPage() {
                       Événement finalisé avec succès !
                     </h3>
                     <div className="space-y-3">
+                      {/* ✅ Afficher l'activityType original */}
                       {event.activityType && (
+                        <div className="flex items-center gap-3">
+                          <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                          <div>
+                            <span className="text-body-large font-poppins font-medium text-[var(--color-text)]">
+                              Type d&apos;événement :
+                            </span>
+                            <span className="ml-2 text-body-large font-poppins text-blue-700 font-semibold">
+                              {event.activityType}
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                      {/* ✅ Afficher le tag préféré voté */}
+                      {event.tags && event.tags.length > 0 && (
                         <div className="flex items-center gap-3">
                           <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                           <div>
                             <span className="text-body-large font-poppins font-medium text-[var(--color-text)]">
-                              Activité sélectionnée :
+                              Préférence choisie :
                             </span>
                             <span className="ml-2 text-body-large font-poppins text-green-700 font-semibold">
-                              {event.activityType}
+                              {event.tags[0].name}
                             </span>
                           </div>
                         </div>
