@@ -33,7 +33,11 @@
   --color-grey-three: #9B9B9B;
   --color-grey-four: #9B9B9D; 
   --color-text: #191919;
-
+  
+  --color-calendar-green: #57B454;
+    --color-calendar-green-hover: #4b9948;
+    --color-calendar-grey: #686868;
+    --color-calendar-grey-hover: #414141;
   --background: #ffffff;
   --foreground: #171717;
   --color-background: var(--background);

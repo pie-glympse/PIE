@@ -20,14 +20,7 @@ export async function POST(request: NextRequest) {
 
     const eventId = BigInt(eventIdStr);
 
-    const { userId, tagId, preferredDate, preferences } = await request.json();
-
-    console.log('Données reçues:');
-    console.log('userId:', userId);
-    console.log('tagId:', tagId);
-    console.log('preferredDate:', preferredDate);
-    console.log('eventId:', eventIdStr);
-    console.log('preferences:', preferences);
+    const { userId, tagId, preferredDate } = await request.json();
 
     if (!userId || !tagId || !preferredDate) {
       return NextResponse.json(
@@ -40,18 +33,12 @@ export async function POST(request: NextRequest) {
     const userIdBigInt = BigInt(userId);
     const tagIdBigInt = BigInt(tagId);
 
-    console.log('Conversion BigInt:');
-    console.log('userIdBigInt:', userIdBigInt);
-    console.log('tagIdBigInt:', tagIdBigInt);
-    console.log('eventId:', eventId);
-
     // ✅ Vérifier que l'événement existe
     const event = await prisma.event.findUnique({
       where: { id: eventId },
     });
 
     if (!event) {
-      console.log('Événement non trouvé avec ID:', eventId);
       return NextResponse.json(
         { message: 'Événement non trouvé' },
         { status: 404 }
@@ -64,7 +51,6 @@ export async function POST(request: NextRequest) {
     });
 
     if (!user) {
-      console.log('Utilisateur non trouvé avec ID:', userIdBigInt);
       return NextResponse.json(
         { message: 'Utilisateur non trouvé' },
         { status: 404 }
@@ -77,14 +63,11 @@ export async function POST(request: NextRequest) {
     });
 
     if (!tag) {
-      console.log('Tag non trouvé avec ID:', tagIdBigInt);
       return NextResponse.json(
         { message: 'Tag non trouvé' },
         { status: 404 }
       );
     }
-
-    console.log('Toutes les vérifications passées, création de la préférence...');
 
     // ✅ Utiliser une transaction explicite pour s'assurer que les données sont bien sauvegardées
     const preference = await prisma.$transaction(async (tx) => {
@@ -98,11 +81,8 @@ export async function POST(request: NextRequest) {
         },
       });
 
-      console.log('Préférence existante trouvée:', existingPreference);
-
       let result;
       if (existingPreference) {
-        console.log('Mise à jour de la préférence existante...');
         result = await tx.eventUserPreference.update({
           where: {
             userId_eventId: {
@@ -116,7 +96,6 @@ export async function POST(request: NextRequest) {
           },
         });
       } else {
-        console.log('Création d\'une nouvelle préférence...');
         result = await tx.eventUserPreference.create({
           data: {
             userId: userIdBigInt,
@@ -126,12 +105,8 @@ export async function POST(request: NextRequest) {
           },
         });
       }
-
-      console.log('Résultat de l\'opération dans la transaction:', result);
       return result;
     });
-
-    console.log('Préférence créée/mise à jour:', preference);
 
     // ✅ Vérifier immédiatement que la préférence a bien été sauvegardée
     const verificationPreference = await prisma.eventUserPreference.findUnique({
@@ -162,10 +137,7 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    console.log('Vérification - préférence trouvée en BDD:', verificationPreference);
-
     if (!verificationPreference) {
-      console.error('ERREUR: La préférence n\'a pas été sauvegardée en base de données!');
       throw new Error('La préférence n\'a pas pu être sauvegardée en base de données');
     }
 
@@ -175,7 +147,6 @@ export async function POST(request: NextRequest) {
         userId: userIdBigInt,
       },
     });
-    console.log(`Nombre total de préférences pour l'utilisateur ${userIdBigInt}:`, userPreferencesCount);
 
     const serializablePreference = {
       ...preference,

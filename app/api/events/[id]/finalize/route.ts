@@ -58,7 +58,7 @@ export async function POST(
       take: 1,
     });
 
-    let updateData: any = {
+    const updateData: any = {
       state: 'confirmed',
     };
 

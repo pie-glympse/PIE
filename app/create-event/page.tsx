@@ -1,6 +1,6 @@
 "use client"
 import { useRouter } from 'next/navigation';
-import { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react';
 import MainButton from '@/components/ui/MainButton';
 import BackArrow from '../../components/ui/BackArrow';
 import Modal from '@/components/layout/Modal';
@@ -71,8 +71,6 @@ const CreateEventPage = () => {
         maxDistance: string;
     }) => {
         setFormData(formData);
-        console.log('Données du formulaire:', formData);
-        // Passer automatiquement à l'étape suivante après soumission du formulaire
         setCurrentStep(3);
     };
 
@@ -113,7 +111,6 @@ const CreateEventPage = () => {
                     invitedUsers: selectedUserIds,
                 };
 
-                console.log('Création événement:', eventData);
 
                 const response = await fetch('/api/events', {
                     method: 'POST',
@@ -122,8 +119,6 @@ const CreateEventPage = () => {
                 });
 
                 if (response.ok) {
-                    const createdEvent = await response.json();
-                    console.log('Événement créé:', createdEvent);
                     setIsModalOpen(true);
                 } else {
                     const error = await response.json();
@@ -242,7 +237,7 @@ const CreateEventPage = () => {
 
     return (
         <>
-            <section className="flex flex-row h-screen items-center gap-10 p-10">
+            <section className="overflow-y-auto md:overflow-hidden pt-24 flex flex-col h-screen items-center gap-10 p-10">
                 {/* Section gauche */}
                 <div className="h-full w-full flex flex-col gap-6 items-start p-10">
                     <div>

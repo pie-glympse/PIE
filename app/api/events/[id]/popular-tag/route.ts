@@ -26,8 +26,6 @@ export async function GET(
       );
     }
 
-    console.log('Recherche du tag populaire pour l\'événement:', eventIdStr);
-
     const eventId = BigInt(eventIdStr);
 
     // Vérifier que l'événement existe
@@ -36,7 +34,6 @@ export async function GET(
     });
 
     if (!event) {
-      console.log('Événement non trouvé avec ID:', eventId);
       return NextResponse.json({ popularTag: null }, { status: 200 });
     }
 
@@ -57,10 +54,7 @@ export async function GET(
       take: 1, // Prendre seulement le plus populaire
     });
 
-    console.log('Statistiques des tags:', tagStats);
-
     if (tagStats.length === 0) {
-      console.log('Aucune préférence trouvée pour cet événement');
       return NextResponse.json({ popularTag: null }, { status: 200 });
     }
 
@@ -75,16 +69,12 @@ export async function GET(
       },
     });
 
-    console.log('Détails du tag populaire:', tagDetails);
-
     const result = {
       popularTag: tagDetails ? {
         ...tagDetails,
         count: tagStats[0]._count.tagId,
       } : null,
     };
-
-    console.log('Résultat final:', result);
 
     return NextResponse.json(safeJson(result), { status: 200 });
   } catch (error) {

@@ -1,13 +1,12 @@
 "use client";
 
-import * as React from "react";
 import { useState, useEffect } from "react";
 import { useUser } from "../../context/UserContext";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import GCalendar from "@/components/Gcalendar/Gcalendar";
-import Gcard from "@/components/Gcard/Gcard";
+import GCalendar from "@/components/Gcalendar";
+import Gcard from "@/components/Gcard";
 
 type EventType = {
   id: string;
@@ -53,8 +52,6 @@ export default function HomePage() {
         .catch((err) => setFetchError(err.message));
     }
   }, [isLoading, user]);
-
-  console.log("User:", user);
 
   const adaptEventForGcard = (event: EventType) => {
     // Assigner différentes images de fond selon les tags
@@ -117,14 +114,7 @@ export default function HomePage() {
 
   const handleShare = (eventId: string, eventTitle: string) => {
     // Logique de partage - vous pouvez adapter selon vos besoins
-    console.log("Partager l'événement:", eventId, eventTitle);
     alert(`Partager l'événement: ${eventTitle}`);
-  };
-
-  const handlePreferences = (eventId: string) => {
-    // Rediriger vers la page de préférences ou ouvrir un modal
-    console.log("Ouvrir préférences pour:", eventId);
-    router.push(`/events/${eventId}/preferences`); // Adaptez selon votre routing
   };
 
   if (isLoading) {

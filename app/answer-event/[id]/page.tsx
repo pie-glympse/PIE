@@ -1,7 +1,7 @@
 "use client"
 import { useParams, useSearchParams } from 'next/navigation';
 import { useRouter } from 'next/navigation';
-import { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react';
 import { useUser } from '../../../context/UserContext';
 import MainButton from '@/components/ui/MainButton';
 import BackArrow from '../../../components/ui/BackArrow';
@@ -33,6 +33,14 @@ const AnswerEventPage = () => {
 
     // ✅ Charger les tags depuis l'API
     const [availableTags, setAvailableTags] = useState<{id: number, name: string}[]>([]);
+    
+    // ✅ Charger les données de l'événement pour récupérer les dates disponibles
+    const [eventData, setEventData] = useState<{
+        startDate?: string;
+        endDate?: string;
+        title?: string;
+    } | null>(null);
+    const [loadingEvent, setLoadingEvent] = useState(true);
 
     // Redirect if not logged in
     useEffect(() => {
@@ -47,6 +55,29 @@ const AnswerEventPage = () => {
             router.push("/events");
         }
     }, [eventId, router]);
+
+    // ✅ Charger les données de l'événement
+    useEffect(() => {
+        const fetchEvent = async () => {
+            if (!eventId) return;
+            
+            try {
+                setLoadingEvent(true);
+                const response = await fetch(`/api/events/${eventId}`);
+                if (response.ok) {
+                    const event = await response.json();
+                    setEventData(event.event || event);
+                } else {
+                    console.error('Erreur lors du chargement de l\'événement');
+                }
+            } catch (error) {
+                console.error('Erreur lors du chargement de l\'événement:', error);
+            } finally {
+                setLoadingEvent(false);
+            }
+        };
+        fetchEvent();
+    }, [eventId]);
 
     // ✅ Charger les tags disponibles
     useEffect(() => {
@@ -64,7 +95,31 @@ const AnswerEventPage = () => {
         fetchTags();
     }, []);
 
-    // Données pour chaque étape (utilisation des tags de l'API si disponibles)
+    // ✅ Générer les dates disponibles basées sur l'événement
+    const generateAvailableDates = () => {
+        if (!eventData?.startDate || !eventData?.endDate) {
+            return [];
+        }
+
+        const dates = [];
+        const startDate = new Date(eventData.startDate);
+        const endDate = new Date(eventData.endDate);
+        
+        // Générer toutes les dates entre startDate et endDate
+        const currentDate = new Date(startDate);
+        while (currentDate <= endDate) {
+            dates.push(new Date(currentDate).toLocaleDateString('fr-FR', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric'
+            }));
+            currentDate.setDate(currentDate.getDate() + 1);
+        }
+        
+        return dates;
+    };
+
+    // Données pour chaque étape
     const categories = availableTags.length > 0 
         ? availableTags.map(tag => tag.name)
         : [
@@ -77,11 +132,8 @@ const AnswerEventPage = () => {
             'Développement Durable', 'Économie Circulaire'
         ];
 
-    const dates = [
-        '11/03/2025', '12/03/2025', '13/03/2025', '14/03/2025', '15/03/2025',
-        '18/03/2025', '19/03/2025', '20/03/2025', '21/03/2025', '22/03/2025',
-        '25/03/2025', '26/03/2025', '27/03/2025', '28/03/2025', '29/03/2025',
-    ];
+    // ✅ Utiliser les dates dynamiques de l'événement
+    const dates = generateAvailableDates();
 
     const preferences = [
         { id: '1', text: 'Halal' },
@@ -128,7 +180,7 @@ const AnswerEventPage = () => {
             // Trouver l'ID du premier tag sélectionné
             const selectedCategoryName = selectedCategories[0];
             const selectedTag = availableTags.find(tag => tag.name === selectedCategoryName);
-            const tagId = selectedTag?.id || 1; // Fallback vers tag 1&
+            const tagId = selectedTag?.id || 1; // Fallback vers tag 1
 
             // Convertir la première date sélectionnée en format ISO
             const selectedDateStr = selectedDates[0];
@@ -143,8 +195,6 @@ const AnswerEventPage = () => {
                 preferences: selectedPreferences
             };
 
-            console.log('Envoi des préférences:', requestBody);
-
             const response = await fetch(`/api/events/${eventId}/preferences`, {
                 method: 'POST',
                 headers: {
@@ -157,9 +207,6 @@ const AnswerEventPage = () => {
                 const errorData = await response.json();
                 throw new Error(errorData.message || 'Erreur lors de l\'envoi des préférences');
             }
-
-            const result = await response.json();
-            console.log('Préférences sauvegardées:', result);
             
             // Ouvrir la modal de succès
             setIsModalOpen(true);
@@ -220,7 +267,7 @@ const AnswerEventPage = () => {
     };
 
     // Loading states
-    if (isLoading) {
+    if (isLoading || loadingEvent) {
         return <div className="flex items-center justify-center h-screen">Chargement...</div>;
     }
 
@@ -232,14 +279,33 @@ const AnswerEventPage = () => {
         return <div className="flex items-center justify-center h-screen">Événement non trouvé</div>;
     }
 
+    // ✅ Afficher un message si aucune date disponible
+    if (dates.length === 0 && currentStep === 2) {
+        return (
+            <div className="flex items-center justify-center h-screen">
+                <div className="text-center">
+                    <p className="text-lg mb-4">Aucune date disponible pour cet événement.</p>
+                    <button 
+                        onClick={() => router.back()} 
+                        className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
+                    >
+                        Retour
+                    </button>
+                </div>
+            </div>
+        );
+    }
+
     // Fonction pour obtenir le contenu de l'étape actuelle
     const renderStepContent = () => {
+        const displayTitle = eventData?.title || eventTitle;
+        
         switch (currentStep) {
             case 1:
                 return (
                     <>
                         <h1 className="text-h1 mb-4 text-left w-full font-urbanist">
-                            Formulez vos Préférences pour {eventTitle}
+                            Formulez vos Préférences pour {displayTitle}
                         </h1>
                         <h3 className="text-h3 mb-8 text-left md:w-2/3 w-full font-poppins text-[var(--color-grey-three)]">
                             Sélectionnez une ou plusieurs catégories :
@@ -264,23 +330,25 @@ const AnswerEventPage = () => {
                 return (
                     <>
                         <h1 className="text-h1 mb-4 text-left w-full font-urbanist">
-                            Formulez vos Préférences pour {eventTitle}
+                            Formulez vos Préférences pour {displayTitle}
                         </h1>
                         <h3 className="text-h3 mb-8 text-left md:w-2/3 w-full font-poppins text-[var(--color-grey-three)]">
-                            Sélectionnez une ou plusieurs dates :
+                            Sélectionnez une ou plusieurs dates disponibles :
                         </h3>
                         <div className="w-full">
-                            <ul className="flex flex-wrap gap-3 mb-6 list-none">
-                                {dates.map((date) => (
-                                    <CategoryBtn
-                                        key={date}
-                                        text={date}
-                                        isSelected={selectedDates.includes(date)}
-                                        onClick={() => handleDateClick(date)}
-                                        isDate={true}
-                                    />
-                                ))}
-                            </ul>
+                            <div className="max-h-80 overflow-y-auto">
+                                <ul className="flex flex-wrap gap-3 mb-6 list-none">
+                                    {dates.map((date) => (
+                                        <CategoryBtn
+                                            key={date}
+                                            text={date}
+                                            isSelected={selectedDates.includes(date)}
+                                            onClick={() => handleDateClick(date)}
+                                            isDate={true}
+                                        />
+                                    ))}
+                                </ul>
+                            </div>
                         </div>
                     </>
                 );
@@ -289,7 +357,7 @@ const AnswerEventPage = () => {
                 return (
                     <>
                         <h1 className="text-h1 mb-4 text-left w-full font-urbanist">
-                            Formulez vos Préférences pour {eventTitle}
+                            Formulez vos Préférences pour {displayTitle}
                         </h1>
                         <h3 className="text-h3 mb-8 text-left md:w-2/3 w-full font-poppins text-[var(--color-grey-three)]">
                             Avez-vous des No Go à absolument prendre en compte ?
@@ -312,7 +380,7 @@ const AnswerEventPage = () => {
 
     return (
         <>
-            <section className="flex flex-row h-screen items-center gap-10 p-10">
+            <section className="h-screen overflow-y-auto md:overflow-hidden pt-24 p-6 flex flex-col gap-8">
                 <div className="h-full w-full flex flex-col gap-6 items-start p-10">
                     <div>
                         <BackArrow onClick={handleBack} className="" />

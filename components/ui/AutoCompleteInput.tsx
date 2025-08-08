@@ -67,8 +67,6 @@ export default function AutoCompleteInput({ value, onChange, placeholder }: Prop
           
           if (response.ok) {
             const data: PlacesApiResponse = await response.json();
-            console.log('API Response:', data); // Pour debug
-            
             if (data.suggestions && data.suggestions.length > 0) {
               const transformedSuggestions = data.suggestions.map((suggestion) => ({
                 place_id: suggestion.placePrediction.placeId,

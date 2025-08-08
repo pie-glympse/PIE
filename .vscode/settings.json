@@ -1,0 +1,13 @@
+{
+  "editor.codeActionsOnSave": {
+    "source.fixAll": "always",
+    "source.removeUnusedImports": "always"
+  },
+  "eslint.rules.customizations": [
+    { "rule": "no-unused-vars", "severity": "warn" },
+    { "rule": "@typescript-eslint/no-unused-vars", "severity": "warn" },
+    { "rule": "@typescript-eslint/no-explicit-any", "severity": "warn" }
+  ],
+  "eslint.format.enable": true,
+  "typescript.preferences.removeUnusedImports": "always"
+}

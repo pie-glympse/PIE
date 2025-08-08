@@ -2,24 +2,28 @@
 
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
-import Image from "next/image";
 import BackArrow from "@/components/ui/BackArrow";
 import ShareButton from "@/components/ui/ShareButton";
 import TabNavigation from "@/components/ui/TabNavigation";
 import EventInformations from "@/components/event/EventInformations";
 import EventParticipants from "@/components/event/EventParticipants";
 import EventDocuments from "@/components/event/EventDocuments";
+import { useUser } from "@/context/UserContext";
 
 type EventDetails = {
   id: string;
   title: string;
   description?: string;
   date?: string;
+  startDate?: string;
+  endDate?: string;
+  startTime?: string;
+  endTime?: string;
   maxPersons?: string;
   costPerPerson?: string;
   activityType?: string;
   state?: string;
-  city?: string; // Ajouter le champ city
+  city?: string;
   tags: { id: string; name: string }[];
   users: {
     id: string;
@@ -34,6 +38,8 @@ type EventDetails = {
 export default function SingleEventPage() {
   const params = useParams();
   const router = useRouter();
+  const { user } = useUser();
+
   const id = params.id as string;
 
   const [event, setEvent] = useState<EventDetails | null>(null);
@@ -41,6 +47,9 @@ export default function SingleEventPage() {
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("informations");
 
+  // État pour la modal de partage
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  
   // État pour gérer l'accordéon
   const [isStateDropdownOpen, setIsStateDropdownOpen] = useState(false);
 
@@ -87,16 +96,46 @@ export default function SingleEventPage() {
     }
   }, [id]);
 
-  const handleBack = () => {
-    router.back();
-  };
-
   const handleTabChange = (tabId: string) => {
     setActiveTab(tabId);
   };
 
   const handleShare = () => {
-    console.log("Partager l'événement");
+    setIsShareModalOpen(true);
+  };
+
+  // Fonctions pour la modal de partage
+  const handleShareModalClose = () => {
+    setIsShareModalOpen(false);
+  };
+
+  const handleCopyLink = () => {
+    const currentUrl = window.location.href;
+    navigator.clipboard.writeText(currentUrl).then(() => {
+      alert("Lien copié dans le presse-papiers !");
+      setIsShareModalOpen(false);
+    }).catch(err => {
+      console.error('Erreur lors de la copie:', err);
+    });
+  };
+
+  const handleEmailShare = () => {
+    if (!event) return;
+    const subject = encodeURIComponent(`Invitation à l'événement: ${event.title}`);
+    const body = encodeURIComponent(`Salut ! Je t'invite à participer à l'événement "${event.title}". Tu peux voir tous les détails et t'inscrire via ce lien : ${window.location.href}`);
+    window.open(`mailto:?subject=${subject}&body=${body}`);
+    setIsShareModalOpen(false);
+  };
+
+  // Fonctions pour les boutons d'action
+  const handleAddMembers = () => {
+    console.log("Ajouter des membres");
+    // TODO: Implémenter la logique d'ajout de membres
+  };
+
+  const handleUploadDocument = () => {
+    console.log("Upload document");
+    // TODO: Implémenter la logique d'upload de document
   };
 
   // Fonction pour changer l'état de l'événement (Admin seulement)
@@ -115,20 +154,34 @@ export default function SingleEventPage() {
       if (response.ok) {
         const updatedEvent = await response.json();
 
-        // ✅ Mettre à jour l'événement local avec toutes les nouvelles données
+        // ✅ Mise à jour complète de l'événement sans rechargement
         setEvent((prev) => (prev ? { 
           ...prev, 
           state: updatedEvent.state,
           activityType: updatedEvent.activityType || prev.activityType,
-          date: updatedEvent.startDate || prev.date,
+          date: updatedEvent.startDate || updatedEvent.date || prev.date,
+          startDate: updatedEvent.startDate || prev.startDate,
+          endDate: updatedEvent.endDate || prev.endDate,
+          startTime: updatedEvent.startTime || prev.startTime,
+          endTime: updatedEvent.endTime || prev.endTime,
         } : null));
+        
         setIsStateDropdownOpen(false);
 
         console.log(`État de l'événement changé vers: ${updatedEvent.state}`);
         
-        // ✅ Recharger la page si on a finalisé l'événement pour voir les changements
+        // ✅ Si confirmé, recharger les données complètes pour s'assurer d'avoir tout
         if (newState === 'confirmed') {
-          window.location.reload();
+          try {
+            const refreshResponse = await fetch(`/api/events/${event.id}`);
+            if (refreshResponse.ok) {
+              const refreshedData = await refreshResponse.json();
+              console.log("🔄 Données rechargées après confirmation:", refreshedData);
+              setEvent(refreshedData.event || refreshedData);
+            }
+          } catch (refreshError) {
+            console.error("Erreur lors du rechargement des données:", refreshError);
+          }
         }
       } else {
         alert("Erreur lors du changement d'état de l'événement.");
@@ -136,20 +189,6 @@ export default function SingleEventPage() {
     } catch (error) {
       console.error("Erreur réseau lors du changement d'état :", error);
       alert("Erreur réseau lors du changement d'état.");
-    }
-  };
-
-  // Fonction pour obtenir le texte du bouton selon l'état actuel
-  const getStateButtonText = (state: string) => {
-    switch (state?.toLowerCase()) {
-      case "pending":
-        return "Finaliser avec les votes";
-      case "confirmed":
-        return "Planifier l'événement";
-      case "planned":
-        return "Réouvrir les votes";
-      default:
-        return "Confirmer l'événement";
     }
   };
 
@@ -221,15 +260,18 @@ export default function SingleEventPage() {
       </div>
     );
   }
+  // TODO: Remplacez ceci par la récupération réelle de l'utilisateur connecté depuis votre contexte d'authentification ou provider
+    
+    const isAuthorized = user && ["ADMIN", "SUPER_ADMIN"].includes(user.role);
+
 
   const organizer = event.users?.[0];
-  const isAuthorized = true; // Remplacez ceci par votre logique d'autorisation
 
   return (
     <section className="h-screen overflow-y-auto md:overflow-hidden pt-24 p-6 flex flex-col gap-8">
       <div className="h-full w-full flex flex-col gap-6 items-start p-4 md:p-10">
         {/* Header avec logo et back arrow */}
-        <BackArrow onClick={() => router.back()} className="" />
+        <BackArrow onClick={() => router.back()} className="!mb-0" />
 
         {/* Header de l'événement */}
         <div className="flex justify-between items-start w-full">
@@ -258,20 +300,35 @@ export default function SingleEventPage() {
                       Événement finalisé avec succès !
                     </h3>
                     <div className="space-y-3">
+                      {/* ✅ Afficher l'activityType original */}
                       {event.activityType && (
                         <div className="flex items-center gap-3">
-                          <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                          <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
                           <div>
                             <span className="text-body-large font-poppins font-medium text-[var(--color-text)]">
-                              Activité sélectionnée :
+                              Type d&apos;événement :
                             </span>
-                            <span className="ml-2 text-body-large font-poppins text-green-700 font-semibold">
+                            <span className="ml-2 text-body-large font-poppins text-blue-700 font-semibold">
                               {event.activityType}
                             </span>
                           </div>
                         </div>
                       )}
-                      {event.date && (
+                      {/* ✅ Afficher le tag préféré voté */}
+                      {event.tags && event.tags.length > 0 && (
+                        <div className="flex items-center gap-3">
+                          <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                          <div>
+                            <span className="text-body-large font-poppins font-medium text-[var(--color-text)]">
+                              Préférence choisie :
+                            </span>
+                            <span className="ml-2 text-body-large font-poppins text-green-700 font-semibold">
+                              {event.tags[0].name}
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                      {(event.date || event.startDate) && (
                         <div className="flex items-center gap-3">
                           <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                           <div>
@@ -279,7 +336,7 @@ export default function SingleEventPage() {
                               Date retenue :
                             </span>
                             <span className="ml-2 text-body-large font-poppins text-green-700 font-semibold">
-                              {new Date(event.date).toLocaleDateString('fr-FR', {
+                              {new Date(event.date || event.startDate!).toLocaleDateString('fr-FR', {
                                 weekday: 'long',
                                 year: 'numeric',
                                 month: 'long',
@@ -301,77 +358,97 @@ export default function SingleEventPage() {
             )}
           </div>
           <div>
-            <ShareButton onClick={handleShare} />
-                        {isAuthorized && (
+            {/* Boutons conditionnels à gauche du bouton partager */}
+            <div className="flex items-center gap-3">
+              {activeTab === "participants" && isAuthorized && (
+                <button
+                  onClick={handleAddMembers}
+                  className="px-4 py-2 bg-white text-[var(--color-grey-four)] text-body-large  font-poppins hover:opacity-90 transition-opacity border-2 border-[var(--color-grey-three)] hover:border-[var(--color-main)]"
+                  style={{borderRadius: '4px' }}
+                >
+                  Ajouter des membres
+                </button>
+              )}
+              
+              {activeTab === "documents" && (
+                <button
+                  onClick={handleUploadDocument}
+                  className="px-4 py-2 bg-white text-[var(--color-grey-four)] text-body-large  font-poppins hover:opacity-90 transition-opacity border-2 border-[var(--color-grey-three)] hover:border-[var(--color-main)]"
+                  style={{borderRadius: '4px' }}
+                >
+                  Upload
+                </button>
+              )}
+              
+              <ShareButton onClick={handleShare} />
+
+              {isAuthorized && (
               <button
-              className="p-4"
-              onClick={() => setIsStateDropdownOpen(!isStateDropdownOpen)}
-              
-            >
-          <div className="relative content-center w-fit flex align-center gap-2">
-            <div
-                className={`w-3 h-3 rounded-full ${getStateColor(
-                  event.state || "pending"
-                )}`}
-              ></div>
-            <div className="flex items-center gap-2 rounded-full transition-all">
-              
-              <svg
-                className={`w-4 h-4 text-black transition-transform ${
-                  isStateDropdownOpen ? "rotate-180" : ""
-                }`}
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
+                className="p-4"
+                onClick={() => setIsStateDropdownOpen(!isStateDropdownOpen)}
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M19 9l-7 7-7-7"
-                />
-              </svg>
-            </div>
-            
+                <div className="relative content-center w-fit flex align-center gap-2">
+                  <div
+                    className={`w-3 h-3 rounded-full ${getStateColor(
+                      event.state || "pending"
+                    )}`}
+                  ></div>
+                  <div className="flex items-center gap-2 rounded-full transition-all">
+                    <svg
+                      className={`w-4 h-4 text-black transition-transform ${
+                        isStateDropdownOpen ? "rotate-180" : ""
+                      }`}
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M19 9l-7 7-7-7"
+                      />
+                    </svg>
+                  </div>
 
-            {/* Dropdown des états */}
-            {isStateDropdownOpen && (
-              <div className="absolute top-full mt-2 right-0 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50 min-w-48">
-                {availableStates.map((stateOption) => (
-                  <button
-                    key={stateOption.value}
-                    onClick={() => handleChangeEventState(stateOption.value)}
-                    className={`w-full flex items-center gap-3 px-4 py-2 text-left hover:bg-gray-50 transition-colors ${
-                      event.state?.toLowerCase() === stateOption.value
-                        ? "bg-gray-100"
-                        : ""
-                    }`}
-                  >
-                    <div
-                      className={`w-3 h-3 rounded-full ${stateOption.color}`}
-                    ></div>
-                    <span className="text-gray-700">{stateOption.label}</span>
-                    {event.state?.toLowerCase() === stateOption.value && (
-                      <svg
-                        className="w-4 h-4 text-green-600 ml-auto"
-                        fill="currentColor"
-                        viewBox="0 0 20 20"
-                      >
-                        <path
-                          fillRule="evenodd"
-                          d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                          clipRule="evenodd"
-                        />
-                      </svg>
-                    )}
-                  </button>
-                ))}
-              </div>
+                  {/* Dropdown des états */}
+                  {isStateDropdownOpen && (
+                    <div className="absolute top-full mt-2 right-0 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50 min-w-48">
+                      {availableStates.map((stateOption) => (
+                        <button
+                          key={stateOption.value}
+                          onClick={() => handleChangeEventState(stateOption.value)}
+                          className={`w-full flex items-center gap-3 px-4 py-2 text-left hover:bg-gray-50 transition-colors ${
+                            event.state?.toLowerCase() === stateOption.value
+                              ? "bg-gray-100"
+                              : ""
+                          }`}
+                        >
+                          <div
+                            className={`w-3 h-3 rounded-full ${stateOption.color}`}
+                          ></div>
+                          <span className="text-gray-700">{stateOption.label}</span>
+                          {event.state?.toLowerCase() === stateOption.value && (
+                            <svg
+                              className="w-4 h-4 text-green-600 ml-auto"
+                              fill="currentColor"
+                              viewBox="0 0 20 20"
+                            >
+                              <path
+                                fillRule="evenodd"
+                                d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                clipRule="evenodd"
+                              />
+                            </svg>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </button>
             )}
-          </div>
-        </button>
-
-        )}
+            </div>
           </div>
         </div>
 
@@ -383,19 +460,48 @@ export default function SingleEventPage() {
         {/* Contenu de l'onglet actif */}
         <div className="w-full flex-1 overflow-auto">{renderTabContent()}</div>
 
-        {/* ✅ Pastille avec accordéon pour changer l'état (Admin seulement) */}
-        
-
-        {/* Image en bas à droite - fixe pour toutes les sections */}
-        <div className="fixed bottom-0 right-0 z-[-1] pointer-events-none">
-          <Image
-            src="/icons/formsingleevent.png"
-            alt="Décoration"
-            width={500}
-            height={100}
-            className="object-contain"
-          />
-        </div>
+        {/* Modal de partage */}
+        {isShareModalOpen && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-8 max-w-md w-full mx-4">
+              <div className="text-center">
+                <h3 className="text-h3 font-urbanist mb-4">Partager l&apos;événement</h3>
+                <p className="text-body-large font-poppins text-[var(--color-grey-three)] mb-6">
+                  Choisissez comment vous souhaitez partager cet événement
+                </p>
+                
+                <div className="space-y-4">
+                  <button
+                    onClick={handleCopyLink}
+                    className="w-full flex items-center justify-center gap-3 p-4 border-2 border-[var(--color-grey-two)] rounded-lg hover:border-[var(--color-main)] transition-colors"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                    </svg>
+                    <span className="font-poppins text-body-large">Copier le lien</span>
+                  </button>
+                  
+                  <button
+                    onClick={handleEmailShare}
+                    className="w-full flex items-center justify-center gap-3 p-4 border-2 border-[var(--color-grey-two)] rounded-lg hover:border-[var(--color-main)] transition-colors"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                    </svg>
+                    <span className="font-poppins text-body-large">Partager par email</span>
+                  </button>
+                </div>
+                
+                <button
+                  onClick={handleShareModalClose}
+                  className="mt-6 px-6 py-2 text-[var(--color-grey-three)] hover:text-[var(--color-text)] transition-colors font-poppins text-body-large"
+                >
+                  Annuler
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </section>
   );
