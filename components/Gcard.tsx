@@ -222,17 +222,18 @@ export default function EventCard({
       </div>
       
       {/* Image d'arrière-plan */}
-      <img
+      <Image
         src={backgroundUrl}
         alt=""
         aria-hidden="true"
         className="absolute right-[-25px] bottom-[-25px] pointer-events-none"
+        width={backgroundSize}
+        height={200}
         style={{
-          width: backgroundSize,
-          height: 200,
           objectFit: "contain",
           zIndex: 1,
         }}
+        priority
       />
     </div>
   );
