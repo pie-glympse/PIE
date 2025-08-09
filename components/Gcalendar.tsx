@@ -135,8 +135,8 @@ const MiniCalendar = ({ year = 2025, eventsData = [] }: MiniCalendarProps) => {
     // Si l'événement s'étend sur plusieurs jours, créer un événement pour chaque jour
     const dateRange = generateDateRange(startDate, endDate);
     
-    return dateRange.map((date, index) => ({
-      id: parseInt(apiEvent.id) + index * 0.1,
+    return dateRange.map((date) => ({
+      id: parseInt(apiEvent.id),
       date: date,
       title: apiEvent.title,
       description: apiEvent.description || '',
@@ -459,11 +459,6 @@ const MiniCalendar = ({ year = 2025, eventsData = [] }: MiniCalendarProps) => {
               </div>
             ))}
           </div>
-          {hoveredDay.events.length > 0 && (
-            <div className="text-xs text-blue-500 mt-2">
-              Cliquez pour voir l&apos;événement
-            </div>
-          )}
         </div>
       )}
     </div>
