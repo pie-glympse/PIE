@@ -292,6 +292,13 @@ const CreateEventPage = () => {
                 title="Événement créé avec succès !"
                 text="Votre événement a été créé et est maintenant disponible."
                 buttonText="Voir mes événements"
+                stepContents={[{
+                    title: "Félicitations !",
+                    text: "Votre événement a été créé avec succès.",
+                    buttonText: "Retour aux événements",
+                    image: "/images/mascotte/joy.png",
+                    imagePosition: 'center' as const
+                }]}
             />
         </>
     );

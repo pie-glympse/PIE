@@ -40,7 +40,6 @@ export default function EventCard({
   onDropdownToggle,
   isAuthorized = false,
   onShare,
-  onPreferences,
   onDelete,
   showPreferencesButton = false,
   state, // ✅ Destructurer la prop state
@@ -51,10 +50,6 @@ export default function EventCard({
 
   const handleCardClick = () => {
     router.push(`/events/${eventId}`);
-  };
-
-  const handleMenuClick = (e: React.MouseEvent) => {
-    e.stopPropagation(); // Empêche le clic sur la carte
   };
 
   // Fonction pour gérer la redirection vers answer-event
@@ -187,7 +182,7 @@ export default function EventCard({
 
         {/* Avatars des participants - adaptés selon la hauteur */}
         <div className={`flex -space-x-3 ${className?.includes('h-24') || className?.includes('h-20') ? 'scale-50 origin-left' : ''}`}>
-          {displayParticipants.map((participant, idx) => (
+          {displayParticipants.map((participant) => (
             <div
               key={participant.id}
               className="w-10 h-10 rounded-full border-2 border-white bg-gray-200 overflow-hidden relative"
@@ -222,17 +217,18 @@ export default function EventCard({
       </div>
       
       {/* Image d'arrière-plan */}
-      <img
+      <Image
         src={backgroundUrl}
         alt=""
         aria-hidden="true"
         className="absolute right-[-25px] bottom-[-25px] pointer-events-none"
+        width={backgroundSize}
+        height={200}
         style={{
-          width: backgroundSize,
-          height: 200,
           objectFit: "contain",
           zIndex: 1,
         }}
+        priority
       />
     </div>
   );

@@ -43,8 +43,9 @@ const EventForm: React.FC<EventFormProps> = ({
     const [costPerPerson, setCostPerPerson] = useState('');
     const [city, setCity] = useState('');
     const [maxDistance, setMaxDistance] = useState('');
+    const [errors, setErrors] = useState<{[key: string]: string}>({});
 
-    // Options pour les heures
+    
     const timeOptions = [];
     for (let hour = 0; hour < 24; hour++) {
         for (let minute = 0; minute < 60; minute += 30) {
@@ -53,8 +54,67 @@ const EventForm: React.FC<EventFormProps> = ({
         }
     }
 
+    
+    const validateDatesAndTimes = () => {
+        const newErrors: {[key: string]: string} = {};
+        const today = new Date().toISOString().split('T')[0];
+        const now = new Date();
+        const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+        
+        // Validation date de début
+        if (startDate && startDate < today) {
+            newErrors.startDate = "La date de début ne peut pas être antérieure à aujourd'hui";
+        }
+        
+        
+        if (startDate && startDate === today && startTime && startTime < currentTime) {
+            newErrors.startTime = "L'heure de début ne peut pas être antérieure à l'heure actuelle";
+        }
+        
+        
+        if (endDate && startDate && endDate < startDate) {
+            newErrors.endDate = "La date de fin ne peut pas être antérieure à la date de début";
+        }
+        
+
+        if (startDate && endDate && startTime && endTime && startDate === endDate) {
+            if (endTime <= startTime) {
+                newErrors.endTime = "L'heure de fin doit être postérieure à l'heure de début";
+            }
+        }
+        
+        setErrors(newErrors);
+        return Object.keys(newErrors).length === 0;
+    };
+
+
+    const handleStartDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setStartDate(e.target.value);
+        setErrors(prev => ({ ...prev, startDate: '' }));
+    };
+
+    const handleEndDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setEndDate(e.target.value);
+        setErrors(prev => ({ ...prev, endDate: '' }));
+    };
+
+    const handleStartTimeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        setStartTime(e.target.value);
+        setErrors(prev => ({ ...prev, startTime: '', endTime: '' }));
+    };
+
+    const handleEndTimeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        setEndTime(e.target.value);
+        setErrors(prev => ({ ...prev, endTime: '' }));
+    };
+
     const handleSubmit = async (e: FormEvent) => {
         e.preventDefault();
+        
+        // Valider les dates et heures avant soumission
+        if (!validateDatesAndTimes()) {
+            return;
+        }
         
         try {
             const formData = {
@@ -123,9 +183,13 @@ const EventForm: React.FC<EventFormProps> = ({
                         id="startDate"
                         type="date"
                         value={startDate}
-                        onChange={e => setStartDate(e.target.value)}
+                        onChange={handleStartDateChange}
+                        min={new Date().toISOString().split('T')[0]}
                         className="w-full px-5 py-2 text-base border-2 border-[var(--color-grey-two)] rounded font-poppins"
                     />
+                    {errors.startDate && (
+                        <p className="text-red-500 text-sm mt-1 font-poppins">{errors.startDate}</p>
+                    )}
                 </div>
                 <div className="flex-1">
                     <label htmlFor="endDate" className="block mb-1 text-body-large font-poppins text-[var(--color-grey-three)]">Date de fin</label>
@@ -133,9 +197,13 @@ const EventForm: React.FC<EventFormProps> = ({
                         id="endDate"
                         type="date"
                         value={endDate}
-                        onChange={e => setEndDate(e.target.value)}
+                        onChange={handleEndDateChange}
+                        min={startDate || new Date().toISOString().split('T')[0]}
                         className="w-full px-5 py-2 text-base border-2 border-[var(--color-grey-two)] rounded font-poppins"
                     />
+                    {errors.endDate && (
+                        <p className="text-red-500 text-sm mt-1 font-poppins">{errors.endDate}</p>
+                    )}
                 </div>
             </div>
 
@@ -147,7 +215,7 @@ const EventForm: React.FC<EventFormProps> = ({
                         <select
                             id="startTime"
                             value={startTime}
-                            onChange={e => setStartTime(e.target.value)}
+                            onChange={handleStartTimeChange}
                             required
                             className="w-full px-5 py-2 pr-12 text-base border-2 border-[var(--color-grey-two)] rounded font-poppins text-[var(--color-text)] appearance-none bg-white cursor-pointer"
                         >
@@ -162,6 +230,9 @@ const EventForm: React.FC<EventFormProps> = ({
                             </svg>
                         </div>
                     </div>
+                    {errors.startTime && (
+                        <p className="text-red-500 text-sm mt-1 font-poppins">{errors.startTime}</p>
+                    )}
                 </div>
                 <div className="flex-1">
                     <label htmlFor="endTime" className="block mb-1 text-body-large font-poppins text-[var(--color-grey-three)]">Heure de fin</label>
@@ -169,7 +240,7 @@ const EventForm: React.FC<EventFormProps> = ({
                         <select
                             id="endTime"
                             value={endTime}
-                            onChange={e => setEndTime(e.target.value)}
+                            onChange={handleEndTimeChange}
                             required
                             className="w-full px-5 py-2 pr-12 text-base border-2 border-[var(--color-grey-two)] rounded font-poppins text-[var(--color-text)] appearance-none bg-white cursor-pointer"
                         >
@@ -184,6 +255,9 @@ const EventForm: React.FC<EventFormProps> = ({
                             </svg>
                         </div>
                     </div>
+                    {errors.endTime && (
+                        <p className="text-red-500 text-sm mt-1 font-poppins">{errors.endTime}</p>
+                    )}
                 </div>
             </div>
 
