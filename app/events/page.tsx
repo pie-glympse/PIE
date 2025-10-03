@@ -312,7 +312,7 @@ export default function EventForm() {
   const filteredEvents = getFilteredEvents();
 
   return (
-    <section className="h-screen overflow-y-auto md:overflow-hidden pt-24 p-6 flex flex-col gap-8">
+    <section className="overflow-y-auto md:overflow-hidden pt-24 p-6 flex flex-col gap-8">
       <div className="h-full w-full flex flex-col gap-6 items-start p-4 md:p-10">
         {/* Header avec logo et back arrow */}
         <BackArrow onClick={() => router.back()} className="!mb-0" />

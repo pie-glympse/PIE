@@ -125,7 +125,7 @@ export default function HomePage() {
 
   return (
     <>
-      <main className="h-screen overflow-y-auto md:overflow-hidden pt-24 p-6 flex flex-col gap-8">
+      <main className="overflow-y-auto md:overflow-hidden pt-24 p-6 flex flex-col gap-8">
         
         {/* Section Bienvenue */}
         <section className="mt-10">

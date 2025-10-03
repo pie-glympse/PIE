@@ -227,7 +227,7 @@ const CreateEventPage = () => {
 
     // Affichage de chargement
     if (isLoading) {
-        return <div className="flex items-center justify-center h-screen">Chargement...</div>;
+        return <div className="flex items-center justify-center">Chargement...</div>;
     }
 
     // Redirection si pas connecté (ne devrait pas arriver grâce à useEffect)
@@ -237,7 +237,7 @@ const CreateEventPage = () => {
 
     return (
         <>
-            <section className="overflow-y-auto md:overflow-hidden pt-24 flex flex-col h-screen items-center gap-10 p-10">
+            <section className="overflow-y-auto md:overflow-hidden pt-24 flex flex-col items-center gap-10 p-10">
                 {/* Section gauche */}
                 <div className="h-full w-full flex flex-col gap-6 items-start p-10">
                     <div>

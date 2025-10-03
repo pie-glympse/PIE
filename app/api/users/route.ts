@@ -11,11 +11,22 @@ function safeJson(obj: unknown) {
   );
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const { searchParams } = new URL(request.url);
+    const companyId = searchParams.get('companyId');
+
+    if (!companyId) {
+      return NextResponse.json({ error: "Company ID requis" }, { status: 400 });
+    }
+
     const users = await prisma.user.findMany({
+      where: {
+        companyId: BigInt(companyId)
+      },
       include: {
         events: true,
+        company: true,
       },
     });
 

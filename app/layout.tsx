@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Urbanist, Poppins } from 'next/font/google'
+import { Urbanist, Poppins } from 'next/font/google';
 import "./globals.css";
 import AppShell from "@/app/AppShell";
 import DecorationImage from "@/components/ui/DecorationImage";
@@ -27,7 +27,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="fr">
       <body className={`${poppins.variable} ${urbanist.variable} antialiased bg-red-500`}>
         <AppShell>
-          <div className="h-screen relative">
+          <div className="relative">
             {children}
             {/* Composant de décoration qui s'adapte selon la page */}
             <DecorationImage />

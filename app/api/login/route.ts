@@ -45,7 +45,8 @@ export async function POST(req: Request) {
         email: user.email, 
         firstName: user.firstName,
         lastName: user.lastName,
-        role: user.role 
+        role: user.role,
+        companyId: user.companyId?.toString() || null
       },
       token: token  // ✅ Ajouter le token dans la réponse JSON
     });
