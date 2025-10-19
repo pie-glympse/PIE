@@ -46,6 +46,21 @@ export async function POST(req: NextRequest) {
     // Générer un token de récupération cryptographiquement sécurisé
     const resetToken = randomBytes(32).toString("hex");
 
+    // Créer une date d'expiration (15 minutes)
+    const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
+
+    // TODO: Stocker le token en base de données une fois la table créée
+    // await prisma.passwordResetToken.create({
+    //   data: {
+    //     token: resetToken,
+    //     email: email.toLowerCase().trim(),
+    //     userId: user.id,
+    //     expiresAt,
+    //   }
+    // });
+    
+    console.log(`Token généré pour ${email}: ${resetToken} (expire: ${expiresAt.toISOString()})`);
+
     // Créer le lien de récupération
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3001";
     const resetLink = `${baseUrl}/reset-password?token=${resetToken}&email=${encodeURIComponent(email)}`;
