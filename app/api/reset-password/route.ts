@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcrypt";
-
-const prisma = new PrismaClient();
+import { prisma } from "@/lib/prisma-singleton";
 
 export async function POST(req: NextRequest) {
   try {
@@ -91,7 +89,5 @@ export async function POST(req: NextRequest) {
       { error: "Erreur interne du serveur" },
       { status: 500 }
     );
-  } finally {
-    await prisma.$disconnect();
   }
 }
