@@ -58,8 +58,10 @@ export async function POST(req: NextRequest) {
     //     expiresAt,
     //   }
     // });
-    
-    console.log(`Token généré pour ${email}: ${resetToken} (expire: ${expiresAt.toISOString()})`);
+
+    console.log(
+      `Token généré pour ${email}: ${resetToken} (expire: ${expiresAt.toISOString()})`
+    );
 
     // Créer le lien de récupération
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3001";

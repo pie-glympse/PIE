@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
     // SÉCURITÉ : Vérifier que le token est valide et non expiré
     const resetTokenRecord = await prisma.passwordResetToken.findUnique({
       where: { token },
-      include: { user: true }
+      include: { user: true },
     });
 
     if (!resetTokenRecord) {
