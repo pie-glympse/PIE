@@ -33,7 +33,7 @@ model PasswordResetToken {
   expiresAt DateTime
   used      Boolean  @default(false)
   createdAt DateTime @default(now())
-  
+
   user User @relation("UserResetTokens", fields: [userId], references: [id], onDelete: Cascade)
 }
 
