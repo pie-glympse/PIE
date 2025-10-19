@@ -44,7 +44,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Générer un token de récupération cryptographiquement sécurisé
-    const resetToken = randomBytes(32).toString('hex');
+    const resetToken = randomBytes(32).toString("hex");
 
     // Créer le lien de récupération
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3001";
