@@ -54,22 +54,22 @@ export async function POST(req: NextRequest) {
     try {
       // Envoyer l'email de récupération avec Resend
       // En mode développement, utiliser l'adresse de test vérifiée
-      const isDevelopment = process.env.NODE_ENV === 'development';
-      const recipientEmail = isDevelopment 
+      const isDevelopment = process.env.NODE_ENV === "development";
+      const recipientEmail = isDevelopment
         ? process.env.RESEND_TEST_EMAIL || "glyms.app@gmail.com"
         : email;
-      
-      const subject = isDevelopment 
+
+      const subject = isDevelopment
         ? `[TEST] Réinitialisation mot de passe - Demandé pour: ${email}`
         : "Réinitialisation de votre mot de passe - Glyms";
-      
+
       const { data, error } = await resend.emails.send({
         from: process.env.RESEND_FROM_EMAIL || "Glyms <onboarding@resend.dev>",
         to: [recipientEmail],
         subject,
-        react: PasswordResetEmailTemplate({ 
-          resetLink, 
-          userEmail: email 
+        react: PasswordResetEmailTemplate({
+          resetLink,
+          userEmail: email,
         }),
       });
 
@@ -81,8 +81,10 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      console.log(`Email de récupération envoyé avec succès pour ${email}`, data);
-      
+      console.log(
+        `Email de récupération envoyé avec succès pour ${email}`,
+        data
+      );
     } catch (emailError) {
       console.error("Erreur lors de l'envoi de l'email:", emailError);
       return NextResponse.json(
