@@ -1,65 +1,94 @@
 "use client"
-import { useState, FormEvent } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, FormEvent, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import MainButton from '../../components/ui/MainButton';
 import Link from 'next/link';
 import Image from 'next/image';
 import BackArrow from '../../components/ui/BackArrow';
 
-const ForgotPasswordPage = () => {
+const ResetPasswordPage = () => {
     const router = useRouter();
-    const [email, setEmail] = useState('');
+    const searchParams = useSearchParams();
+    const [password, setPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
     const [message, setMessage] = useState('');
     const [errorMsg, setErrorMsg] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [token, setToken] = useState('');
+    const [email, setEmail] = useState('');
+
+    // Initialiser les paramètres de l'URL au chargement
+    useEffect(() => {
+        const tokenParam = searchParams.get('token');
+        const emailParam = searchParams.get('email');
+        if (tokenParam) setToken(tokenParam);
+        if (emailParam) setEmail(decodeURIComponent(emailParam));
+    }, [searchParams, setToken, setEmail]);
 
     const handleSubmit = async (e: FormEvent) => {
         e.preventDefault();
         setErrorMsg('');
         setMessage('');
+
+        // Validation des champs
+        if (!password.trim()) {
+            setErrorMsg("Le mot de passe est requis");
+            return;
+        }
+        
+        if (password.length < 8) {
+            setErrorMsg("Le mot de passe doit contenir au moins 8 caractères");
+            return;
+        }
+        
+        if (password !== confirmPassword) {
+            setErrorMsg("Les mots de passe ne correspondent pas");
+            return;
+        }
+
+        if (!token || !email) {
+            setErrorMsg("Lien de récupération invalide ou expiré");
+            return;
+        }
+        
         setIsLoading(true);
         
         try {
-            const res = await fetch("/api/forgot-password", {
+            const res = await fetch("/api/reset-password", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ email }),
+                body: JSON.stringify({ 
+                    token, 
+                    email, 
+                    password 
+                }),
             });
             
             const contentType = res.headers.get("content-type");
             
-            if (!contentType || !contentType.includes("application/json")) {
+            if (!contentType?.includes("application/json")) {
                 const text = await res.text();
                 console.error("Réponse non-JSON reçue:", text);
                 setErrorMsg("Erreur serveur: réponse invalide");
                 return;
             }
             
-            const responseText = await res.text();
-            if (!responseText.trim()) {
-                console.error("Réponse vide reçue");
-                setErrorMsg("Erreur serveur: réponse vide");
-                return;
-            }
-            
-            let data;
-            try {
-                data = JSON.parse(responseText);
-            } catch (parseError) {
-                console.error("Erreur de parsing JSON:", parseError);
-                setErrorMsg("Erreur serveur: format de réponse invalide");
-                return;
-            }
+            const data = await res.json();
             
             if (!res.ok) {
-                setErrorMsg(data.error || `Erreur lors de l'envoi (${res.status})`);
+                setErrorMsg(data.error || `Erreur lors de la réinitialisation (${res.status})`);
                 return;
             }
             
-            setMessage("Un email de récupération a été envoyé à votre adresse.");
+            setMessage("Mot de passe modifié avec succès ! Redirection...");
+            
+            // Rediriger vers la page de connexion après 2 secondes
+            setTimeout(() => {
+                router.push('/login');
+            }, 2000);
             
         } catch (err) {
-            console.error("Erreur lors de l'envoi:", err);
+            console.error("Erreur lors de la réinitialisation:", err);
             setErrorMsg("Erreur de connexion au serveur");
         } finally {
             setIsLoading(false);
@@ -93,20 +122,41 @@ const ForgotPasswordPage = () => {
                 <div className="w-full flex justify-between">
                     <form onSubmit={handleSubmit} className="w-full mx-auto">
                         <h1 className="text-h1 mb-8 text-left font-urbanist w-2/3">
-                            Vous avez oublié votre mot de passe ?
+                            Renseigner votre nouveau mot de passe
                         </h1>
                         
+                        {email && (
+                            <div className="mb-4 text-body-large font-poppins text-[var(--color-grey-three)]">
+                                Réinitialisation pour : <strong>{email}</strong>
+                            </div>
+                        )}
+                        
                         <div className="mb-6">
-                            <label htmlFor="email" className="block mb-1 text-body-large font-poppins text-[var(--color-grey-three)]">
-                                Adresse e-mail
+                            <label htmlFor="password" className="block mb-1 text-body-large font-poppins text-[var(--color-grey-three)]">
+                                Nouveau mot de passe
                             </label>
                             <input
-                                id="email"
-                                type="email"
-                                value={email}
-                                onChange={e => setEmail(e.target.value)}
+                                id="password"
+                                type="password"
+                                value={password}
+                                onChange={e => setPassword(e.target.value)}
                                 required
-                                placeholder="ex : nomprenom@societe.com"
+                                placeholder="Au moins 8 caractères"
+                                className="w-full px-5 py-2 text-base border-2 border-[var(--color-grey-two)] rounded placeholder:text-body-large placeholder:font-poppins placeholder:text-[#EAEAEF]"
+                            />
+                        </div>
+                        
+                        <div className="mb-6">
+                            <label htmlFor="confirmPassword" className="block mb-1 text-body-large font-poppins text-[var(--color-grey-three)]">
+                                Confirmer le mot de passe
+                            </label>
+                            <input
+                                id="confirmPassword"
+                                type="password"
+                                value={confirmPassword}
+                                onChange={e => setConfirmPassword(e.target.value)}
+                                required
+                                placeholder="Répétez votre mot de passe"
                                 className="w-full px-5 py-2 text-base border-2 border-[var(--color-grey-two)] rounded placeholder:text-body-large placeholder:font-poppins placeholder:text-[#EAEAEF]"
                             />
                         </div>
@@ -125,7 +175,7 @@ const ForgotPasswordPage = () => {
 
                         <MainButton 
                             color="bg-[var(--color-text)] font-poppins text-body-large" 
-                            text={isLoading ? "Envoi en cours..." : "Recevoir le lien"} 
+                            text={isLoading ? "Envoi en cours..." : "Valider"} 
                             type='submit' 
                             disabled={isLoading}
                         />
@@ -163,4 +213,4 @@ const ForgotPasswordPage = () => {
     );
 };
 
-export default ForgotPasswordPage;
+export default ResetPasswordPage;

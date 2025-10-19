@@ -3,7 +3,7 @@ import { usePathname } from "next/navigation";
 import Header from "@/components/Header";
 import { UserProvider } from "../context/UserContext";
 
-const hideHeaderRoutes = ["/login", "/register", "/forgot-password", "/first-connection"];
+const hideHeaderRoutes = ["/login", "/register", "/forgot-password", "/reset-password", "/first-connection"];
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
