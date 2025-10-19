@@ -22,6 +22,19 @@ model User {
   feedbacks    Feedback[]
   votes        Vote[]
   events       Event[]               @relation("EventUsers")
+  resetTokens  PasswordResetToken[]  @relation("UserResetTokens")
+}
+
+model PasswordResetToken {
+  id        BigInt   @id @default(autoincrement())
+  token     String   @unique
+  email     String
+  userId    BigInt
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+  
+  user User @relation("UserResetTokens", fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Event {

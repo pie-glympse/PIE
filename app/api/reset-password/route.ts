@@ -44,38 +44,62 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Dans une vraie application, vous devriez :
-    // 1. Vérifier que le token existe dans la base de données
-    // 2. Vérifier qu'il n'est pas expiré
-    // 3. Vérifier qu'il correspond à l'email
-
-    // Pour l'instant, nous simulons cette vérification
-    // Note: Dans une application de production, ajouter une table pour les tokens de récupération
-    console.log(
-      `Tentative de réinitialisation pour ${email} avec token ${token}`
-    );
-
-    // Vérifier si l'utilisateur existe
-    const user = await prisma.user.findUnique({
-      where: { email: email.toLowerCase().trim() },
+    // SÉCURITÉ : Vérifier que le token est valide et non expiré
+    const resetTokenRecord = await prisma.passwordResetToken.findUnique({
+      where: { token },
+      include: { user: true }
     });
 
-    if (!user) {
+    if (!resetTokenRecord) {
       return NextResponse.json(
-        { error: "Utilisateur introuvable" },
-        { status: 404 }
+        { error: "Token de récupération invalide" },
+        { status: 400 }
       );
     }
+
+    // Vérifier que le token n'est pas expiré
+    if (resetTokenRecord.expiresAt < new Date()) {
+      return NextResponse.json(
+        { error: "Token de récupération expiré" },
+        { status: 400 }
+      );
+    }
+
+    // Vérifier que le token n'a pas déjà été utilisé
+    if (resetTokenRecord.used) {
+      return NextResponse.json(
+        { error: "Token de récupération déjà utilisé" },
+        { status: 400 }
+      );
+    }
+
+    // Vérifier que l'email correspond
+    if (resetTokenRecord.email !== email.toLowerCase().trim()) {
+      return NextResponse.json(
+        { error: "Email ne correspond pas au token" },
+        { status: 400 }
+      );
+    }
+
+    const user = resetTokenRecord.user;
 
     // Hasher le nouveau mot de passe
     const saltRounds = 12;
     const hashedPassword = await bcrypt.hash(password, saltRounds);
 
-    // Mettre à jour le mot de passe de l'utilisateur
-    await prisma.user.update({
-      where: { id: user.id },
-      data: { password: hashedPassword },
-    });
+    // Transaction pour mettre à jour le mot de passe ET marquer le token comme utilisé
+    await prisma.$transaction([
+      // Mettre à jour le mot de passe
+      prisma.user.update({
+        where: { id: user.id },
+        data: { password: hashedPassword },
+      }),
+      // Marquer le token comme utilisé
+      prisma.passwordResetToken.update({
+        where: { id: resetTokenRecord.id },
+        data: { used: true },
+      }),
+    ]);
 
     console.log(`Mot de passe mis à jour avec succès pour ${email}`);
 
