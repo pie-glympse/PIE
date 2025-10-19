@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Resend } from "resend";
+import { randomBytes } from "node:crypto";
 import { PasswordResetEmailTemplate } from "@/components/password-reset-email-template";
 import { prisma } from "@/lib/prisma-singleton";
 
@@ -42,10 +43,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Générer un token de récupération sécurisé
-    const resetToken =
-      Math.random().toString(36).substring(2, 15) +
-      Math.random().toString(36).substring(2, 15);
+    // Générer un token de récupération cryptographiquement sécurisé
+    const resetToken = randomBytes(32).toString('hex');
 
     // Créer le lien de récupération
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3001";
