@@ -250,7 +250,7 @@ const AnswerEventPage = () => {
             case 2:
                 return selectedDates.length > 0;
             case 3:
-                return selectedPreferences.length > 0;
+                return true; // ✅ Étape 3 optionnelle - on peut toujours continuer
             default:
                 return false;
         }
@@ -360,7 +360,8 @@ const AnswerEventPage = () => {
                             Formulez vos Préférences pour {displayTitle}
                         </h1>
                         <h3 className="text-h3 mb-8 text-left md:w-2/3 w-full font-poppins text-[var(--color-grey-three)]">
-                            Avez-vous des No Go à absolument prendre en compte ?
+                            Avez-vous des No Go à absolument prendre en compte ? 
+                            {/* <span className="text-sm text-gray-500 block mt-2">(Optionnel - vous pouvez passer cette étape)</span> */}
                         </h3>
                         <div className="w-full">
                             <ChoiceLi
