@@ -15,6 +15,7 @@ const CreateGroupsPage = () => {
   const [selectedUsers, setSelectedUsers] = useState<Set<string>>(new Set());
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [isRemoving, setIsRemoving] = useState(false);
+  const [companyName, setCompanyName] = useState<string>('');
 
   const isAdmin = user?.role === "ADMIN";
 
@@ -37,6 +38,25 @@ const CreateGroupsPage = () => {
         .catch((err) => setFetchError(err.message));
     }
   }, [isLoading, user, setUser]);
+
+  // Effet pour récupérer le nom de la company
+  useEffect(() => {
+    if (!isLoading && user && user.id) {
+      fetch(`/api/company?userId=${user.id}`)
+        .then((res) => {
+          if (!res.ok)
+            throw new Error("Erreur lors de la récupération des données de la company");
+          return res.json();
+        })
+        .then((data) => {
+          setCompanyName(data.companyName);
+        })
+        .catch((err) => {
+          console.error("Erreur récupération company:", err);
+          setCompanyName("Company");
+        });
+    }
+  }, [isLoading, user?.id, user]);
 
   // Effet séparé pour récupérer les utilisateurs de la company
   useEffect(() => {
@@ -113,7 +133,7 @@ const CreateGroupsPage = () => {
   return (
     <div className="mt-30 p-6">
       <h1 className="text-2xl font-bold mb-6">
-        {isAdmin ? "Gestion des utilisateurs de la company" : "Utilisateurs de votre company"}
+        {isAdmin ? `Gestion des utilisateurs de ${companyName || "la company"}` : `Utilisateurs au sein de ${companyName || "votre company"}`}
       </h1>
       
       {isAdmin && (
