@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
+import { useUser } from "@/context/UserContext";
 
 type User = {
   id: string;
@@ -24,19 +25,37 @@ export const UserSelectionStep = ({
   selectedUserIds,
   onUserToggle,
 }: UserSelectionStepProps) => {
+  const { user } = useUser();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchEmail, setSearchEmail] = useState("");
+  const [companyName, setCompanyName] = useState<string>("");
+  const [isCompanySelected, setIsCompanySelected] = useState(false);
 
-  // Charger tous les utilisateurs
+  // Charger les utilisateurs de la company
   useEffect(() => {
     const fetchUsers = async () => {
+      if (!user?.companyId) {
+        setError("Vous n'êtes pas associé à une company");
+        setLoading(false);
+        return;
+      }
+
       try {
         setLoading(true);
-        const res = await fetch('/api/users');
+        
+        // Récupérer le nom de la company
+        const companyRes = await fetch(`/api/company?userId=${user.id}`);
+        if (companyRes.ok) {
+          const companyData = await companyRes.json();
+          setCompanyName(companyData.companyName);
+        }
+
+        // Récupérer les utilisateurs de la company
+        const res = await fetch(`/api/users?companyId=${user.companyId}`);
         if (!res.ok) {
-          throw new Error("Impossible de récupérer les utilisateurs");
+          throw new Error("Impossible de récupérer les utilisateurs de la company");
         }
         const data = await res.json();
         setUsers(data);
@@ -49,7 +68,7 @@ export const UserSelectionStep = ({
     };
 
     fetchUsers();
-  }, []);
+  }, [user?.companyId, user?.id]);
 
   // Filtrer les utilisateurs (exclure l'utilisateur actuel et appliquer la recherche)
   const filteredUsers = users.filter((user) => {
@@ -72,6 +91,34 @@ export const UserSelectionStep = ({
     // Fonctionnalité d'import à implémenter plus tard
     alert("Fonctionnalité d'import à venir");
   };
+
+  // Gérer la sélection/désélection de toute la company
+  const handleCompanyToggle = () => {
+    if (isCompanySelected) {
+      // Désélectionner tous les utilisateurs de la company
+      filteredUsers.forEach(user => {
+        if (selectedUserIds.includes(user.id)) {
+          onUserToggle(user.id);
+        }
+      });
+    } else {
+      // Sélectionner tous les utilisateurs de la company
+      filteredUsers.forEach(user => {
+        if (!selectedUserIds.includes(user.id)) {
+          onUserToggle(user.id);
+        }
+      });
+    }
+    setIsCompanySelected(!isCompanySelected);
+  };
+
+  // Vérifier si tous les utilisateurs de la company sont sélectionnés
+  useEffect(() => {
+    if (filteredUsers.length > 0) {
+      const allSelected = filteredUsers.every(user => selectedUserIds.includes(user.id));
+      setIsCompanySelected(allSelected);
+    }
+  }, [selectedUserIds, filteredUsers]);
 
   if (loading) {
     return (
@@ -104,6 +151,52 @@ export const UserSelectionStep = ({
           {selectedUserIds.length} utilisateur{selectedUserIds.length !== 1 ? 's' : ''} sélectionné{selectedUserIds.length !== 1 ? 's' : ''}
         </span>
       </div> */}
+
+      {/* Section de sélection de la company */}
+      {companyName && (
+        <div className="mb-6 p-4 bg-blue-50 border-2 border-blue-200 rounded-lg">
+          <div 
+            className="flex justify-between items-center cursor-pointer"
+            onClick={handleCompanyToggle}
+          >
+            <div className="flex-1">
+              <p className="font-semibold font-poppins text-[var(--color-text)] text-lg">
+                {companyName}
+              </p>
+              <p className="text-sm text-[var(--color-grey-three)] font-poppins">
+                Sélectionner tous les utilisateurs de votre company
+              </p>
+            </div>
+            
+            {/* Checkbox pour la company */}
+            <div className="ml-4">
+              <div
+                className={`w-6 h-6 border-2 rounded transition-all flex items-center justify-center ${
+                  isCompanySelected
+                    ? 'bg-[var(--color-main)] border-[var(--color-main)]'
+                    : 'border-[var(--color-grey-two)] hover:border-[var(--color-main)]'
+                }`}
+              >
+                {isCompanySelected && (
+                  <svg 
+                    className="w-4 h-4 text-white" 
+                    fill="none" 
+                    stroke="currentColor" 
+                    viewBox="0 0 24 24"
+                  >
+                    <path 
+                      strokeLinecap="round" 
+                      strokeLinejoin="round" 
+                      strokeWidth={2} 
+                      d="M6 18L18 6M6 6l12 12" 
+                    />
+                  </svg>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Section de recherche */}
       <div className="mb-6">
