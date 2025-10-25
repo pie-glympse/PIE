@@ -1,12 +1,13 @@
 "use client"
-import { useState, FormEvent, useEffect } from 'react';
+import { useState, FormEvent, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import MainButton from '../../components/ui/MainButton';
 import Link from 'next/link';
 import Image from 'next/image';
 import BackArrow from '../../components/ui/BackArrow';
 
-const ResetPasswordPage = () => {
+// Composant interne qui utilise useSearchParams
+const ResetPasswordForm = () => {
     const router = useRouter();
     const searchParams = useSearchParams();
     const [password, setPassword] = useState('');
@@ -210,6 +211,22 @@ const ResetPasswordPage = () => {
                 </div>
             </div>
         </section>
+    );
+};
+
+// Composant principal avec Suspense boundary
+const ResetPasswordPage = () => {
+    return (
+        <Suspense fallback={
+            <div className="flex items-center justify-center h-screen">
+                <div className="text-center">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[var(--color-main)] mx-auto mb-4"></div>
+                    <p className="text-[var(--color-grey-three)] font-poppins">Chargement...</p>
+                </div>
+            </div>
+        }>
+            <ResetPasswordForm />
+        </Suspense>
     );
 };
 
