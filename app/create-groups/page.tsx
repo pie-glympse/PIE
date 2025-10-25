@@ -16,6 +16,9 @@ const CreateGroupsPage = () => {
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [isRemoving, setIsRemoving] = useState(false);
   const [companyName, setCompanyName] = useState<string>('');
+  const [isCreatingTeam, setIsCreatingTeam] = useState(false);
+  const [teamName, setTeamName] = useState<string>('');
+  const [showTeamForm, setShowTeamForm] = useState(false);
 
   const isAdmin = user?.role === "ADMIN";
 
@@ -118,6 +121,46 @@ const CreateGroupsPage = () => {
     }
   };
 
+  const handleCreateTeam = async () => {
+    if (!isAdmin || selectedUsers.size === 0 || !teamName.trim()) return;
+    
+    setIsCreatingTeam(true);
+    try {
+      const response = await fetch('/api/teams', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: teamName,
+          companyId: user?.companyId ? String(user.companyId) : null,
+          userIds: Array.from(selectedUsers)
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Erreur lors de la création de la team");
+      }
+
+      const teamData = await response.json();
+      
+      // Mettre à jour la liste des utilisateurs (retirer ceux assignés à la team)
+      setUsers(users.filter(u => !selectedUsers.has(u.id)));
+      setSelectedUsers(new Set());
+      setTeamName('');
+      setShowTeamForm(false);
+      
+      alert(`Team "${teamData.name}" créée avec succès avec ${teamData.users.length} utilisateur(s) !`);
+      
+    } catch (error) {
+      console.error("Erreur:", error);
+      setFetchError("Erreur lors de la création de la team");
+    } finally {
+      setIsCreatingTeam(false);
+    }
+  };
+
   if (isLoading) {
     return <div>Chargement...</div>;
   }
@@ -176,17 +219,64 @@ const CreateGroupsPage = () => {
       </div>
 
       {isAdmin && selectedUsers.size > 0 && (
-        <div className="mt-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-          <p className="text-red-800 mb-4">
-            {selectedUsers.size} utilisateur(s) sélectionné(s) pour être retiré(s) de la company.
-          </p>
-          <button
-            onClick={handleConfirmRemoval}
-            disabled={isRemoving}
-            className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isRemoving ? "Suppression en cours..." : "Confirmer la suppression"}
-          </button>
+        <div className="mt-6 space-y-4">
+          {/* Section création de team */}
+          <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <p className="text-blue-800 mb-4">
+              {selectedUsers.size} utilisateur(s) sélectionné(s) - Créer une team
+            </p>
+            
+            {!showTeamForm ? (
+              <button
+                onClick={() => setShowTeamForm(true)}
+                className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition"
+              >
+                Créer une team avec ces utilisateurs
+              </button>
+            ) : (
+              <div className="space-y-3">
+                <input
+                  type="text"
+                  value={teamName}
+                  onChange={(e) => setTeamName(e.target.value)}
+                  placeholder="Nom de la team"
+                  className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleCreateTeam}
+                    disabled={isCreatingTeam || !teamName.trim()}
+                    className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isCreatingTeam ? "Création..." : "Créer la team"}
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowTeamForm(false);
+                      setTeamName('');
+                    }}
+                    className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600"
+                  >
+                    Annuler
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Section suppression de la company */}
+          <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+            <p className="text-red-800 mb-4">
+              Ou retirer ces utilisateurs de la company
+            </p>
+            <button
+              onClick={handleConfirmRemoval}
+              disabled={isRemoving}
+              className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isRemoving ? "Suppression en cours..." : "Retirer de la company"}
+            </button>
+          </div>
         </div>
       )}
 

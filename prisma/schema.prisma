@@ -18,6 +18,8 @@ model User {
   lastName           String                @default("")
   companyId          BigInt?
   company            Company?              @relation(fields: [companyId], references: [id])
+  teamId             BigInt?
+  team               Team?                 @relation(fields: [teamId], references: [id])
   companyStats       CompanyStats?
   preferences        EventUserPreference[]
   photos             EventsUsersPhoto[]
@@ -31,6 +33,17 @@ model Company {
   id    BigInt @id @default(autoincrement())
   name  String
   users User[]
+  teams Team[]
+}
+
+model Team {
+  id        BigInt @id @default(autoincrement())
+  name      String
+  companyId BigInt
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  users     User[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Event {
