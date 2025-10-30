@@ -1,9 +1,8 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { useUser } from "../context/UserContext";
 import { useRouter } from "next/navigation";
-import { title } from "process";
 
 // Type pour les événements de l'API
 interface APIEvent {
@@ -38,7 +37,14 @@ interface Event {
 interface HoveredDay {
   day: number;
   month: number;
+  year: number;
   events: Event[];
+}
+
+interface MonthInfo {
+  name: string;
+  month: number;
+  year: number;
 }
 
 interface MiniCalendarProps {
@@ -46,7 +52,7 @@ interface MiniCalendarProps {
   eventsData?: Event[];
 }
 
-const MiniCalendar = ({ year = 2025, eventsData = [] }: MiniCalendarProps) => {
+const MiniCalendar = ({ eventsData = [] }: MiniCalendarProps) => {
   const { user, isLoading } = useUser();
   const router = useRouter();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -58,8 +64,9 @@ const MiniCalendar = ({ year = 2025, eventsData = [] }: MiniCalendarProps) => {
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
+  const [calendarMonths, setCalendarMonths] = useState<MonthInfo[]>([]);
 
-  const months = [
+  const monthNames = useMemo(() => [
     "Janvier",
     "Février",
     "Mars",
@@ -72,7 +79,29 @@ const MiniCalendar = ({ year = 2025, eventsData = [] }: MiniCalendarProps) => {
     "Octobre",
     "Novembre",
     "Décembre",
-  ];
+  ], []);
+
+  // Générer les mois du calendrier dynamiquement (d'aujourd'hui à dans un an)
+  useEffect(() => {
+    const today = new Date();
+    const oneYearFromNow = new Date(today);
+    oneYearFromNow.setFullYear(today.getFullYear() + 1);
+    
+    const months: MonthInfo[] = [];
+    let currentDate = new Date(today.getFullYear(), today.getMonth(), 1);
+    
+    while (currentDate <= oneYearFromNow) {
+      months.push({
+        name: monthNames[currentDate.getMonth()],
+        month: currentDate.getMonth(),
+        year: currentDate.getFullYear()
+      });
+      // Passer au mois suivant
+      currentDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1);
+    }
+    
+    setCalendarMonths(months);
+  }, [monthNames]);
 
   // Mapping des couleurs pour les types d'événements (activityType)
   const getColorForActivityType = (activityType: string): string => {
@@ -195,13 +224,25 @@ const MiniCalendar = ({ year = 2025, eventsData = [] }: MiniCalendarProps) => {
     const scrollContainer = scrollContainerRef.current;
     if (scrollContainer && !isMobile) {
       scrollContainer.addEventListener('scroll', checkScrollPosition);
+      scrollContainer.addEventListener('scrollend', checkScrollPosition);
       checkScrollPosition();
       
       return () => {
         scrollContainer.removeEventListener('scroll', checkScrollPosition);
+        scrollContainer.removeEventListener('scrollend', checkScrollPosition);
       };
     }
   }, [isMobile, checkScrollPosition]);
+
+  // Recalculer la position du scroll quand les mois changent
+  useEffect(() => {
+    if (calendarMonths.length > 0 && !isMobile) {
+      // Petit délai pour laisser le DOM se mettre à jour
+      setTimeout(() => {
+        checkScrollPosition();
+      }, 100);
+    }
+  }, [calendarMonths.length, isMobile, checkScrollPosition]);
 
   // Navigation avec les boutons flèches (seulement pour desktop)
   const scrollToDirection = (direction: 'left' | 'right') => {
@@ -227,15 +268,15 @@ const MiniCalendar = ({ year = 2025, eventsData = [] }: MiniCalendarProps) => {
     return new Date(year, month, 1).getDay();
   };
 
-  const getDayEvents = (day: number, month: number): Event[] => {
+  const getDayEvents = (day: number, month: number, year: number): Event[] => {
     const dateKey = `${year}-${String(month + 1).padStart(2, "0")}-${String(
       day
     ).padStart(2, "0")}`;
     return events.filter((event) => event.date === dateKey);
   };
 
-  const getDayColor = (day: number, month: number): string => {
-    const dayEvents = getDayEvents(day, month);
+  const getDayColor = (day: number, month: number, year: number): string => {
+    const dayEvents = getDayEvents(day, month, year);
     if (dayEvents.length === 0) return "bg-gray-200 hover:bg-gray-300";
 
     const firstEvent = dayEvents[0];
@@ -249,8 +290,8 @@ const MiniCalendar = ({ year = 2025, eventsData = [] }: MiniCalendarProps) => {
   };
 
   // Fonction pour gérer le clic sur un jour avec événement
-  const handleDayClick = (day: number, month: number) => {
-    const dayEvents = getDayEvents(day, month);
+  const handleDayClick = (day: number, month: number, year: number) => {
+    const dayEvents = getDayEvents(day, month, year);
     if (dayEvents.length > 0) {
       const firstEvent = dayEvents[0];
       if (firstEvent.uuid) {
@@ -262,12 +303,13 @@ const MiniCalendar = ({ year = 2025, eventsData = [] }: MiniCalendarProps) => {
   const handleMouseEnter = (
     day: number,
     month: number,
+    year: number,
     event: React.MouseEvent<HTMLDivElement>
   ) => {
     setHoveredDayNumber({ day, month });
-    const dayEvents = getDayEvents(day, month);
+    const dayEvents = getDayEvents(day, month, year);
     if (dayEvents.length > 0) {
-      setHoveredDay({ day, month, events: dayEvents });
+      setHoveredDay({ day, month, year, events: dayEvents });
       setMousePosition({ x: event.clientX, y: event.clientY });
     }
   };
@@ -283,7 +325,7 @@ const MiniCalendar = ({ year = 2025, eventsData = [] }: MiniCalendarProps) => {
     setHoveredDay(null);
   };
 
-  const generateMonthDays = (month: number): React.ReactElement[] => {
+  const generateMonthDays = (month: number, year: number): React.ReactElement[] => {
     const daysInMonth = getDaysInMonth(month, year);
     const firstDay = getFirstDayOfMonth(month, year);
     const days: React.ReactElement[] = [];
@@ -295,8 +337,8 @@ const MiniCalendar = ({ year = 2025, eventsData = [] }: MiniCalendarProps) => {
 
     // Ajouter les jours du mois  
     for (let day = 1; day <= daysInMonth; day++) {
-      const colorClass = getDayColor(day, month);
-      const dayEvents = getDayEvents(day, month);
+      const colorClass = getDayColor(day, month, year);
+      const dayEvents = getDayEvents(day, month, year);
       const hasEvents = dayEvents.length > 0;
 
       days.push(
@@ -305,10 +347,10 @@ const MiniCalendar = ({ year = 2025, eventsData = [] }: MiniCalendarProps) => {
           className={`w-6 h-6 ${colorClass} cursor-pointer rounded-sm transition-colors duration-200 flex items-center justify-center text-xs font-medium text-white hover:transition-all hover:duration-300 hover:ease-in-out ${
             hasEvents ? 'hover:scale-110' : ''
           }`}
-          onMouseEnter={(e) => handleMouseEnter(day, month, e)}
+          onMouseEnter={(e) => handleMouseEnter(day, month, year, e)}
           onMouseMove={handleMouseMove}
           onMouseLeave={handleMouseLeave}
-          onClick={() => handleDayClick(day, month)}
+          onClick={() => handleDayClick(day, month, year)}
         >
           {hoveredDayNumber?.day === day && hoveredDayNumber?.month === month ? day : ''}
         </div>
@@ -328,7 +370,7 @@ const MiniCalendar = ({ year = 2025, eventsData = [] }: MiniCalendarProps) => {
   }
 
   // Afficher un loading si en cours de chargement
-  if (isLoading) {
+  if (isLoading || calendarMonths.length === 0) {
     return (
       <div className="p-4 bg-gray-50 text-gray-600 rounded-lg">
         Chargement du calendrier...
@@ -339,9 +381,6 @@ const MiniCalendar = ({ year = 2025, eventsData = [] }: MiniCalendarProps) => {
   return (
     <div>
       <div className="flex justify-between items-center">
-        {title && (
-          <div className="text-xl font-bold text-gray-800 mb-4">Calendrier des événements</div>
-        )}
         {/* Boutons de navigation - cachés sur mobile */}
         {!isMobile && (
           <div className="flex gap-2">
@@ -391,16 +430,16 @@ const MiniCalendar = ({ year = 2025, eventsData = [] }: MiniCalendarProps) => {
           scrollBehavior: 'smooth'
         }}
       >
-        {months.map((month, index) => (
+        {calendarMonths.map((monthInfo, index) => (
           <div
-            key={month}
+            key={`${monthInfo.name}-${monthInfo.year}-${index}`}
             className="min-w-[240px] p-3 rounded-lg snap-center shrink-0"
           >
             <h3 className="text-sm font-semibold text-left mb-2 text-gray-700">
-              {month} {year}
+              {monthInfo.name} {monthInfo.year}
             </h3>
             <div className="grid grid-cols-10 gap-1">
-              {generateMonthDays(index)}
+              {generateMonthDays(monthInfo.month, monthInfo.year)}
             </div>
           </div>
         ))}
@@ -417,7 +456,7 @@ const MiniCalendar = ({ year = 2025, eventsData = [] }: MiniCalendarProps) => {
           }}
         >
           <div className="font-semibold text-sm mb-1">
-            {hoveredDay.day} {months[hoveredDay.month]} {year}
+            {hoveredDay.day} {monthNames[hoveredDay.month]} {hoveredDay.year}
           </div>
           <div className="space-y-1">
             {hoveredDay.events.map((event, index) => (
