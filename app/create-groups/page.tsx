@@ -40,6 +40,8 @@ const CreateGroupsPage = () => {
   const [showAddUserModal, setShowAddUserModal] = useState(false);
   const [selectedUsersToAdd, setSelectedUsersToAdd] = useState<Set<string>>(new Set());
   const [isAddingUsers, setIsAddingUsers] = useState(false);
+  const [newTeamSearch, setNewTeamSearch] = useState('');
+  const [addUserSearch, setAddUserSearch] = useState('');
 
   const isAdmin = user?.role === "ADMIN";
 
@@ -481,7 +483,7 @@ const CreateGroupsPage = () => {
                                   setSelectedUsersForDeletion(new Set());
                                 }
                               }}
-                              className="w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-red-500"
+                              className="w-4 h-4 text-[var(--color-main)] border-gray-300 rounded focus:ring-[var(--color-main)]"
                             />
                           </div>
                         )}
@@ -498,8 +500,9 @@ const CreateGroupsPage = () => {
                       {selectedTeam.users.map((user) => (
                         <div
                           key={user.id}
-                          className={`px-6 py-4 hover:bg-gray-50 transition-colors ${
-                            selectedUsersForDeletion.has(user.id) ? 'bg-blue-50' : ''
+                          onClick={() => handleUserToggleForDeletion(user.id)}
+                          className={`px-6 py-4 cursor-pointer transition-colors ${
+                            selectedUsersForDeletion.has(user.id) ? 'bg-gray-100' : 'hover:bg-gray-50'
                           }`}
                         >
                           <div className="flex items-center">
@@ -508,8 +511,9 @@ const CreateGroupsPage = () => {
                                 <input
                                   type="checkbox"
                                   checked={selectedUsersForDeletion.has(user.id)}
+                                  onClick={(e) => e.stopPropagation()}
                                   onChange={() => handleUserToggleForDeletion(user.id)}
-                                  className="w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-red-500"
+                                  className="w-4 h-4 text-[var(--color-main)] border-gray-300 rounded focus:ring-[var(--color-main)]"
                                 />
                               </div>
                             )}
@@ -565,7 +569,7 @@ const CreateGroupsPage = () => {
       {/* Modal de création de team */}
       {showCreateTeamModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] flex flex-col">
+          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 h-[80vh] flex flex-col">
             {/* Header */}
             <div className="p-6 border-b border-gray-200">
               <h2 className="text-xl font-bold text-gray-800">Créer une nouvelle équipe</h2>
@@ -590,10 +594,22 @@ const CreateGroupsPage = () => {
                 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Utilisateurs disponibles ({users.filter(u => !u.teamId).length})
+                    Rechercher un utilisateur (nom, email)
+                  </label>
+                  <input
+                    type="text"
+                    value={newTeamSearch}
+                    onChange={(e) => setNewTeamSearch(e.target.value)}
+                    placeholder="Rechercher..."
+                    className="w-full mb-3 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--color-main)]"
+                  />
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Utilisateurs disponibles ({users.filter(u => !u.teamId && ((u.firstName||'').toLowerCase().includes(newTeamSearch.toLowerCase()) || (u.lastName||'').toLowerCase().includes(newTeamSearch.toLowerCase()) || (u.email||'').toLowerCase().includes(newTeamSearch.toLowerCase()))).length})
                   </label>
                   <div className="max-h-64 overflow-y-auto space-y-2 border border-gray-200 rounded-lg p-3">
-                    {users.filter(u => !u.teamId).map((user) => (
+                    {users
+                      .filter(u => !u.teamId && ((u.firstName||'').toLowerCase().includes(newTeamSearch.toLowerCase()) || (u.lastName||'').toLowerCase().includes(newTeamSearch.toLowerCase()) || (u.email||'').toLowerCase().includes(newTeamSearch.toLowerCase())))
+                      .map((user) => (
                       <div
                         key={user.id}
                         className={`flex items-center space-x-3 p-2 rounded ${
@@ -614,7 +630,7 @@ const CreateGroupsPage = () => {
                         </div>
                       </div>
                     ))}
-                    {users.filter(u => !u.teamId).length === 0 && (
+                    {users.filter(u => !u.teamId && ((u.firstName||'').toLowerCase().includes(newTeamSearch.toLowerCase()) || (u.lastName||'').toLowerCase().includes(newTeamSearch.toLowerCase()) || (u.email||'').toLowerCase().includes(newTeamSearch.toLowerCase()))).length === 0 && (
                       <p className="text-gray-500 text-center py-4">Tous les utilisateurs sont déjà assignés à une équipe</p>
                     )}
                   </div>
@@ -649,7 +665,7 @@ const CreateGroupsPage = () => {
       {/* Modal d'ajout d'utilisateurs à une équipe existante */}
       {showAddUserModal && selectedTeam && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] flex flex-col">
+          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 h-[80vh] flex flex-col">
             {/* Header */}
             <div className="p-6 border-b border-gray-200">
               <h2 className="text-xl font-bold text-gray-800">Ajouter un nouveau membre</h2>
@@ -660,10 +676,22 @@ const CreateGroupsPage = () => {
             <div className="flex-1 overflow-y-auto p-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Utilisateurs disponibles ({users.filter(u => !u.teamId).length})
+                  Rechercher un utilisateur (nom, email)
+                </label>
+                <input
+                  type="text"
+                  value={addUserSearch}
+                  onChange={(e) => setAddUserSearch(e.target.value)}
+                  placeholder="Rechercher..."
+                  className="w-full mb-3 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--color-main)]"
+                />
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Utilisateurs disponibles ({users.filter(u => !u.teamId && ((u.firstName||'').toLowerCase().includes(addUserSearch.toLowerCase()) || (u.lastName||'').toLowerCase().includes(addUserSearch.toLowerCase()) || (u.email||'').toLowerCase().includes(addUserSearch.toLowerCase()))).length})
                 </label>
                 <div className="max-h-64 overflow-y-auto space-y-2 border border-gray-200 rounded-lg p-3">
-                  {users.filter(u => !u.teamId).map((user) => (
+                  {users
+                    .filter(u => !u.teamId && ((u.firstName||'').toLowerCase().includes(addUserSearch.toLowerCase()) || (u.lastName||'').toLowerCase().includes(addUserSearch.toLowerCase()) || (u.email||'').toLowerCase().includes(addUserSearch.toLowerCase())))
+                    .map((user) => (
                     <div
                       key={user.id}
                       className={`flex items-center space-x-3 p-2 rounded ${
@@ -684,7 +712,7 @@ const CreateGroupsPage = () => {
                       </div>
                     </div>
                   ))}
-                  {users.filter(u => !u.teamId).length === 0 && (
+                  {users.filter(u => !u.teamId && ((u.firstName||'').toLowerCase().includes(addUserSearch.toLowerCase()) || (u.lastName||'').toLowerCase().includes(addUserSearch.toLowerCase()) || (u.email||'').toLowerCase().includes(addUserSearch.toLowerCase()))).length === 0 && (
                     <p className="text-gray-500 text-center py-4">Tous les utilisateurs sont déjà assignés à une équipe</p>
                   )}
                 </div>

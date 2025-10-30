@@ -205,11 +205,33 @@ export const UserSelectionStep = ({
 
   return (
     <div className="w-full">
-      <h1 className="text-h1 mb-4 text-left w-full font-urbanist">{title}</h1>
+      <div className="flex items-start justify-between mb-4">
+        <h1 className="text-h1 text-left w-full font-urbanist">{title}</h1>
+      </div>
       <h3 className="text-h3 mb-8 text-left md:w-2/3 w-full font-poppins text-[var(--color-grey-three)]">
         {subtitle}
       </h3>
-
+      {companyName && (
+          <div className="flex items-center gap-4">
+              <p className="font-semibold font-poppins text-[var(--color-text)] text-base">
+                Amenez tout le monde !
+              </p>
+            <button
+              type="button"
+              onClick={handleCompanyToggle}
+              aria-pressed={isCompanySelected}
+              className={`relative inline-flex h-7 min-w-14 items-center rounded-full transition-colors ${
+                isCompanySelected ? 'bg-[var(--color-secondary)]' : 'bg-[var(--color-grey-two)]'
+              }`}
+            >
+              <span
+                className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${
+                  isCompanySelected ? 'translate-x-8' : 'translate-x-1'
+                }`}
+              />
+            </button>
+          </div>
+        )}
       {/* Label indicateur de sélection - COMMENTÉ */}
       {/* <div className="mb-6">
         <span className="inline-block px-3 py-1 bg-[var(--color-validate)] text-white text-sm font-poppins rounded-full">
@@ -217,107 +239,31 @@ export const UserSelectionStep = ({
         </span>
       </div> */}
 
-      {/* Section de sélection de la company */}
-      {companyName && (
-        <div className="mb-6 p-4 border-2 border-[var(--color-grey-two)] rounded-lg hover:border-[var(--color-tertiary)] transition-all">
-          <div 
-            className="flex justify-between items-center cursor-pointer"
-            onClick={handleCompanyToggle}
-          >
-            <div className="flex-1">
-              <p className="font-semibold font-poppins text-[var(--color-text)] text-lg">
-                {companyName}
-              </p>
-              <p className="text-sm text-[var(--color-grey-three)] font-poppins">
-                Sélectionner tous les utilisateurs de votre entreprise
-              </p>
-            </div>
-            
-            {/* Checkbox pour la company */}
-            <div className="ml-4">
-              <div
-                className={`w-6 h-6 border-2 rounded transition-all flex items-center justify-center ${
-                  isCompanySelected
-                    ? 'bg-[var(--color-main)] border-[var(--color-main)]'
-                    : 'border-[var(--color-grey-two)] hover:border-[var(--color-main)]'
-                }`}
-              >
-                {isCompanySelected && (
-                  <svg 
-                    className="w-4 h-4 text-white" 
-                    fill="none" 
-                    stroke="currentColor" 
-                    viewBox="0 0 24 24"
-                  >
-                    <path 
-                      strokeLinecap="round" 
-                      strokeLinejoin="round" 
-                      strokeWidth={2} 
-                      d="M6 18L18 6M6 6l12 12" 
-                    />
-                  </svg>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* L'ancienne section entreprise est remplacée par le switch dans l'entête */}
 
       {/* Section des teams */}
       {teams.length > 0 && (
-        <div className="mb-6">
+        <div className="my-6">
           <h3 className="text-lg font-semibold font-poppins text-[var(--color-text)] mb-3">
             Teams
           </h3>
-          <div className="space-y-2">
+          <div className="flex flex-wrap gap-3">
             {teams.map((team) => (
-              <div 
+              <button
                 key={team.id}
-                className={`p-3 border-2 rounded-lg cursor-pointer transition-all ${
-                  selectedTeams.has(team.id) 
-                    ? 'bg-green-50 border-green-200' 
-                    : 'border-gray-200 hover:border-[var(--color-main)]'
-                }`}
+                type="button"
                 onClick={() => handleTeamToggle(team.id)}
+                className={`inline-flex items-center gap-2 px-3 py-2 border-2 rounded-lg w-fit transition-all font-poppins ${
+                  selectedTeams.has(team.id)
+                    ? 'bg-[var(--color-main)] border-[var(--color-main)] text-white'
+                    : 'border-[var(--color-grey-two)] text-[var(--color-text)] hover:border-[var(--color-main)]'
+                }`}
               >
-                <div className="flex justify-between items-center">
-                  <div className="flex-1">
-                    <p className="font-medium font-poppins text-[var(--color-text)]">
-                      {team.name}
-                    </p>
-                    <p className="text-sm text-[var(--color-grey-three)] font-poppins">
-                      {team.users.length} utilisateur(s)
-                    </p>
-                  </div>
-                  
-                  {/* Checkbox pour la team */}
-                  <div className="ml-4">
-                    <div
-                      className={`w-5 h-5 border-2 rounded transition-all flex items-center justify-center ${
-                        selectedTeams.has(team.id)
-                          ? 'bg-[var(--color-main)] border-[var(--color-main)]'
-                          : 'border-[var(--color-grey-two)] hover:border-[var(--color-main)]'
-                      }`}
-                    >
-                      {selectedTeams.has(team.id) && (
-                        <svg 
-                          className="w-3 h-3 text-white" 
-                          fill="none" 
-                          stroke="currentColor" 
-                          viewBox="0 0 24 24"
-                        >
-                          <path 
-                            strokeLinecap="round" 
-                            strokeLinejoin="round" 
-                            strokeWidth={2} 
-                            d="M6 18L18 6M6 6l12 12" 
-                          />
-                        </svg>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
+                <span className="text-md font-medium">{team.name}</span>
+                <span className={`text-xs ${selectedTeams.has(team.id) ? 'text-white/90' : 'text-[var(--color-grey-three)]'}`}>
+                  {team.users.length} utilisateur(s)
+                </span>
+              </button>
             ))}
           </div>
         </div>
