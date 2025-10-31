@@ -32,6 +32,9 @@ const CreateEventPage = () => {
         costPerPerson: string;
         city: string;
         maxDistance: string;
+        recurring: boolean;
+        duration: string;
+        recurringRate: string;
     };
 
     const [formData, setFormData] = useState<EventFormData | null>(null);
@@ -69,6 +72,9 @@ const CreateEventPage = () => {
         costPerPerson: string;
         city: string;
         maxDistance: string;
+        recurring: boolean;
+        duration: string;
+        recurringRate: string;
     }) => {
         setFormData(formData);
         setCurrentStep(3);
@@ -99,6 +105,10 @@ const CreateEventPage = () => {
                     maxPersons: formData.maxPersons ? Number(formData.maxPersons) : null,
                     costPerPerson: formData.costPerPerson ? Number(formData.costPerPerson) : null,
                     maxDistance: formData.maxDistance ? Number(formData.maxDistance) : null,
+                    // Champs récurrents
+                    recurring: formData.recurring || false,
+                    duration: formData.duration ? Number(formData.duration) : null,
+                    recurringRate: formData.recurringRate || null,
                     // Ajouter type d'événement sélectionné depuis l'étape 1
                     activityType: eventTypes.find(type => type.id === selectedEventType)?.text || '',
                     // Ajouter état par défaut

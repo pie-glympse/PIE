@@ -5,7 +5,7 @@ generator client {
 datasource db {
   provider  = "postgresql"
   url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
+  directUrl = env("DATABASE_URL")
 }
 
 model User {
@@ -17,14 +17,14 @@ model User {
   firstName          String                @default("")
   lastName           String                @default("")
   companyId          BigInt?
-  company            Company?              @relation(fields: [companyId], references: [id])
   teamId             BigInt?
-  team               Team?                 @relation(fields: [teamId], references: [id])
   companyStats       CompanyStats?
   preferences        EventUserPreference[]
   photos             EventsUsersPhoto[]
   feedbacks          Feedback[]
   PasswordResetToken PasswordResetToken[]
+  company            Company?              @relation(fields: [companyId], references: [id])
+  team               Team?                 @relation(fields: [teamId], references: [id])
   votes              Vote[]
   events             Event[]               @relation("EventUsers")
 }
@@ -32,18 +32,18 @@ model User {
 model Company {
   id    BigInt @id @default(autoincrement())
   name  String
-  users User[]
   teams Team[]
+  users User[]
 }
 
 model Team {
-  id        BigInt @id @default(autoincrement())
+  id        BigInt   @id @default(autoincrement())
   name      String
   companyId BigInt
-  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  users     User[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  company   Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  users     User[]
 }
 
 model Event {
@@ -62,6 +62,9 @@ model Event {
   maxDistance   Float?
   startDate     DateTime?
   startTime     DateTime?
+  recurring     Boolean               @default(false)
+  recurringRate String?
+  duration      Int?
   location      EventLocation?
   preferences   EventUserPreference[]
   photos        EventsUsersPhoto[]

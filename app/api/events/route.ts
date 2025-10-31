@@ -17,6 +17,9 @@ export async function POST(request: Request) {
       activityType,
       city,
       maxDistance,
+      recurring,
+      duration,
+      recurringRate,
       tags,
       userId,
       invitedUsers = [], // Nouveaux utilisateurs invités
@@ -106,6 +109,9 @@ export async function POST(request: Request) {
         activityType,
         city,
         maxDistance: maxDistance ? Number(maxDistance) : null,
+        recurring: recurring || false,
+        duration: duration ? Number(duration) : null,
+        recurringRate: recurringRate || null,
         createdAt: new Date(),
         updatedAt: new Date(),
         users: {

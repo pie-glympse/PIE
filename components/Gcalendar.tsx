@@ -16,6 +16,9 @@ interface APIEvent {
   costPerPerson?: string;
   state?: string;
   activityType?: string; // ✅ Ajouter activityType
+  recurring?: boolean;
+  duration?: number;
+  recurringRate?: string;
   tags: { id: string; name: string }[];
 }
 
@@ -32,6 +35,9 @@ interface Event {
   originalStartDate?: string;
   originalEndDate?: string;
   uuid?: string;
+  recurring?: boolean;
+  recurringRate?: string;
+  duration?: number;
 }
 
 interface HoveredDay {
@@ -143,6 +149,62 @@ const MiniCalendar = ({ eventsData = [] }: MiniCalendarProps) => {
     return dates;
   }, []);
 
+  // Fonction pour générer les occurrences récurrentes
+  const generateRecurringDates = React.useCallback((
+    startDate: Date,
+    recurringRate: string,
+    duration: number,
+    maxDate: Date
+  ): Date[] => {
+    const dates: Date[] = [];
+    const current = new Date(startDate);
+    const eventDuration = duration || 1; // Durée en jours
+    
+    // Limiter à 2 ans dans le futur pour les événements récurrents
+    const limitDate = new Date(maxDate);
+    limitDate.setFullYear(limitDate.getFullYear() + 2);
+    
+    // Ne générer que les occurrences jusqu'à la date limite
+    while (current <= limitDate) {
+      // Ajouter l'occurrence de début
+      dates.push(new Date(current));
+      
+      // Si l'événement s'étend sur plusieurs jours, ajouter aussi les jours suivants
+      if (eventDuration > 1) {
+        for (let i = 1; i < eventDuration; i++) {
+          const nextDay = new Date(current);
+          nextDay.setDate(nextDay.getDate() + i);
+          if (nextDay <= limitDate) {
+            dates.push(nextDay);
+          }
+        }
+      }
+      
+      // Calculer la prochaine occurrence selon le taux de récurrence
+      const nextDate = new Date(current);
+      switch (recurringRate) {
+        case 'day':
+          nextDate.setDate(nextDate.getDate() + 1);
+          break;
+        case 'week':
+          nextDate.setDate(nextDate.getDate() + 7);
+          break;
+        case 'month':
+          nextDate.setMonth(nextDate.getMonth() + 1);
+          break;
+        case 'year':
+          nextDate.setFullYear(nextDate.getFullYear() + 1);
+          break;
+        default:
+          return dates; // Si le taux n'est pas reconnu, arrêter
+      }
+      
+      current.setTime(nextDate.getTime());
+    }
+    
+    return dates;
+  }, []);
+
   // Fonction pour convertir les événements de l'API au format du calendrier
   const convertAPIEventToCalendarEvent = React.useCallback((apiEvent: APIEvent): Event[] => {
     const getTimeFromDate = (dateString?: string): string => {
@@ -161,7 +223,49 @@ const MiniCalendar = ({ eventsData = [] }: MiniCalendarProps) => {
     const endDate = apiEvent.endDate ? formatDateForCalendar(apiEvent.endDate) : startDate;
     const isMultiDay = startDate !== endDate;
 
-    // Si l'événement s'étend sur plusieurs jours, créer un événement pour chaque jour
+    // Si l'événement est récurrent
+    if (apiEvent.recurring && apiEvent.recurringRate && apiEvent.duration) {
+      const start = new Date(startDate);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      // Obtenir la date maximale à afficher (1 an depuis aujourd'hui pour le calendrier)
+      const maxDisplayDate = new Date(today);
+      maxDisplayDate.setFullYear(maxDisplayDate.getFullYear() + 1);
+      
+      const eventDuration = apiEvent.duration || 1;
+      
+      // Générer toutes les occurrences récurrentes
+      const recurringDates = generateRecurringDates(
+        start,
+        apiEvent.recurringRate,
+        eventDuration,
+        maxDisplayDate
+      );
+      
+      // Convertir les dates en format YYYY-MM-DD et créer les événements
+      return recurringDates.map((date) => {
+        const dateStr = date.toISOString().split('T')[0];
+        return {
+          id: parseInt(apiEvent.id),
+          date: dateStr,
+          title: apiEvent.title,
+          description: apiEvent.description || '',
+          time: getTimeFromDate(apiEvent.startDate),
+          activityType: apiEvent.activityType,
+          tags: apiEvent.tags,
+          isMultiDay: eventDuration > 1,
+          originalStartDate: startDate,
+          originalEndDate: endDate,
+          uuid: apiEvent.uuid,
+          recurring: true,
+          recurringRate: apiEvent.recurringRate,
+          duration: eventDuration
+        };
+      });
+    }
+
+    // Si l'événement n'est pas récurrent ou s'étend sur plusieurs jours, créer un événement pour chaque jour
     const dateRange = generateDateRange(startDate, endDate);
     
     return dateRange.map((date) => ({
@@ -170,14 +274,17 @@ const MiniCalendar = ({ eventsData = [] }: MiniCalendarProps) => {
       title: apiEvent.title,
       description: apiEvent.description || '',
       time: getTimeFromDate(apiEvent.startDate),
-      activityType: apiEvent.activityType, // ✅ Conserver activityType
+      activityType: apiEvent.activityType,
       tags: apiEvent.tags,
       isMultiDay: isMultiDay,
       originalStartDate: startDate,
       originalEndDate: endDate,
-      uuid: apiEvent.uuid
+      uuid: apiEvent.uuid,
+      recurring: apiEvent.recurring || false,
+      recurringRate: apiEvent.recurringRate,
+      duration: apiEvent.duration
     }));
-  }, [generateDateRange]);
+  }, [generateDateRange, generateRecurringDates]);
 
   // Récupérer les événements depuis l'API
   useEffect(() => {
@@ -530,6 +637,14 @@ const MiniCalendar = ({ eventsData = [] }: MiniCalendarProps) => {
                 {event.activityType && (
                   <div className="text-gray-400 text-xs">
                     Type: {event.activityType}
+                  </div>
+                )}
+                {event.recurring && (
+                  <div className="text-gray-400 text-xs">
+                    🔁 Récurrent ({event.recurringRate === 'day' ? 'Quotidien' : 
+                                   event.recurringRate === 'week' ? 'Hebdomadaire' :
+                                   event.recurringRate === 'month' ? 'Mensuel' :
+                                   event.recurringRate === 'year' ? 'Annuel' : 'Récurrent'})
                   </div>
                 )}
                 {event.time && (
