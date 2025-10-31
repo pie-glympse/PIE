@@ -383,70 +383,72 @@ export default function SingleEventPage() {
               <ShareButton onClick={handleShare} />
 
               {isAuthorized && (
-              <button
-                className="p-4"
-                onClick={() => setIsStateDropdownOpen(!isStateDropdownOpen)}
-              >
-                <div className="relative content-center w-fit flex align-center gap-2">
-                  <div
-                    className={`w-3 h-3 rounded-full ${getStateColor(
-                      event.state || "pending"
-                    )}`}
-                  ></div>
-                  <div className="flex items-center gap-2 rounded-full transition-all">
-                    <svg
-                      className={`w-4 h-4 text-black transition-transform ${
-                        isStateDropdownOpen ? "rotate-180" : ""
-                      }`}
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M19 9l-7 7-7-7"
-                      />
-                    </svg>
-                  </div>
-
-                  {/* Dropdown des états */}
-                  {isStateDropdownOpen && (
-                    <div className="absolute top-full mt-2 right-0 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50 min-w-48">
-                      {availableStates.map((stateOption) => (
-                        <button
-                          key={stateOption.value}
-                          onClick={() => handleChangeEventState(stateOption.value)}
-                          className={`w-full flex items-center gap-3 px-4 py-2 text-left hover:bg-gray-50 transition-colors ${
-                            event.state?.toLowerCase() === stateOption.value
-                              ? "bg-gray-100"
-                              : ""
-                          }`}
-                        >
-                          <div
-                            className={`w-3 h-3 rounded-full ${stateOption.color}`}
-                          ></div>
-                          <span className="text-gray-700">{stateOption.label}</span>
-                          {event.state?.toLowerCase() === stateOption.value && (
-                            <svg
-                              className="w-4 h-4 text-green-600 ml-auto"
-                              fill="currentColor"
-                              viewBox="0 0 20 20"
-                            >
-                              <path
-                                fillRule="evenodd"
-                                d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                                clipRule="evenodd"
-                              />
-                            </svg>
-                          )}
-                        </button>
-                      ))}
+              <div className="relative">
+                <button
+                  className="p-4"
+                  onClick={() => setIsStateDropdownOpen(!isStateDropdownOpen)}
+                >
+                  <div className="content-center w-fit flex align-center gap-2">
+                    <div
+                      className={`w-3 h-3 rounded-full ${getStateColor(
+                        event.state || "pending"
+                      )}`}
+                    ></div>
+                    <div className="flex items-center gap-2 rounded-full transition-all">
+                      <svg
+                        className={`w-4 h-4 text-black transition-transform ${
+                          isStateDropdownOpen ? "rotate-180" : ""
+                        }`}
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M19 9l-7 7-7-7"
+                        />
+                      </svg>
                     </div>
-                  )}
-                </div>
-              </button>
+                  </div>
+                </button>
+
+                {/* Dropdown des états - sorti du bouton pour éviter l'imbrication */}
+                {isStateDropdownOpen && (
+                  <div className="absolute top-full mt-2 right-0 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50 min-w-48">
+                    {availableStates.map((stateOption) => (
+                      <button
+                        key={stateOption.value}
+                        onClick={() => handleChangeEventState(stateOption.value)}
+                        className={`w-full flex items-center gap-3 px-4 py-2 text-left hover:bg-gray-50 transition-colors ${
+                          event.state?.toLowerCase() === stateOption.value
+                            ? "bg-gray-100"
+                            : ""
+                        }`}
+                      >
+                        <div
+                          className={`w-3 h-3 rounded-full ${stateOption.color}`}
+                        ></div>
+                        <span className="text-gray-700">{stateOption.label}</span>
+                        {event.state?.toLowerCase() === stateOption.value && (
+                          <svg
+                            className="w-4 h-4 text-green-600 ml-auto"
+                            fill="currentColor"
+                            viewBox="0 0 20 20"
+                          >
+                            <path
+                              fillRule="evenodd"
+                              d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                              clipRule="evenodd"
+                            />
+                          </svg>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             )}
             </div>
           </div>
