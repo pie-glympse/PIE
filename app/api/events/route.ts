@@ -171,6 +171,14 @@ export async function GET(request: Request) {
       },
       include: {
         tags: true,
+        users: {
+          select: {
+            id: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+          }
+        },
       },
       orderBy: {
         createdAt: 'desc'

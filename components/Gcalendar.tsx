@@ -213,9 +213,18 @@ const MiniCalendar = ({ eventsData = [] }: MiniCalendarProps) => {
   // Vérifier l'état du scroll pour afficher/masquer les boutons (seulement pour desktop)
   const checkScrollPosition = React.useCallback(() => {
     if (scrollContainerRef.current && !isMobile) {
-      const { scrollLeft, scrollWidth, clientWidth } = scrollContainerRef.current;
-      setCanScrollLeft(scrollLeft > 0);
-      setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 1);
+      const container = scrollContainerRef.current;
+      const { scrollLeft, scrollWidth, clientWidth } = container;
+      
+      // Vérifier si on peut scroller vers la gauche (avec marge pour les valeurs décimales)
+      const canScrollBack = scrollLeft > 1;
+      
+      // Vérifier si on peut scroller vers la droite (avec marge pour les valeurs décimales)
+      const maxScroll = scrollWidth - clientWidth;
+      const canScrollForward = scrollLeft < maxScroll - 1;
+      
+      setCanScrollLeft(canScrollBack);
+      setCanScrollRight(canScrollForward);
     }
   }, [isMobile]);
 
@@ -223,42 +232,74 @@ const MiniCalendar = ({ eventsData = [] }: MiniCalendarProps) => {
   useEffect(() => {
     const scrollContainer = scrollContainerRef.current;
     if (scrollContainer && !isMobile) {
-      scrollContainer.addEventListener('scroll', checkScrollPosition);
-      scrollContainer.addEventListener('scrollend', checkScrollPosition);
+      // Utiliser requestAnimationFrame pour une détection plus précise
+      let ticking = false;
+      const handleScroll = () => {
+        if (!ticking) {
+          window.requestAnimationFrame(() => {
+            checkScrollPosition();
+            ticking = false;
+          });
+          ticking = true;
+        }
+      };
+      
+      scrollContainer.addEventListener('scroll', handleScroll);
+      // Support pour scrollend (certains navigateurs)
+      if ('onscrollend' in scrollContainer) {
+        scrollContainer.addEventListener('scrollend', checkScrollPosition);
+      }
+      
+      // Vérifier l'état initial
       checkScrollPosition();
       
       return () => {
-        scrollContainer.removeEventListener('scroll', checkScrollPosition);
-        scrollContainer.removeEventListener('scrollend', checkScrollPosition);
+        scrollContainer.removeEventListener('scroll', handleScroll);
+        if ('onscrollend' in scrollContainer) {
+          scrollContainer.removeEventListener('scrollend', checkScrollPosition);
+        }
       };
     }
   }, [isMobile, checkScrollPosition]);
 
   // Recalculer la position du scroll quand les mois changent
   useEffect(() => {
-    if (calendarMonths.length > 0 && !isMobile) {
-      // Petit délai pour laisser le DOM se mettre à jour
-      setTimeout(() => {
+    if (calendarMonths.length > 0 && !isMobile && scrollContainerRef.current) {
+      // Attendre que le DOM soit complètement rendu
+      const checkMultipleTimes = () => {
         checkScrollPosition();
-      }, 100);
+        // Vérifier plusieurs fois avec des délais croissants pour s'assurer que le layout est stable
+        setTimeout(() => checkScrollPosition(), 100);
+        setTimeout(() => checkScrollPosition(), 300);
+        setTimeout(() => checkScrollPosition(), 500);
+      };
+      checkMultipleTimes();
     }
   }, [calendarMonths.length, isMobile, checkScrollPosition]);
 
   // Navigation avec les boutons flèches (seulement pour desktop)
-  const scrollToDirection = (direction: 'left' | 'right') => {
+  const scrollToDirection = React.useCallback((direction: 'left' | 'right') => {
     if (scrollContainerRef.current && !isMobile) {
+      const container = scrollContainerRef.current;
       const scrollAmount = 264; // Largeur d'un mois + gap
-      const currentScroll = scrollContainerRef.current.scrollLeft;
+      const currentScroll = container.scrollLeft;
       const newScroll = direction === 'left' 
-        ? currentScroll - scrollAmount 
-        : currentScroll + scrollAmount;
+        ? Math.max(0, currentScroll - scrollAmount)
+        : Math.min(container.scrollWidth - container.clientWidth, currentScroll + scrollAmount);
       
-      scrollContainerRef.current.scrollTo({
+      container.scrollTo({
         left: newScroll,
         behavior: 'smooth'
       });
+      
+      // Vérifier plusieurs fois après le scroll pour s'assurer que l'état est à jour
+      // Le scroll smooth prend du temps, donc on vérifie plusieurs fois
+      checkScrollPosition(); // Immédiat
+      setTimeout(() => checkScrollPosition(), 100);
+      setTimeout(() => checkScrollPosition(), 300);
+      setTimeout(() => checkScrollPosition(), 600); // Après la fin du smooth scroll
     }
-  };
+  }, [isMobile, checkScrollPosition]);
 
   const getDaysInMonth = (month: number, year: number): number => {
     return new Date(year, month + 1, 0).getDate();
@@ -385,12 +426,16 @@ const MiniCalendar = ({ eventsData = [] }: MiniCalendarProps) => {
         {!isMobile && (
           <div className="flex gap-2">
             <button
-              onClick={() => scrollToDirection('left')}
+              onClick={() => {
+                if (canScrollLeft) {
+                  scrollToDirection('left');
+                }
+              }}
               disabled={!canScrollLeft}
               className={`z-10 p-2 rounded transition-all ${
                 canScrollLeft 
-                  ? 'bg-gray-200 hover:bg-gray-300 text-gray-700' 
-                  : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                  ? 'bg-gray-200 hover:bg-gray-300 text-gray-700 cursor-pointer' 
+                  : 'bg-gray-100 text-gray-400 cursor-not-allowed opacity-50'
               }`}
               aria-label="Mois précédent"
             >
@@ -427,7 +472,15 @@ const MiniCalendar = ({ eventsData = [] }: MiniCalendarProps) => {
         }`}
         style={{
           WebkitOverflowScrolling: 'touch',
-          scrollBehavior: 'smooth'
+          scrollBehavior: 'smooth',
+          // S'assurer que le conteneur a une largeur maximale pour forcer le scroll
+          maxWidth: '100%'
+        }}
+        onScroll={() => {
+          // Forcer une vérification immédiate lors du scroll manuel
+          if (!isMobile) {
+            checkScrollPosition();
+          }
         }}
       >
         {calendarMonths.map((monthInfo, index) => (

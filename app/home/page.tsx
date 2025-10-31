@@ -62,30 +62,10 @@ export default function HomePage() {
       return "/images/illustration/roundstar.svg"; // Par défaut
     };
 
-    // Générer des participants mockés pour la démo
-    const generateMockParticipants = (eventId: string) => {
-      const baseParticipants = [
-        { id: "1", firstName: "Olivia", lastName: "Rhye", email: "olivia.rhye@example.com" },
-        { id: "2", firstName: "John", lastName: "Doe", email: "john.doe@example.com" },
-        { id: "3", firstName: "Jane", lastName: "Smith", email: "jane.smith@example.com" },
-        { id: "4", firstName: "Mike", lastName: "Johnson", email: "mike.johnson@example.com" },
-        { id: "5", firstName: "Sarah", lastName: "Wilson", email: "sarah.wilson@example.com" },
-        { id: "6", firstName: "David", lastName: "Brown", email: "david.brown@example.com" },
-        { id: "7", firstName: "Emma", lastName: "Davis", email: "emma.davis@example.com" },
-        { id: "8", firstName: "Alex", lastName: "Miller", email: "alex.miller@example.com" },
-      ];
-      
-      // Utiliser l'ID de l'événement pour déterminer le nombre de participants (entre 0 et 8)
-      const eventIdNum = parseInt(eventId) || 1;
-      const participantCount = (eventIdNum % 9); // 0 à 8 participants
-      
-      return baseParticipants.slice(0, participantCount);
-    };
-
     return {
       title: event.title,
       date: event.date || new Date().toISOString(),
-      participants: event.users && event.users.length > 0 ? event.users : generateMockParticipants(event.id),
+      participants: event.users || [], // Utiliser les vrais participants ou un tableau vide
       backgroundUrl: getBackgroundUrl(event.tags),
       state: event.state, // ✅ Ajouter l'état de l'événement
     };
