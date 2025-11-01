@@ -128,6 +128,12 @@ const EventForm: React.FC<EventFormProps> = ({
     const handleSubmit = async (e: FormEvent) => {
         e.preventDefault();
         
+        // Valider que la ville est renseignée
+        if (!city || city.trim() === '') {
+            alert('La ville est obligatoire');
+            return;
+        }
+        
         // Valider les dates et heures avant soumission
         if (!validateDatesAndTimes()) {
             return;
@@ -398,17 +404,17 @@ const EventForm: React.FC<EventFormProps> = ({
             {/* Ville et Distance max (50-50) */}
             <div className="flex flex-col md:flex-row gap-4 mb-6">
                 <div className="flex-1">
-                    <label htmlFor="city" className="block mb-1 text-body-large font-poppins text-[var(--color-grey-three)]">Ville</label>
-                    {/* <input
-                        id="city"
-                        type="text"
-                        value={city}
-                        onChange={e => setCity(e.target.value)}
-                        placeholder="Ville"
-                        className="w-full px-5 py-2 text-base border-2 border-[var(--color-grey-two)] rounded placeholder:font-poppins placeholder:text-[#EAEAEF]"
-                    /> */}
-                    <AutocompleteInput value={city} onChange={setCity} placeholder="Ville ou adresse" />
-
+                    <label htmlFor="city" className="block mb-1 text-body-large font-poppins text-[var(--color-grey-three)]">
+                        Ville <span className="text-red-500">*</span>
+                    </label>
+                    <AutocompleteInput 
+                        value={city} 
+                        onChange={setCity} 
+                        placeholder="Ville ou adresse (obligatoire)" 
+                    />
+                    {!city && (
+                        <p className="text-red-500 text-sm mt-1 font-poppins">La ville est obligatoire</p>
+                    )}
                 </div>
                 <div className="flex-1">
                     <label htmlFor="maxDistance" className="block mb-1 text-body-large font-poppins text-[var(--color-grey-three)]">Distance max (km)</label>

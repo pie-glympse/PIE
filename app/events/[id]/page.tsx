@@ -24,6 +24,7 @@ type EventDetails = {
   activityType?: string;
   state?: string;
   city?: string;
+  maxDistance?: number;
   tags: { id: string; name: string }[];
   users: {
     id: string;
@@ -268,8 +269,8 @@ export default function SingleEventPage() {
   const organizer = event.users?.[0];
 
   return (
-    <section className="h-screen overflow-y-auto md:overflow-hidden pt-24 p-6 flex flex-col gap-8">
-      <div className="h-full w-full flex flex-col gap-6 items-start p-4 md:p-10">
+    <section className="min-h-screen pt-24 p-6 flex flex-col gap-8">
+      <div className="w-full flex flex-col gap-6 items-start p-4 md:p-10">
         {/* Header avec logo et back arrow */}
         <BackArrow onClick={() => router.back()} className="!mb-0" />
 
@@ -460,7 +461,7 @@ export default function SingleEventPage() {
         </div>
 
         {/* Contenu de l'onglet actif */}
-        <div className="w-full flex-1 overflow-auto">{renderTabContent()}</div>
+        <div className="w-full">{renderTabContent()}</div>
 
         {/* Modal de partage */}
         {isShareModalOpen && (
