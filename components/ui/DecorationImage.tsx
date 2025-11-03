@@ -20,7 +20,7 @@ const DECORATION_CONFIG: Record<string, DecorationConfig> = {
     size: { width: 500, height: 100 },
   },
   "/events/*": {
-    image: "/images/formes/palm-pink.png",
+    image: "/images/formes/palm-yellow.png",
     position: "bottom-right",
     size: { width: 500, height: 100 },
   },

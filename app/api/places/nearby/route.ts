@@ -87,9 +87,9 @@ export async function POST(request: Request) {
       }
     }
 
-    // Limiter à 20 résultats les mieux notés
+    // Limiter à 20 résultats les plus populaires (par nombre d'avis)
     const sortedPlaces = allPlaces
-      .sort((a, b) => (b.rating || 0) - (a.rating || 0))
+      .sort((a, b) => (b.user_ratings_total || 0) - (a.user_ratings_total || 0))
       .slice(0, 20);
 
     // Formater les résultats

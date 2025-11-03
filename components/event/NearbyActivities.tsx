@@ -144,77 +144,114 @@ const NearbyActivities = ({ city, activityType, maxDistance = 5 }: NearbyActivit
     );
   }
 
+  // Formes décoratives qui correspondent aux couleurs de l'app
+  const decorativeShapes = [
+    '/images/illustration/palm.svg',
+    '/images/illustration/roundstar.svg',
+    '/images/illustration/stack.svg',
+  ];
+
+  // Fonction pour obtenir une forme aléatoire de manière déterministe
+  const getDecorativeShape = (index: number) => {
+    return decorativeShapes[index % decorativeShapes.length];
+  };
+
   return (
     <div className="py-8">
       <h3 className="text-h3 font-urbanist mb-6 text-[var(--color-text)]">
         Nos recommandations
       </h3>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {places.map((place) => (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {places.map((place, index) => (
           <div
             key={place.id}
-            className="flex gap-4 p-4 rounded-lg bg-[#F4F4F4] hover:shadow-md transition-shadow cursor-pointer"
+            className="relative rounded-xl border border-gray-200 p-6 overflow-hidden cursor-pointer hover:shadow-lg transition-all duration-200 bg-white"
             onClick={() => {
               // Ouvrir Google Maps dans un nouvel onglet
               window.open(`https://www.google.com/maps/place/?q=place_id:${place.id}`, '_blank');
             }}
           >
-            {/* Image à gauche */}
-            <div className="relative w-24 h-24 flex-shrink-0 rounded overflow-hidden bg-gray-300">
-              {place.photos && place.photos.length > 0 ? (
-                <Image
-                  src={place.photos[0].url}
-                  alt={place.name}
-                  fill
-                  className="object-cover"
-                  sizes="96px"
-                />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center bg-gray-200 text-gray-400">
-                  <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                  </svg>
+            {/* Contenu principal */}
+            <div className="relative z-10">
+              {/* Image et note */}
+              <div className="flex items-start gap-3 mb-3">
+                <div className="relative w-16 h-16 flex-shrink-0 rounded-lg overflow-hidden bg-gray-200">
+                  {place.photos && place.photos.length > 0 ? (
+                    <Image
+                      src={place.photos[0].url}
+                      alt={place.name}
+                      fill
+                      className="object-cover"
+                      sizes="64px"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-gray-400">
+                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
+                
+                <div className="flex-1 min-w-0">
+                  {/* Titre */}
+                  <h4 className="text-lg font-semibold font-urbanist text-[var(--color-text)] mb-1 line-clamp-2">
+                    {place.name}
+                  </h4>
+                  
+                  {/* Note */}
+                  {place.rating && (
+                    <div className="flex items-center gap-1">
+                      {renderStars(place.rating)}
+                    </div>
+                  )}
+                </div>
+              </div>
 
-            {/* Informations à droite */}
-            <div className="flex-1 min-w-0">
-              {/* Titre */}
-              <h4 className="text-body-large font-semibold font-poppins text-[var(--color-text)] truncate mb-1">
-                {place.name}
-              </h4>
-              
               {/* Adresse */}
-              <p className="text-sm text-[var(--color-grey-three)] font-poppins truncate mb-2">
+              <p className="text-sm text-[var(--color-grey-three)] font-poppins mb-3 line-clamp-2">
                 {place.address}
               </p>
 
-              {/* Note et Prix */}
-              <div className="flex items-center gap-3">
-                {renderStars(place.rating)}
-                {place.userRatingsTotal && (
-                  <span className="text-xs text-[var(--color-grey-three)]">
-                    ({place.userRatingsTotal})
-                  </span>
-                )}
-                {renderPriceLevel(place.priceLevel)}
-              </div>
-
-              {/* Badge statut ouvert */}
-              {place.openNow !== undefined && (
-                <div className="mt-2">
-                  <span className={`text-xs px-2 py-1 rounded-full ${
+              {/* Prix et statut */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  {renderPriceLevel(place.priceLevel)}
+                  {place.userRatingsTotal && (
+                    <span className="text-xs text-[var(--color-grey-three)]">
+                      {place.userRatingsTotal} avis
+                    </span>
+                  )}
+                </div>
+                
+                {/* Badge statut ouvert */}
+                {place.openNow !== undefined && (
+                  <span className={`text-xs px-2 py-1 rounded-full font-poppins ${
                     place.openNow 
                       ? 'bg-green-100 text-green-700' 
                       : 'bg-red-100 text-red-700'
                   }`}>
                     {place.openNow ? 'Ouvert' : 'Fermé'}
                   </span>
-                </div>
-              )}
+                )}
+              </div>
             </div>
+            
+            {/* Image d'arrière-plan décorative (style EventCard) */}
+            <Image
+              src={getDecorativeShape(index)}
+              alt=""
+              aria-hidden="true"
+              className="absolute right-[-25px] bottom-[-25px] pointer-events-none opacity-30"
+              width={120}
+              height={120}
+              style={{
+                objectFit: "contain",
+                zIndex: 1,
+              }}
+            />
           </div>
         ))}
       </div>
