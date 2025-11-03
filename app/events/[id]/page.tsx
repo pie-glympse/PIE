@@ -32,6 +32,12 @@ type EventDetails = {
     lastName: string;
     email: string;
   }[];
+  createdBy?: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+  };
   createdAt: string;
   updatedAt: string;
 };
@@ -266,7 +272,7 @@ export default function SingleEventPage() {
     const isAuthorized = user && ["ADMIN", "SUPER_ADMIN"].includes(user.role);
 
 
-  const organizer = event.users?.[0];
+  const organizer = event.createdBy || event.users?.[0];
 
   return (
     <section className="min-h-screen pt-24 p-6 flex flex-col gap-8">

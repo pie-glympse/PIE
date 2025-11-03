@@ -33,6 +33,7 @@ export async function GET(request: Request) {
         firstName: true,
         lastName: true,
         role: true,
+        teamId: true, // ✅ Nécessaire pour filtrer les utilisateurs déjà dans des équipes
       },
       orderBy: {
         firstName: 'asc'
