@@ -153,7 +153,17 @@ export async function POST(request: Request) {
       },
     });
 
-    // Créer des notifications pour les utilisateurs invités
+    // Créer une notification pour le créateur
+    await prisma.notification.create({
+      data: {
+        userId: BigInt(userId),
+        message: `Création de l'événement "${title}" réussie`,
+        type: 'EVENT_CREATED',
+        eventId: newEvent.id,
+      },
+    });
+
+    // Créer des notifications pour les utilisateurs invités (sauf le créateur)
     if (invitedUsers && Array.isArray(invitedUsers) && invitedUsers.length > 0) {
       const creator = await prisma.user.findUnique({
         where: { id: BigInt(userId) },
@@ -164,15 +174,20 @@ export async function POST(request: Request) {
       });
 
       if (creator) {
-        // Créer une notification pour chaque utilisateur invité
-        await prisma.notification.createMany({
-          data: invitedUsers.map((invitedUserId: number) => ({
-            userId: BigInt(invitedUserId),
-            message: `@${creator.firstName}${creator.lastName} vous a invité à son événement "${title}"`,
-            type: 'EVENT_INVITATION',
-            eventId: newEvent.id,
-          })),
-        });
+        // Filtrer pour ne pas notifier le créateur
+        const usersToNotify = invitedUsers.filter((invitedUserId: number) => invitedUserId !== Number(userId));
+
+        if (usersToNotify.length > 0) {
+          // Créer une notification pour chaque utilisateur invité
+          await prisma.notification.createMany({
+            data: usersToNotify.map((invitedUserId: number) => ({
+              userId: BigInt(invitedUserId),
+              message: `@${creator.firstName}${creator.lastName} vous a invité à son événement "${title}"`,
+              type: 'EVENT_INVITATION',
+              eventId: newEvent.id,
+            })),
+          });
+        }
       }
     }
 

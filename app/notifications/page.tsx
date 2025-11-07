@@ -27,6 +27,7 @@ export default function NotificationsPage() {
           const response = await fetch(`/api/notifications?userId=${user.id}`);
           if (response.ok) {
             const data = await response.json();
+            console.log('[Notifications] Data received:', data);
             setNotifications(data);
           } else {
             console.error("Erreur récupération notifications");
@@ -66,9 +67,11 @@ export default function NotificationsPage() {
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();
-    const diffInHours = Math.floor((now.getTime() - date.getTime()) / 3600000);
+    const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / 60000);
+    const diffInHours = Math.floor(diffInMinutes / 60);
 
-    if (diffInHours < 1) return "Il y a quelques instants";
+    if (diffInMinutes < 1) return "À l'instant";
+    if (diffInMinutes < 60) return `Il y a ${diffInMinutes} min`;
     if (diffInHours < 24) return `Il y a ${diffInHours}h`;
     const diffInDays = Math.floor(diffInHours / 24);
     if (diffInDays === 1) return "Il y a 1 jour";
@@ -76,9 +79,24 @@ export default function NotificationsPage() {
     return date.toLocaleDateString("fr-FR");
   };
 
-  // Séparer les notifications nouvelles (non lues) et anciennes (lues, de la semaine dernière)
+  // Séparer les notifications par date
+  const now = new Date();
+  const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+
   const newNotifications = notifications.filter((n) => !n.read);
-  const oldNotifications = notifications.filter((n) => n.read);
+  const recentReadNotifications = notifications.filter((n) => {
+    const notifDate = new Date(n.createdAt);
+    return n.read && notifDate >= oneDayAgo;
+  });
+  const oldNotifications = notifications.filter((n) => {
+    const notifDate = new Date(n.createdAt);
+    return n.read && notifDate < oneDayAgo;
+  });
+
+  console.log('[Notifications] Total:', notifications.length);
+  console.log('[Notifications] New:', newNotifications.length);
+  console.log('[Notifications] Recent read:', recentReadNotifications.length);
+  console.log('[Notifications] Old:', oldNotifications.length);
 
   const totalNotifications = notifications.length;
 
@@ -131,6 +149,26 @@ export default function NotificationsPage() {
           </section>
         )}
 
+        {/* Section Récentes (lues < 24h) */}
+        {recentReadNotifications.length > 0 && (
+          <section className="mb-6 w-full">
+            <h2 className="text-lg font-semibold text-gray-700 mb-3">Récentes</h2>
+            <div className="space-y-2">
+              {recentReadNotifications.map((notification) => (
+                <div
+                  key={notification.id}
+                  className="flex items-center justify-between gap-4 p-3 bg-[#F4F4F4] rounded-lg opacity-70"
+                >
+                  <p className="text-gray-800 flex-1">{notification.message}</p>
+                  <span className="text-sm text-gray-500 whitespace-nowrap">
+                    {formatDate(notification.createdAt)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
         {/* Section La semaine dernière */}
         {oldNotifications.length > 0 && (
           <section className="w-full">
@@ -141,7 +179,7 @@ export default function NotificationsPage() {
               {oldNotifications.map((notification) => (
                 <div
                   key={notification.id}
-                  className="flex items-center justify-between gap-4 p-3 bg-[#F4F4F4] rounded-lg"
+                  className="flex items-center justify-between gap-4 p-3 bg-[#F4F4F4] rounded-lg opacity-70"
                 >
                   <p className="text-gray-800 flex-1">{notification.message}</p>
                   <span className="text-sm text-gray-500 whitespace-nowrap">

@@ -8,7 +8,6 @@ import { EventTypeCards } from '@/components/ui/EventTypeCard';
 import EventForm from '@/components/forms/EventForm';
 import { UserSelectionStep } from '@/components/forms/UserSelectionStep';
 import { useUser } from '@/context/UserContext';
-import { addNotification } from '@/lib/utils/notificationUtils';
 
 const CreateEventPage = () => {
     const router = useRouter();
@@ -182,12 +181,6 @@ const CreateEventPage = () => {
                 });
 
                 if (response.ok) {
-                    // Ajouter une notification de succès
-                    await addNotification(
-                        user.id,
-                        `Création de l'événement "${formData.title}" réussie`,
-                        'EVENT_CREATED'
-                    );
                     setIsModalOpen(true);
                 } else {
                     const error = await response.json();
