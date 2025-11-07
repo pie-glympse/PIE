@@ -142,7 +142,8 @@ export async function POST(request: Request) {
             lastName: true,
           }
         },
-        createdBy: {
+        // Prisma relation field name for event creator
+        User_Event_createdByIdToUser: {
           select: {
             id: true,
             email: true,
@@ -191,9 +192,18 @@ export async function POST(request: Request) {
       }
     }
 
+    // Map Prisma relation field to `createdBy` for API consumers
+    const newEventObj: any = { ...newEvent };
+    if (newEventObj.User_Event_createdByIdToUser) {
+      newEventObj.createdBy = newEventObj.User_Event_createdByIdToUser;
+      delete newEventObj.User_Event_createdByIdToUser;
+    } else {
+      newEventObj.createdBy = null;
+    }
+
     return NextResponse.json(
       JSON.parse(
-        JSON.stringify(newEvent, (_, value) =>
+        JSON.stringify(newEventObj, (_, value) =>
           typeof value === "bigint" ? value.toString() : value
         )
       ),
@@ -232,7 +242,7 @@ export async function GET(request: Request) {
             lastName: true,
           }
         },
-        createdBy: {
+        User_Event_createdByIdToUser: {
           select: {
             id: true,
             email: true,
@@ -246,9 +256,21 @@ export async function GET(request: Request) {
       }
     });
 
+    // Map relation field name to `createdBy` for each event
+    const mapped = events.map((ev: any) => {
+      const e = { ...ev };
+      if (e.User_Event_createdByIdToUser) {
+        e.createdBy = e.User_Event_createdByIdToUser;
+        delete e.User_Event_createdByIdToUser;
+      } else {
+        e.createdBy = null;
+      }
+      return e;
+    });
+
     return NextResponse.json(
       JSON.parse(
-        JSON.stringify(events, (_, value) =>
+        JSON.stringify(mapped, (_, value) =>
           typeof value === "bigint" ? value.toString() : value
         )
       )
