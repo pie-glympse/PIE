@@ -1,5 +1,6 @@
-import { Team } from '../hooks/useTeamsData';
+'use client';
 
+import { Team } from '../hooks/useTeamsData';
 interface TeamHeaderProps {
   team: Team;
   selectedUsersCount: number;

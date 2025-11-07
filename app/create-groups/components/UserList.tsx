@@ -1,3 +1,4 @@
+'use client';
 import { Team, User } from '../hooks/useTeamsData';
 
 interface UserListProps {

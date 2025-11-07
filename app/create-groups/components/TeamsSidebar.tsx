@@ -1,3 +1,5 @@
+'use client';
+
 import { Team } from '../hooks/useTeamsData';
 
 interface TeamsSidebarProps {
