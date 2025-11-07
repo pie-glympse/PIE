@@ -153,6 +153,29 @@ export async function POST(request: Request) {
       },
     });
 
+    // Créer des notifications pour les utilisateurs invités
+    if (invitedUsers && Array.isArray(invitedUsers) && invitedUsers.length > 0) {
+      const creator = await prisma.user.findUnique({
+        where: { id: BigInt(userId) },
+        select: {
+          firstName: true,
+          lastName: true,
+        },
+      });
+
+      if (creator) {
+        // Créer une notification pour chaque utilisateur invité
+        await prisma.notification.createMany({
+          data: invitedUsers.map((invitedUserId: number) => ({
+            userId: BigInt(invitedUserId),
+            message: `@${creator.firstName}${creator.lastName} vous a invité à son événement "${title}"`,
+            type: 'EVENT_INVITATION',
+            eventId: newEvent.id,
+          })),
+        });
+      }
+    }
+
     return NextResponse.json(
       JSON.parse(
         JSON.stringify(newEvent, (_, value) =>

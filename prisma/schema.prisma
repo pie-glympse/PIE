@@ -9,26 +9,26 @@ datasource db {
 }
 
 model User {
-  id                 BigInt                @id @default(autoincrement())
-  email              String                @unique
-  password           String
-  role               String                @default("STANDARD")
-  photoUrl           String                @default("")
-  firstName          String                @default("")
-  lastName           String                @default("")
-  companyId          BigInt?
-  teamId             BigInt?
-  companyStats       CompanyStats?
-  createdEvents      Event[]               @relation("EventCreator")
-  preferences        EventUserPreference[]
-  photos             EventsUsersPhoto[]
-  feedbacks          Feedback[]
-  Notification       Notification[]
-  PasswordResetToken PasswordResetToken[]
-  company            Company?              @relation(fields: [companyId], references: [id])
-  team               Team?                 @relation(fields: [teamId], references: [id])
-  votes              Vote[]
-  events             Event[]               @relation("EventUsers")
+  id                            BigInt                @id @default(autoincrement())
+  email                         String                @unique
+  password                      String
+  role                          String                @default("STANDARD")
+  photoUrl                      String                @default("")
+  firstName                     String                @default("")
+  lastName                      String                @default("")
+  companyId                     BigInt?
+  teamId                        BigInt?
+  companyStats                  CompanyStats?
+  Event_Event_createdByIdToUser Event[]               @relation("Event_createdByIdToUser")
+  preferences                   EventUserPreference[]
+  photos                        EventsUsersPhoto[]
+  feedbacks                     Feedback[]
+  PasswordResetToken            PasswordResetToken[]
+  notifications                 Notification[]
+  company                       Company?              @relation(fields: [companyId], references: [id])
+  team                          Team?                 @relation(fields: [teamId], references: [id])
+  votes                         Vote[]
+  events                        Event[]               @relation("EventUsers")
 }
 
 model Company {
@@ -49,34 +49,34 @@ model Team {
 }
 
 model Event {
-  id            BigInt                @id @default(autoincrement())
-  title         String
-  maxPersons    BigInt?
-  costPerPerson BigInt?
-  state         String                @default("PENDING")
-  createdAt     DateTime              @default(now())
-  updatedAt     DateTime
-  uuid          String                @unique @default(uuid())
-  activityType  String?
-  city          String?
-  endDate       DateTime?
-  endTime       DateTime?
-  maxDistance   Float?
-  startDate     DateTime?
-  startTime     DateTime?
-  createdById   BigInt?
-  duration      Int?
-  recurring     Boolean               @default(false)
-  recurringRate String?
-  createdBy     User?                 @relation("EventCreator", fields: [createdById], references: [id])
-  location      EventLocation?
-  preferences   EventUserPreference[]
-  photos        EventsUsersPhoto[]
-  feedbacks     Feedback[]
-  Notification  Notification[]
-  votes         Vote[]
-  tags          Tag[]                 @relation("EventTags")
-  users         User[]                @relation("EventUsers")
+  id                           BigInt                @id @default(autoincrement())
+  title                        String
+  maxPersons                   BigInt?
+  costPerPerson                BigInt?
+  state                        String                @default("PENDING")
+  createdAt                    DateTime              @default(now())
+  updatedAt                    DateTime
+  uuid                         String                @unique @default(uuid())
+  activityType                 String?
+  city                         String?
+  endDate                      DateTime?
+  endTime                      DateTime?
+  maxDistance                  Float?
+  startDate                    DateTime?
+  startTime                    DateTime?
+  createdById                  BigInt?
+  duration                     Int?
+  recurring                    Boolean               @default(false)
+  recurringRate                String?
+  User_Event_createdByIdToUser User?                 @relation("Event_createdByIdToUser", fields: [createdById], references: [id])
+  location                     EventLocation?
+  preferences                  EventUserPreference[]
+  photos                       EventsUsersPhoto[]
+  feedbacks                    Feedback[]
+  votes                        Vote[]
+  tags                         Tag[]                 @relation("EventTags")
+  users                        User[]                @relation("EventUsers")
+  notifications                Notification[]
 }
 
 model Tag {
@@ -168,8 +168,8 @@ model Notification {
   type      String?
   eventId   BigInt?
   createdAt DateTime @default(now())
-  Event     Event?   @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  User      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  event     Event?   @relation(fields: [eventId], references: [id], onDelete: Cascade)
 
   @@index([userId, read])
 }

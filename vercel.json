@@ -3,6 +3,10 @@
     {
       "path": "/api/health",
       "schedule": "0 0 */3 * *"
+    },
+    {
+      "path": "/api/notifications/send-reminders",
+      "schedule": "0 10 * * *"
     }
   ]
 }

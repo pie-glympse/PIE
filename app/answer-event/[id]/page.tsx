@@ -81,17 +81,7 @@ const AnswerEventPage = () => {
         fetchTags();
     }, []);
 
-    const categories = availableTags.length > 0 
-        ? availableTags.map(tag => tag.name)
-        : [
-            'Technologie', 'Design', 'Marketing', 'Finance', 'Ressources Humaines',
-            'Ventes', 'Développement Personnel', 'Santé et Bien-être', 'Éducation',
-            'Environnement', 'Art et Culture', 'Voyages', 'Sports et Loisirs',
-            'Entrepreneuriat', 'Innovation', 'Leadership', 'Communication',
-            'Gestion de Projet', 'Stratégie', 'Analyse de Données',
-            'Intelligence Artificielle', 'Blockchain', 'Cybersécurité',
-            'Développement Durable', 'Économie Circulaire'
-        ];
+    const categories = availableTags.map(tag => tag.name);
 
     const dates = eventData?.startDate && eventData?.endDate 
         ? generateDateRange(eventData.startDate, eventData.endDate)
@@ -135,11 +125,14 @@ const AnswerEventPage = () => {
         if (!user || !eventId) return;
 
         setIsSubmitting(true);
-        
+
         try {
             const selectedCategoryName = selectedCategories[0];
             const selectedTag = availableTags.find(tag => tag.name === selectedCategoryName);
-            const tagId = selectedTag?.id || 1;
+
+            if (!selectedTag) {
+                throw new Error(`La catégorie "${selectedCategoryName}" n'existe pas dans les tags disponibles`);
+            }
 
             const selectedDateStr = selectedDates[0];
             const [day, month, year] = selectedDateStr.split('/');
@@ -147,7 +140,7 @@ const AnswerEventPage = () => {
 
             const requestBody = {
                 userId: user.id,
-                tagId: tagId,
+                tagId: selectedTag.id,
                 preferredDate: preferredDate,
                 preferences: selectedPreferences
             };
@@ -162,7 +155,7 @@ const AnswerEventPage = () => {
                 const errorData = await response.json();
                 throw new Error(errorData.message || 'Erreur lors de l\'envoi des préférences');
             }
-            
+
             setIsModalOpen(true);
         } catch (error) {
             console.error('Erreur lors de l\'envoi des préférences:', error);
@@ -248,17 +241,23 @@ const AnswerEventPage = () => {
                                     Sélectionnez une ou plusieurs catégories :
                                 </h3>
                                 <div className="w-full">
-                                    <ul className="flex flex-wrap gap-3 mb-6 list-none">
-                                        {categories.map((category) => (
-                                            <CategoryBtn
-                                                key={category}
-                                                text={category}
-                                                isSelected={selectedCategories.includes(category)}
-                                                onClick={() => handleCategoryClick(category)}
-                                                isDate={false}
-                                            />
-                                        ))}
-                                    </ul>
+                                    {categories.length === 0 ? (
+                                        <p className="text-body-large text-gray-500">
+                                            Chargement des catégories...
+                                        </p>
+                                    ) : (
+                                        <ul className="flex flex-wrap gap-3 mb-6 list-none">
+                                            {categories.map((category) => (
+                                                <CategoryBtn
+                                                    key={category}
+                                                    text={category}
+                                                    isSelected={selectedCategories.includes(category)}
+                                                    onClick={() => handleCategoryClick(category)}
+                                                    isDate={false}
+                                                />
+                                            ))}
+                                        </ul>
+                                    )}
                                 </div>
                             </>
                         )}

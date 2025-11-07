@@ -2,11 +2,45 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useUser } from "../context/UserContext";
 
 export default function Header() {
-
+  const { user } = useUser();
   const [isMenuHovered, setIsMenuHovered] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  // Charger le nombre de notifications non lues depuis l'API
+  useEffect(() => {
+    const fetchUnreadCount = async () => {
+      if (user) {
+        try {
+          const response = await fetch(`/api/notifications?userId=${user.id}`);
+          if (response.ok) {
+            const notifications = await response.json();
+            const count = notifications.filter((n: any) => !n.read).length;
+            setUnreadCount(count);
+          }
+        } catch (error) {
+          console.error("Erreur récupération compteur:", error);
+        }
+      }
+    };
+
+    // Initialiser le compteur
+    fetchUnreadCount();
+
+    // Écouter les changements de notifications
+    const handleUpdate = () => {
+      fetchUnreadCount();
+    };
+
+    window.addEventListener('notificationsUpdated', handleUpdate);
+
+    return () => {
+      window.removeEventListener('notificationsUpdated', handleUpdate);
+    };
+  }, [user]);
 
   return (
     <header className="fixed top-0 left-0 right-0 w-full p-6 bg-white z-50 border-b border-gray-100">
@@ -137,7 +171,7 @@ export default function Header() {
 
         {/* Right: Avatars */}
         <div className="flex items-center gap-8">
-          <div className="w-10 h-10 relative cursor-pointer">
+          <Link href="/notifications" className="w-10 h-10 relative cursor-pointer hover:opacity-80 transition">
             <Image
               src="/images/icones/notification.svg"
               alt="notification"
@@ -145,10 +179,12 @@ export default function Header() {
               height={48}
               className="w-full h-full object-cover rounded-sm"
             />
-            <span className="absolute top-0 right-0 bg-[var(--color-tertiary)] text-white text-xs font-medium px-1 rounded-full">
-              3
-            </span>
-          </div>
+            {unreadCount > 0 && (
+              <span className="absolute top-0 right-0 bg-[var(--color-tertiary)] text-white text-xs font-medium px-1 rounded-full">
+                {unreadCount}
+              </span>
+            )}
+          </Link>
           <Link
             href="/profile"
             className="w-12 h-12 rounded-full transition ease-in-out bg-gray-200 hover:bg-gray-300 border border-white"

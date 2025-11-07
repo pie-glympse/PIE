@@ -155,6 +155,56 @@ export async function POST(request: NextRequest) {
       tagId: preference.tagId.toString(),
     };
 
+    // Créer une notification pour l'organisateur (premier utilisateur)
+    const eventWithUsers = await prisma.event.findUnique({
+      where: { id: eventId },
+      include: {
+        users: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+          },
+        },
+      },
+    });
+
+    if (eventWithUsers && eventWithUsers.users.length > 0) {
+      const organizerId = eventWithUsers.users[0].id;
+
+      // Ne pas notifier si c'est l'organisateur lui-même qui répond
+      if (organizerId.toString() !== userId.toString()) {
+        await prisma.notification.create({
+          data: {
+            userId: organizerId,
+            message: `@${user.firstName}${user.lastName} a répondu au questionnaire de "${event.title}"`,
+            type: 'QUESTIONNAIRE_RESPONSE',
+            eventId: eventId,
+          },
+        });
+      }
+
+      // Vérifier si tous les participants ont répondu au questionnaire
+      const totalParticipants = eventWithUsers.users.length;
+      const totalResponses = await prisma.eventUserPreference.count({
+        where: {
+          eventId: eventId,
+        },
+      });
+
+      // Si tous les participants ont répondu, notifier l'organisateur
+      if (totalResponses === totalParticipants) {
+        await prisma.notification.create({
+          data: {
+            userId: organizerId,
+            message: `Générer votre évènement "${event.title}", tous les participants ont répondu au questionnaire !`,
+            type: 'EVENT_READY_TO_GENERATE',
+            eventId: eventId,
+          },
+        });
+      }
+    }
+
     return NextResponse.json(
       {
         message: 'Préférence enregistrée avec succès',
