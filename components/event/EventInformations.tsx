@@ -1,5 +1,6 @@
 import Image from 'next/image';
 import Map from '@/components/Map';
+import NearbyActivities from '@/components/event/NearbyActivities';
 
 interface EventInformationsProps {
   event: {
@@ -13,6 +14,8 @@ interface EventInformationsProps {
     maxPersons?: string;
     costPerPerson?: string;
     city?: string;
+    activityType?: string;
+    maxDistance?: number;
     tags: { id: string; name: string }[];
   };
 }
@@ -228,6 +231,13 @@ const EventInformations = ({ event }: EventInformationsProps) => {
           <Map address={event.city} />
         </div>
       </div>
+
+      {/* Section Recommandations d'activités */}
+      <NearbyActivities 
+        city={event.city} 
+        activityType={event.activityType}
+        maxDistance={event.maxDistance || 5}
+      />
     </div>
   );
 };

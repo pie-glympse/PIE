@@ -114,6 +114,7 @@ export async function POST(request: Request) {
         recurringRate: recurringRate || null,
         createdAt: new Date(),
         updatedAt: new Date(),
+        createdById: BigInt(userId), // ✅ Enregistrer le créateur
         users: {
           connect: [
             { id: BigInt(userId) }, // Le créateur de l'événement
@@ -134,6 +135,14 @@ export async function POST(request: Request) {
       include: {
         tags: true,
         users: {
+          select: {
+            id: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+          }
+        },
+        createdBy: {
           select: {
             id: true,
             email: true,
@@ -178,6 +187,14 @@ export async function GET(request: Request) {
       include: {
         tags: true,
         users: {
+          select: {
+            id: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+          }
+        },
+        createdBy: {
           select: {
             id: true,
             email: true,

@@ -5,7 +5,7 @@ generator client {
 datasource db {
   provider  = "postgresql"
   url       = env("DATABASE_URL")
-  directUrl = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model User {
@@ -27,6 +27,7 @@ model User {
   team               Team?                 @relation(fields: [teamId], references: [id])
   votes              Vote[]
   events             Event[]               @relation("EventUsers")
+  createdEvents      Event[]               @relation("EventCreator")
 }
 
 model Company {
@@ -65,6 +66,8 @@ model Event {
   recurring     Boolean               @default(false)
   recurringRate String?
   duration      Int?
+  createdById   BigInt?
+  createdBy     User?                 @relation("EventCreator", fields: [createdById], references: [id])
   location      EventLocation?
   preferences   EventUserPreference[]
   photos        EventsUsersPhoto[]

@@ -74,13 +74,22 @@ export const useTeamsData = () => {
   // Récupérer les teams de la company
   useEffect(() => {
     if (!isLoading && user && user.companyId) {
+      console.log('[useTeamsData] Récupération des teams pour companyId:', user.companyId);
       fetch(`/api/teams?companyId=${user.companyId}`)
         .then((res) => {
+          console.log('[useTeamsData] Response status:', res.status);
           if (!res.ok) throw new Error("Erreur lors de la récupération des teams");
           return res.json();
         })
-        .then((data) => setTeams(data))
-        .catch((err) => console.error("Erreur récupération teams:", err));
+        .then((data) => {
+          console.log('[useTeamsData] Teams reçues:', data);
+          console.log('[useTeamsData] Nombre de teams:', data.length);
+          setTeams(data);
+        })
+        .catch((err) => {
+          console.error("Erreur récupération teams:", err);
+          setFetchError("Erreur lors du chargement des équipes");
+        });
     }
   }, [isLoading, user?.companyId]);
 
