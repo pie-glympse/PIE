@@ -36,6 +36,12 @@ const DECORATION_CONFIG: Record<string, DecorationConfig> = {
     position: "bottom-right",
     size: { width: 500, height: 100 },
   },
+
+  "/notifications": {
+    image: "/images/formes/wave-red.png",
+    position: "bottom-right",
+    size: { width: 500, height: 100 },
+  },
 };
 
 type Position =

@@ -296,7 +296,7 @@ const CreateEventPage = () => {
 
     // Affichage de chargement
     if (isLoading) {
-        return <div className="flex items-center justify-center">Chargement...</div>;
+        return <div className="flex items-center justify-center min-h-screen">Chargement...</div>;
     }
 
     // Redirection si pas connecté (ne devrait pas arriver grâce à useEffect)
