@@ -47,7 +47,6 @@ export async function POST(req: NextRequest) {
     // SÉCURITÉ : Vérifier que le token est valide et non expiré
     const resetTokenRecord = await prisma.passwordResetToken.findUnique({
       where: { token },
-      include: { user: true },
     });
 
     if (!resetTokenRecord) {
@@ -81,7 +80,15 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const user = resetTokenRecord.user;
+    // Load the user by id from the token record to avoid include typing issues
+    const user = await prisma.user.findUnique({ where: { id: resetTokenRecord.userId } });
+
+    if (!user) {
+      return NextResponse.json(
+        { error: "Utilisateur lié au token introuvable" },
+        { status: 400 }
+      );
+    }
 
     // Hasher le nouveau mot de passe
     const saltRounds = 12;

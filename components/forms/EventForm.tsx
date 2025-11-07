@@ -24,6 +24,9 @@ interface EventFormProps {
         costPerPerson: string;
         city: string;
         maxDistance: string;
+        recurring: boolean;
+        duration: string;
+        recurringRate: string;
     }) => void;
 }
 
@@ -43,6 +46,9 @@ const EventForm: React.FC<EventFormProps> = ({
     const [costPerPerson, setCostPerPerson] = useState('');
     const [city, setCity] = useState('');
     const [maxDistance, setMaxDistance] = useState('');
+    const [isRecurring, setIsRecurring] = useState(false);
+    const [duration, setDuration] = useState('');
+    const [recurringRate, setRecurringRate] = useState('');
     const [errors, setErrors] = useState<{[key: string]: string}>({});
 
     
@@ -71,15 +77,26 @@ const EventForm: React.FC<EventFormProps> = ({
             newErrors.startTime = "L'heure de début ne peut pas être antérieure à l'heure actuelle";
         }
         
-        
-        if (endDate && startDate && endDate < startDate) {
-            newErrors.endDate = "La date de fin ne peut pas être antérieure à la date de début";
+        // Validation pour événement non récurrent
+        if (!isRecurring) {
+            if (endDate && startDate && endDate < startDate) {
+                newErrors.endDate = "La date de fin ne peut pas être antérieure à la date de début";
+            }
+            
+            if (startDate && endDate && startTime && endTime && startDate === endDate) {
+                if (endTime <= startTime) {
+                    newErrors.endTime = "L'heure de fin doit être postérieure à l'heure de début";
+                }
+            }
         }
         
-
-        if (startDate && endDate && startTime && endTime && startDate === endDate) {
-            if (endTime <= startTime) {
-                newErrors.endTime = "L'heure de fin doit être postérieure à l'heure de début";
+        // Validation pour événement récurrent
+        if (isRecurring) {
+            if (!duration || parseInt(duration) <= 0) {
+                newErrors.duration = "La durée doit être supérieure à 0";
+            }
+            if (!recurringRate) {
+                newErrors.recurringRate = "Veuillez sélectionner une récurrence";
             }
         }
         
@@ -111,22 +128,39 @@ const EventForm: React.FC<EventFormProps> = ({
     const handleSubmit = async (e: FormEvent) => {
         e.preventDefault();
         
+        // Valider que la ville est renseignée
+        if (!city || city.trim() === '') {
+            alert('La ville est obligatoire');
+            return;
+        }
+        
         // Valider les dates et heures avant soumission
         if (!validateDatesAndTimes()) {
             return;
         }
         
         try {
+            // Calculer endDate si événement récurrent
+            let calculatedEndDate = endDate;
+            if (isRecurring && startDate && duration) {
+                const start = new Date(startDate);
+                start.setDate(start.getDate() + parseInt(duration) - 1);
+                calculatedEndDate = start.toISOString().split('T')[0];
+            }
+
             const formData = {
                 title: eventTitle,
                 startDate,
-                endDate,
+                endDate: calculatedEndDate,
                 startTime,
                 endTime,
                 maxPersons,
                 costPerPerson,
                 city,
-                maxDistance
+                maxDistance,
+                recurring: isRecurring,
+                duration: duration || '',
+                recurringRate: recurringRate || ''
             };
 
             if (onSubmit) {
@@ -161,6 +195,28 @@ const EventForm: React.FC<EventFormProps> = ({
                 <h2 className="text-h3 mb-8 text-left md:w-2/3 w-full font-poppins text-[var(--color-grey-three)]">{subtitle}</h2>
             )}
             
+            {/* Checkbox Événement récurrent */}
+            <div className="mb-6">
+                <label className="flex items-center cursor-pointer">
+                    <input
+                        type="checkbox"
+                        checked={isRecurring}
+                        onChange={(e) => {
+                            setIsRecurring(e.target.checked);
+                            if (!e.target.checked) {
+                                setDuration('');
+                                setRecurringRate('');
+                                setEndDate('');
+                            }
+                        }}
+                        className="w-5 h-5 mr-2 text-[var(--color-main)] border-2 border-[var(--color-grey-two)] rounded focus:ring-2 focus:ring-[var(--color-main)]"
+                    />
+                    <span className="text-body-large font-poppins text-[var(--color-grey-three)]">
+                        Événement récurrent
+                    </span>
+                </label>
+            </div>
+            
             {/* Nom de l'événement */}
             <div className="mb-4">
                 <label htmlFor="eventTitle" className="block mb-1 text-body-large font-poppins text-[var(--color-grey-three)]">Nom de l&apos;événement</label>
@@ -175,7 +231,7 @@ const EventForm: React.FC<EventFormProps> = ({
                 />
             </div>
 
-            {/* Dates de début et fin (50-50) */}
+            {/* Dates de début et fin/Durée (50-50) */}
             <div className="flex flex-col md:flex-row gap-4 mb-4">
                 <div className="flex-1">
                     <label htmlFor="startDate" className="block mb-1 text-body-large font-poppins text-[var(--color-grey-three)]">Date de début</label>
@@ -185,27 +241,83 @@ const EventForm: React.FC<EventFormProps> = ({
                         value={startDate}
                         onChange={handleStartDateChange}
                         min={new Date().toISOString().split('T')[0]}
+                        required
                         className="w-full px-5 py-2 text-base border-2 border-[var(--color-grey-two)] rounded font-poppins"
                     />
                     {errors.startDate && (
                         <p className="text-red-500 text-sm mt-1 font-poppins">{errors.startDate}</p>
                     )}
                 </div>
-                <div className="flex-1">
-                    <label htmlFor="endDate" className="block mb-1 text-body-large font-poppins text-[var(--color-grey-three)]">Date de fin</label>
-                    <input
-                        id="endDate"
-                        type="date"
-                        value={endDate}
-                        onChange={handleEndDateChange}
-                        min={startDate || new Date().toISOString().split('T')[0]}
-                        className="w-full px-5 py-2 text-base border-2 border-[var(--color-grey-two)] rounded font-poppins"
-                    />
-                    {errors.endDate && (
-                        <p className="text-red-500 text-sm mt-1 font-poppins">{errors.endDate}</p>
+                {!isRecurring ? (
+                    <div className="flex-1">
+                        <label htmlFor="endDate" className="block mb-1 text-body-large font-poppins text-[var(--color-grey-three)]">Date de fin</label>
+                        <input
+                            id="endDate"
+                            type="date"
+                            value={endDate}
+                            onChange={handleEndDateChange}
+                            min={startDate || new Date().toISOString().split('T')[0]}
+                            className="w-full px-5 py-2 text-base border-2 border-[var(--color-grey-two)] rounded font-poppins"
+                        />
+                        {errors.endDate && (
+                            <p className="text-red-500 text-sm mt-1 font-poppins">{errors.endDate}</p>
+                        )}
+                    </div>
+                ) : (
+                    <div className="flex-1">
+                        <label htmlFor="duration" className="block mb-1 text-body-large font-poppins text-[var(--color-grey-three)]">Durée (en jours)</label>
+                        <input
+                            id="duration"
+                            type="number"
+                            value={duration}
+                            onChange={(e) => {
+                                setDuration(e.target.value);
+                                setErrors(prev => ({ ...prev, duration: '' }));
+                            }}
+                            placeholder="Ex: 1"
+                            min="1"
+                            required
+                            className="w-full px-5 py-2 text-base border-2 border-[var(--color-grey-two)] rounded placeholder:font-poppins placeholder:text-[#EAEAEF]"
+                        />
+                        {errors.duration && (
+                            <p className="text-red-500 text-sm mt-1 font-poppins">{errors.duration}</p>
+                        )}
+                    </div>
+                )}
+            </div>
+            
+            {/* Récurrence (seulement si événement récurrent) */}
+            {isRecurring && (
+                <div className="mb-4">
+                    <label htmlFor="recurringRate" className="block mb-1 text-body-large font-poppins text-[var(--color-grey-three)]">Récurrence</label>
+                    <div className="relative">
+                        <select
+                            id="recurringRate"
+                            value={recurringRate}
+                            onChange={(e) => {
+                                setRecurringRate(e.target.value);
+                                setErrors(prev => ({ ...prev, recurringRate: '' }));
+                            }}
+                            required
+                            className="w-full px-5 py-2 pr-12 text-base border-2 border-[var(--color-grey-two)] rounded font-poppins text-[var(--color-text)] appearance-none bg-white cursor-pointer"
+                        >
+                            <option value="">Sélectionner une récurrence</option>
+                            <option value="day">Par jour</option>
+                            <option value="week">Par semaine</option>
+                            <option value="month">Par mois</option>
+                            <option value="year">Par an</option>
+                        </select>
+                        <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                            <svg className="w-5 h-5 text-[var(--color-grey-three)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                            </svg>
+                        </div>
+                    </div>
+                    {errors.recurringRate && (
+                        <p className="text-red-500 text-sm mt-1 font-poppins">{errors.recurringRate}</p>
                     )}
                 </div>
-            </div>
+            )}
 
             {/* Heure de début et Heure de fin (50-50) */}
             <div className="flex flex-col md:flex-row gap-4 mb-4">
@@ -292,17 +404,17 @@ const EventForm: React.FC<EventFormProps> = ({
             {/* Ville et Distance max (50-50) */}
             <div className="flex flex-col md:flex-row gap-4 mb-6">
                 <div className="flex-1">
-                    <label htmlFor="city" className="block mb-1 text-body-large font-poppins text-[var(--color-grey-three)]">Ville</label>
-                    {/* <input
-                        id="city"
-                        type="text"
-                        value={city}
-                        onChange={e => setCity(e.target.value)}
-                        placeholder="Ville"
-                        className="w-full px-5 py-2 text-base border-2 border-[var(--color-grey-two)] rounded placeholder:font-poppins placeholder:text-[#EAEAEF]"
-                    /> */}
-                    <AutocompleteInput value={city} onChange={setCity} placeholder="Ville ou adresse" />
-
+                    <label htmlFor="city" className="block mb-1 text-body-large font-poppins text-[var(--color-grey-three)]">
+                        Ville <span className="text-red-500">*</span>
+                    </label>
+                    <AutocompleteInput 
+                        value={city} 
+                        onChange={setCity} 
+                        placeholder="Ville ou adresse (obligatoire)" 
+                    />
+                    {!city && (
+                        <p className="text-red-500 text-sm mt-1 font-poppins">La ville est obligatoire</p>
+                    )}
                 </div>
                 <div className="flex-1">
                     <label htmlFor="maxDistance" className="block mb-1 text-body-large font-poppins text-[var(--color-grey-three)]">Distance max (km)</label>

@@ -181,34 +181,37 @@ export default function EventCard({
         </p>
 
         {/* Avatars des participants - adaptés selon la hauteur */}
-        <div className={`flex -space-x-3 ${className?.includes('h-24') || className?.includes('h-20') ? 'scale-50 origin-left' : ''}`}>
-          {displayParticipants.map((participant) => (
-            <div
-              key={participant.id}
-              className="w-10 h-10 rounded-full border-2 border-white bg-gray-200 overflow-hidden relative"
-              title={`${participant.firstName} ${participant.lastName}`}
-            >
-              <Image
-                src="/icons/round.png"
-                alt={`Avatar de ${participant.firstName} ${participant.lastName}`}
-                width={40}
-                height={40}
-                className="rounded-full object-cover"
-              />
-            </div>
-          ))}
-          
-          {/* Affichage du nombre restant si plus de 5 participants */}
-          {remainingCount > 0 && (
-            <div className="w-10 h-10 rounded-full border-2 border-white bg-gray-300 flex items-center justify-center">
-              <span className="text-xs text-gray-600 font-medium">
-                +{remainingCount}
-              </span>
-            </div>
-          )}
-          
-          {/* Si aucun participant, afficher un message */}
-          {participants.length === 0 && (
+        <div className={`flex items-center gap-2 ${className?.includes('h-24') || className?.includes('h-20') ? 'scale-50 origin-left' : ''}`}>
+          {participants.length > 0 ? (
+            <>
+              <div className="flex -space-x-3">
+                {displayParticipants.map((participant) => (
+                  <div
+                    key={participant.id}
+                    className="w-10 h-10 rounded-full border-2 border-white bg-gray-200 overflow-hidden relative"
+                    title={`${participant.firstName} ${participant.lastName}`}
+                  >
+                    <Image
+                      src="/icons/round.png"
+                      alt={`Avatar de ${participant.firstName} ${participant.lastName}`}
+                      width={40}
+                      height={40}
+                      className="rounded-full object-cover"
+                    />
+                  </div>
+                ))}
+                
+                {/* Affichage du nombre restant si plus de 5 participants */}
+                {remainingCount > 0 && (
+                  <div className="w-10 h-10 z-10 rounded-full border-2 border-white bg-gray-300 flex items-center justify-center">
+                    <span className="text-xs text-gray-600 font-medium">
+                      +{remainingCount}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </>
+          ) : (
             <p className={`text-gray-500 italic ${className?.includes('h-24') || className?.includes('h-20') ? 'text-xs' : 'text-sm'}`}>
               Encore aucun participant
             </p>

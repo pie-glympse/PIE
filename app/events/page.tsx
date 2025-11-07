@@ -5,9 +5,13 @@ import { useUser } from "../../context/UserContext";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import BackArrow from "@/components/ui/BackArrow";
-import Gcard from "@/components/Gcard";
 import { ShareEventModal } from "@/components/layout/ShareEventModal";
-import MainButton from "@/components/ui/MainButton";
+import { StatusFilterButtons } from "@/components/ui/StatusFilterButtons";
+import { ViewModeToggle } from "@/components/ui/ViewModeToggle";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { EventList } from "@/components/event/EventList";
+import { useEvents, filterEventsByStatus, type EventType } from "@/hooks/useEvents";
+import { useEventPreferences } from "@/hooks/useEventPreferences";
 
 const TAGS = [
   { id: 1, name: "Restauration" },
@@ -17,57 +21,21 @@ const TAGS = [
   { id: 5, name: "Autre" },
 ];
 
-export type EventType = {
-  id: string;
-  uuid: string;
-  title: string;
-  startDate?: string;
-  endDate?: string;
-  startTime?: string;
-  endTime?: string;
-  maxPersons?: string;
-  costPerPerson?: string;
-  state?: string;
-  activityType?: string;
-  city?: string;
-  maxDistance?: number;
-  tags: { id: string; name: string }[];
-  users: {
-    id: string;
-    firstName: string;
-    lastName: string;
-    email: string;
-  }[];
-};
-
 export default function EventForm() {
   const { user, isLoading } = useUser();
   const router = useRouter();
 
-  const [userEvents, setUserEvents] = useState<EventType[]>([]);
-  const [userEventPreferences, setUserEventPreferences] = useState<
-    Set<string>
-  >(new Set());
-
-  const [users, setUsers] = useState<
-    { id: string; name?: string; email?: string }[]
-  >([]);
+  const { events: userEvents, loading: eventsLoading, setEvents } = useEvents(user?.id);
+  const { userEventPreferences } = useEventPreferences(user?.id);
+  const [users, setUsers] = useState<{ id: string; name?: string; email?: string }[]>([]);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [step, setStep] = useState(1);
   const [selectedTagId, setSelectedTagId] = useState<number | null>(null);
   const [preferredDate, setPreferredDate] = useState("");
-  const [preferences, setPreferences] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [eventsLoading, setEventsLoading] = useState(true);
   const [selectedEvent, setSelectedEvent] = useState<EventType | null>(null);
   const [showPreferenceForm, setShowPreferenceForm] = useState(false);
-
   const [dropdownEvent, setDropdownEvent] = useState<string | null>(null);
-
-  // État pour la vue (grid ou list)
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-
-  // État pour le filtrage par statut
   const [statusFilter, setStatusFilter] = useState<'all' | 'past' | 'upcoming' | 'preparation'>('all');
 
   const [shareModal, setShareModal] = useState<{
@@ -87,28 +55,12 @@ export default function EventForm() {
     }
   }, [user, isLoading, router]);
 
-  // Charger les events du user
+  // Charger les participants pour chaque événement
   useEffect(() => {
-    if (!isLoading && user) {
-      setEventsLoading(true);
-      fetch(`/api/events?userId=${user.id}`)
-        .then((res) => {
-          if (!res.ok)
-            throw new Error("Erreur lors de la récupération des événements");
-          return res.json();
-        })
-        .then((data) => {
-          setUserEvents(data);
-          setFetchError(null);
-        })
-        .catch((err) => setFetchError(err.message))
-        .finally(() => setEventsLoading(false));
-    }
-  }, [isLoading, user]);
+    const hasEvents = userEvents.length > 0;
+    const needParticipants = hasEvents && !userEvents[0]?.users;
 
-  // Charger les participants pour chaque événement séparément
-  useEffect(() => {
-    if (userEvents.length > 0) {
+    if (needParticipants) {
       const fetchParticipants = async () => {
         const eventsWithParticipants = await Promise.all(
           userEvents.map(async (event) => {
@@ -116,8 +68,8 @@ export default function EventForm() {
               const participantsRes = await fetch(`/api/events/${event.id}/users`);
               if (participantsRes.ok) {
                 const participantsData = await participantsRes.json();
-                return { 
-                  ...event, 
+                return {
+                  ...event,
                   users: participantsData.users || participantsData.userIds?.map((id: string) => ({
                     id,
                     firstName: "User",
@@ -133,60 +85,18 @@ export default function EventForm() {
             }
           })
         );
-        setUserEvents(eventsWithParticipants);
+        setEvents(eventsWithParticipants);
       };
-      
+
       fetchParticipants();
     }
-  }, [userEvents.length > 0 && !userEvents[0]?.users]);
-
-  // ✅ Charger les préférences existantes de l'utilisateur
-  useEffect(() => {
-    if (!isLoading && user) {
-      const fetchUserPreferences = async () => {
-        try {
-          const response = await fetch(`/api/user-event-preferences?userId=${user.id}`);
-          if (response.ok) {
-            const preferences = await response.json();
-            // Créer un Set avec les eventIds pour lesquels l'utilisateur a des préférences
-            type UserEventPreference = { event: { id: string } };
-            const eventIdsWithPreferences = new Set<string>(
-              preferences.map((pref: UserEventPreference) => String(pref.event.id))
-            );
-            setUserEventPreferences(eventIdsWithPreferences);
-          }
-        } catch (error) {
-          console.error('Erreur lors du chargement des préférences:', error);
-        }
-      };
-
-      fetchUserPreferences();
-    }
-  }, [isLoading, user]);
+  }, [userEvents, setEvents]);
 
   useEffect(() => {
-    if (userEvents.length > 0 && user) {
-      const fetchPreferences = async () => {
-        const res = await fetch(
-          `/api/user-event-preferences?userId=${user.id}`
-        );
-        const data = await res.json();
-        // Extract event IDs and store in a Set<string>
-        const eventIds = new Set<string>(
-          data.map((pref: { eventId: string | number }) => String(pref.eventId))
-        );
-        setUserEventPreferences(eventIds);
-      };
-      fetchPreferences();
-    }
-  }, [userEvents, user]);
-
-  useEffect(() => {
-    if (!isLoading && user) {
-      fetch(`/api/users`)
+    if (!isLoading && user && user.companyId) {
+      fetch(`/api/users?companyId=${user.companyId}`)
         .then((res) => {
-          if (!res.ok)
-            throw new Error("Erreur lors de la récupération des utilisateurs");
+          if (!res.ok) throw new Error("Erreur lors de la récupération des utilisateurs");
           return res.json();
         })
         .then((data) => {
@@ -195,30 +105,7 @@ export default function EventForm() {
         })
         .catch((err) => setFetchError(err.message));
     }
-  }, [isLoading, user]);
-
-  useEffect(() => {
-    async function fetchPreferences() {
-      try {
-        if (!user || !selectedEvent) return;
-        const res = await fetch(
-          `/api/preferences?userId=${user.id}&eventId=${selectedEvent.id}`
-        );
-        if (!res.ok) {
-          setPreferences(null);
-        } else {
-          const data = await res.json();
-          setPreferences(data);
-        }
-      } catch (error) {
-        console.error("Erreur fetch preferences:", error);
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    fetchPreferences();
-  }, [user, selectedEvent]);
+  }, [isLoading, user, user?.companyId]);
 
   if (isLoading || eventsLoading) {
     return <div>Chargement...</div>;
@@ -226,16 +113,13 @@ export default function EventForm() {
 
   if (!user) return null;
 
-  // Fonction pour supprimer un événement
   const handleDeleteEvent = async (eventId: string) => {
     if (!confirm("Voulez-vous vraiment supprimer cet événement ?")) return;
 
     try {
-      const res = await fetch(`/api/events/${eventId}`, {
-        method: "DELETE",
-      });
+      const res = await fetch(`/api/events/${eventId}`, { method: "DELETE" });
       if (res.ok) {
-        setUserEvents((prev) => prev.filter((event) => event.id !== eventId));
+        setEvents((prev) => prev.filter((event) => event.id !== eventId));
         alert("Événement supprimé avec succès !");
       } else {
         alert("Erreur lors de la suppression de l'événement.");
@@ -250,76 +134,24 @@ export default function EventForm() {
     router.push(`/answer-event/${event.id}?eventTitle=${encodeURIComponent(event.title)}`);
   };
 
-  const adaptEventForGcard = (event: EventType) => {
-    const getBackgroundUrl = (tags: { id: string; name: string }[]) => {
-      if (tags.some((tag) => tag.name === "Restauration"))
-        return "/images/illustration/palm.svg";
-      if (tags.some((tag) => tag.name === "Afterwork"))
-        return "/images/illustration/stack.svg";
-      if (tags.some((tag) => tag.name === "Team Building"))
-        return "/images/illustration/roundstar.svg";
-      return "/images/illustration/roundstar.svg";
-    };
-
-    return {
-      title: event.title,
-      date: event.startDate || new Date().toISOString(),
-      participants: event.users || [],
-      backgroundUrl: getBackgroundUrl(event.tags),
-      state: event.state, 
-    };
-  };
-
   const openShareModal = (eventId: string, eventTitle: string) => {
-    setShareModal({
-      isOpen: true,
-      eventId,
-      eventTitle,
-    });
+    setShareModal({ isOpen: true, eventId, eventTitle });
   };
 
   const closeShareModal = () => {
-    setShareModal({
-      isOpen: false,
-      eventId: "",
-      eventTitle: "",
-    });
+    setShareModal({ isOpen: false, eventId: "", eventTitle: "" });
   };
 
   const isAuthorized = ["ADMIN", "SUPER_ADMIN"].includes(user.role);
-
-  const getFilteredEvents = () => {
-    const now = new Date();
-    return userEvents.filter(event => {
-      if (statusFilter === 'all') return true;
-      
-      const eventDate = new Date(event.startDate || '');
-      
-      if (statusFilter === 'past') {
-        return eventDate < now;
-      }
-      if (statusFilter === 'upcoming') {
-        return eventDate > now && event.state !== 'pending';
-      }
-      if (statusFilter === 'preparation') {
-        return event.state === 'pending';
-      }
-      
-      return true;
-    });
-  };
-
-  const filteredEvents = getFilteredEvents();
+  const filteredEvents = filterEventsByStatus(userEvents, statusFilter);
 
   return (
-    <section className="h-screen overflow-y-auto md:overflow-hidden pt-24 p-6 flex flex-col gap-8">
+    <section className="overflow-y-auto md:overflow-hidden pt-24 p-6 flex flex-col gap-8">
       <div className="h-full w-full flex flex-col gap-6 items-start p-4 md:p-10">
-        {/* Header avec logo et back arrow */}
         <BackArrow onClick={() => router.back()} className="!mb-0" />
 
-        {/* Header de la page */}
         <div className="flex flex-col md:flex-row md:justify-between md:items-start w-full gap-4">
-            <div className="flex flex-row items-center gap-4 ">
+          <div className="flex flex-row items-center gap-4">
             <h1 className="text-h1 font-urbanist text-[var(--color-text)] mb-2">
               Tous vos événements
             </h1>
@@ -327,169 +159,38 @@ export default function EventForm() {
               <Image src="/icons/filterIcon.svg" alt="Filtrer" width={24} height={24} className="" />
             </button>
           </div>
-            <div className="hidden md:flex flex-row items-center gap-4">
-            <button className="">
-              <Image src="/icons/calendar.svg" alt="Vue Calendrier" width={24} height={24} className="" />
-            </button>
-            <button 
-              className={`p-2 rounded ${viewMode === 'list' ? 'bg-[var(--color-grey-one)]' : 'hover:bg-gray-100'}`}
-              onClick={() => setViewMode('list')}
-            >
-              <Image src="/icons/list.svg" alt="Vue Liste" width={24} height={24} className="" />
-            </button>
-            <button 
-              className={`p-2 rounded ${viewMode === 'grid' ? 'bg-[var(--color-grey-one)]' : 'hover:bg-gray-100'}`}
-              onClick={() => setViewMode('grid')}
-            >
-              <Image src="/icons/grid.svg" alt="Vue grid" width={24} height={24} className="" />
-            </button>
-          </div>
+          <ViewModeToggle currentMode={viewMode} onModeChange={setViewMode} />
         </div>
 
-        {/* Filtres des évenements par date */}
-        <div className="flex flex-row items-center gap-4 w-full flex-wrap">
-            <button 
-              className={`px-2 py-1 rounded text-body-large ${statusFilter === 'all' ? 'bg-black text-white' : 'bg-[var(--color-grey-one)] text-[var(--color-text)]'}`}
-              onClick={() => setStatusFilter('all')}
-            >
-              Tous
-            </button>
-            <button 
-              className={`px-2 py-1 rounded text-body-large ${statusFilter === 'past' ? 'bg-black text-white' : 'bg-[var(--color-grey-one)] text-[var(--color-text)]'}`}
-              onClick={() => setStatusFilter('past')}
-            >
-              Passés
-            </button>
-            <button 
-              className={`px-2 py-1 rounded text-body-large ${statusFilter === 'upcoming' ? 'bg-black text-white' : 'bg-[var(--color-grey-one)] text-[var(--color-text)]'}`}
-              onClick={() => setStatusFilter('upcoming')}
-            >
-              À venir
-            </button>
-            <button 
-              className={`px-2 py-1 rounded text-body-large ${statusFilter === 'preparation' ? 'bg-black text-white' : 'bg-[var(--color-grey-one)] text-[var(--color-text)]'}`}
-              onClick={() => setStatusFilter('preparation')}
-            >
-              En préparation
-            </button>
-        </div>
+        <StatusFilterButtons currentFilter={statusFilter} onFilterChange={setStatusFilter} />
 
-        {/* Liste des événements */}
         <div className="w-full flex-1 overflow-auto">
           <section>
-            {fetchError && (
-              <p className="text-red-600 font-semibold">Erreur: {fetchError}</p>
-            )}
-            
-            {filteredEvents.length === 0 ? (
-              <div className="flex flex-col items-center justify-center w-full min-h-96 py-16">
-                <div className="text-center space-y-3">
-                  <Image
-                    src="/images/mascotte/sad.png"
-                    alt="Mascotte triste"
-                    width={240}
-                    height={240}
-                    className="mx-auto object-contain opacity-80 w-60 h-60"
-                  />
-                  <div className="space-y-4">
-                    <h3 className="text-2xl font-semibold text-gray-800 font-urbanist">
-                      Aucun événement trouvé
-                    </h3>
-                    <p className="text-gray-500 text-lg max-w-md mx-auto font-poppins">
-                      Il semble qu&apos;il n&apos;y ait aucun événement correspondant à vos critères. Pourquoi ne pas créer le premier ?
-                    </p>
-                  </div>
-                  <div className="pt-4">
-                    <MainButton 
-                      onClick={() => router.push('/create-event')}
-                      text="Créer mon premier événement" 
-                      color={"bg-[var(--color-main)]"}                   
-                    />
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <>
-                {viewMode === 'grid' ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {filteredEvents.map((event) => (
-                      <div
-                        key={event.id}
-                        onClick={() => router.push(`/events/${event.id}`)}
-                        className="cursor-pointer"
-                      >
-                        <Gcard
-                          eventId={event.id}
-                          {...adaptEventForGcard(event)}
-                          className="w-full h-60"
-                          dropdownOpen={dropdownEvent === event.id}
-                          onDropdownToggle={() => setDropdownEvent(
-                            dropdownEvent === event.id ? null : event.id
-                          )}
-                          isAuthorized={isAuthorized}
-                          onShare={() => openShareModal(event.id, event.title)}
-                          onPreferences={() => {
-                            setSelectedEvent(event);
-                            setShowPreferenceForm(true);
-                          }}
-                          onDelete={() => handleDeleteEvent(event.id)}
-                          showPreferencesButton={!userEventPreferences.has(event.id) && event.state?.toLowerCase() !== 'confirmed'}
-                        />
-                      </div>
-                    ))}
-                    {/* Bouton Ajouter */}
-                    {isAuthorized && (
-                      <button
-                      onClick={() => router.push('/create-event')}
-                      aria-label="Ajouter un évènement"
-                      className="w-full md:w-20 h-60 flex-shrink-0 flex items-center bg-[var(--color-main)] justify-center rounded-xl hover:opacity-80 transition text-h1 text-white"
-                    >
-                      +
-                    </button>
-                    )}
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {filteredEvents.map((event) => (
-                      <div
-                        key={event.id}
-                        onClick={() => router.push(`/events/${event.id}`)}
-                        className="cursor-pointer"
-                      >
-                        <Gcard
-                          eventId={event.id}
-                          {...adaptEventForGcard(event)}
-                          className="w-full ha-auto"
-                          dropdownOpen={dropdownEvent === event.id}
-                          onDropdownToggle={() => setDropdownEvent(
-                            dropdownEvent === event.id ? null : event.id
-                          )}
-                          isAuthorized={isAuthorized}
-                          onShare={() => openShareModal(event.id, event.title)}
-                          onPreferences={() => {
-                            setSelectedEvent(event);
-                            setShowPreferenceForm(true);
-                          }}
-                          onDelete={() => handleDeleteEvent(event.id)}
-                          showPreferencesButton={!userEventPreferences.has(event.id) && event.state?.toLowerCase() !== 'confirmed'}
-                        />
-                      </div>
-                    ))}
-                    {/* Bouton Ajouter en mode liste */}
-                    <button
-                      onClick={() => router.push('/create-event')}
-                      aria-label="Ajouter un évènement"
-                      className="w-full h-16 flex items-center justify-center bg-[var(--color-main)] text-white rounded-lg hover:opacity-80 transition text-lg font-semibold"
-                    >
-                      + Ajouter un événement
-                    </button>
-                  </div>
-                )}
-              </>
-            )}
+            {fetchError && <p className="text-red-600 font-semibold">Erreur: {fetchError}</p>}
 
+            {filteredEvents.length === 0 ? (
+              <EmptyState onButtonClick={() => router.push('/create-event')} />
+            ) : (
+              <EventList
+                events={filteredEvents}
+                viewMode={viewMode}
+                dropdownEvent={dropdownEvent}
+                onDropdownToggle={(id) => setDropdownEvent(dropdownEvent === id ? null : id)}
+                isAuthorized={isAuthorized}
+                userEventPreferences={userEventPreferences}
+                onEventClick={(id) => router.push(`/events/${id}`)}
+                onShare={openShareModal}
+                onPreferences={(event) => {
+                  setSelectedEvent(event);
+                  setShowPreferenceForm(true);
+                }}
+                onDelete={handleDeleteEvent}
+                onShowAddEvent={() => router.push('/create-event')}
+                showAddButton={isAuthorized}
+              />
+            )}
           </section>
-          {/* Modal de partage */}
+
           <ShareEventModal
             isOpen={shareModal.isOpen}
             onClose={closeShareModal}
@@ -498,6 +199,7 @@ export default function EventForm() {
             users={users}
             currentUserId={user.id}
           />
+
           {showPreferenceForm && selectedEvent && (
             <div className="fixed top-0 left-0 w-full h-full bg-white z-50 p-8 overflow-auto">
               <h2 className="text-2xl font-bold mb-6">

@@ -1,12 +1,19 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
+import { useUser } from "@/context/UserContext";
 
 type User = {
   id: string;
   firstName?: string;
   lastName?: string;
   email?: string;
+};
+
+type Team = {
+  id: string;
+  name: string;
+  users: User[];
 };
 
 type UserSelectionStepProps = {
@@ -24,22 +31,49 @@ export const UserSelectionStep = ({
   selectedUserIds,
   onUserToggle,
 }: UserSelectionStepProps) => {
+  const { user } = useUser();
   const [users, setUsers] = useState<User[]>([]);
+  const [teams, setTeams] = useState<Team[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchEmail, setSearchEmail] = useState("");
+  const [companyName, setCompanyName] = useState<string>("");
+  const [isCompanySelected, setIsCompanySelected] = useState(false);
+  const [selectedTeams, setSelectedTeams] = useState<Set<string>>(new Set());
 
-  // Charger tous les utilisateurs
+  // Charger les utilisateurs de la company
   useEffect(() => {
     const fetchUsers = async () => {
+      if (!user?.companyId) {
+        setError("Vous n'êtes pas associé à une company");
+        setLoading(false);
+        return;
+      }
+
       try {
         setLoading(true);
-        const res = await fetch('/api/users');
-        if (!res.ok) {
-          throw new Error("Impossible de récupérer les utilisateurs");
+        
+        // Récupérer le nom de la company
+        const companyRes = await fetch(`/api/company?userId=${user.id}`);
+        if (companyRes.ok) {
+          const companyData = await companyRes.json();
+          setCompanyName(companyData.companyName);
         }
-        const data = await res.json();
-        setUsers(data);
+
+        // Récupérer les utilisateurs de la company
+        const usersRes = await fetch(`/api/users?companyId=${user.companyId}`);
+        if (!usersRes.ok) {
+          throw new Error("Impossible de récupérer les utilisateurs de la company");
+        }
+        const usersData = await usersRes.json();
+        setUsers(usersData);
+
+        // Récupérer les teams de la company
+        const teamsRes = await fetch(`/api/teams?companyId=${user.companyId}`);
+        if (teamsRes.ok) {
+          const teamsData = await teamsRes.json();
+          setTeams(teamsData);
+        }
       } catch (err) {
         console.error(err);
         setError((err as Error).message);
@@ -49,7 +83,7 @@ export const UserSelectionStep = ({
     };
 
     fetchUsers();
-  }, []);
+  }, [user?.companyId, user?.id]);
 
   // Filtrer les utilisateurs (exclure l'utilisateur actuel et appliquer la recherche)
   const filteredUsers = users.filter((user) => {
@@ -73,6 +107,84 @@ export const UserSelectionStep = ({
     alert("Fonctionnalité d'import à venir");
   };
 
+  // Gérer la sélection/désélection de toute la company
+  const handleCompanyToggle = () => {
+    if (isCompanySelected) {
+      // Désélectionner tous les utilisateurs de la company
+      filteredUsers.forEach(user => {
+        if (selectedUserIds.includes(user.id)) {
+          onUserToggle(user.id);
+        }
+      });
+      // Désélectionner toutes les teams
+      setSelectedTeams(new Set());
+    } else {
+      // Sélectionner tous les utilisateurs de la company
+      filteredUsers.forEach(user => {
+        if (!selectedUserIds.includes(user.id)) {
+          onUserToggle(user.id);
+        }
+      });
+      // Sélectionner toutes les teams
+      const allTeamIds = new Set(teams.map(team => team.id));
+      setSelectedTeams(allTeamIds);
+    }
+    setIsCompanySelected(!isCompanySelected);
+  };
+
+  // Gérer la sélection/désélection d'une team
+  const handleTeamToggle = (teamId: string) => {
+    const newSelectedTeams = new Set(selectedTeams);
+    const team = teams.find(t => t.id === teamId);
+    
+    if (!team) return;
+
+    if (newSelectedTeams.has(teamId)) {
+      // Désélectionner la team
+      newSelectedTeams.delete(teamId);
+      // Désélectionner tous les utilisateurs de cette team
+      team.users.forEach(user => {
+        if (selectedUserIds.includes(user.id)) {
+          onUserToggle(user.id);
+        }
+      });
+    } else {
+      // Sélectionner la team
+      newSelectedTeams.add(teamId);
+      // Sélectionner tous les utilisateurs de cette team
+      team.users.forEach(user => {
+        if (!selectedUserIds.includes(user.id)) {
+          onUserToggle(user.id);
+        }
+      });
+    }
+    
+    setSelectedTeams(newSelectedTeams);
+  };
+
+  // Vérifier si tous les utilisateurs de la company sont sélectionnés
+  useEffect(() => {
+    if (filteredUsers.length > 0) {
+      const allSelected = filteredUsers.every(user => selectedUserIds.includes(user.id));
+      setIsCompanySelected(allSelected);
+    }
+  }, [selectedUserIds, filteredUsers]);
+
+  // Vérifier si toutes les teams sont sélectionnées
+  useEffect(() => {
+    if (teams.length > 0) {
+      const allTeamsSelected = teams.every(team => {
+        const teamUserIds = team.users.map(user => user.id);
+        return teamUserIds.every(id => selectedUserIds.includes(id));
+      });
+      
+      if (allTeamsSelected) {
+        const allTeamIds = new Set(teams.map(team => team.id));
+        setSelectedTeams(allTeamIds);
+      }
+    }
+  }, [selectedUserIds, teams]);
+
   if (loading) {
     return (
       <div className="w-full">
@@ -93,17 +205,69 @@ export const UserSelectionStep = ({
 
   return (
     <div className="w-full">
-      <h1 className="text-h1 mb-4 text-left w-full font-urbanist">{title}</h1>
+      <div className="flex items-start justify-between mb-4">
+        <h1 className="text-h1 text-left w-full font-urbanist">{title}</h1>
+      </div>
       <h3 className="text-h3 mb-8 text-left md:w-2/3 w-full font-poppins text-[var(--color-grey-three)]">
         {subtitle}
       </h3>
-
+      {companyName && (
+          <div className="flex items-center gap-4">
+              <p className="font-semibold font-poppins text-[var(--color-text)] text-base">
+                Amenez tout le monde !
+              </p>
+            <button
+              type="button"
+              onClick={handleCompanyToggle}
+              aria-pressed={isCompanySelected}
+              className={`relative inline-flex h-7 min-w-14 items-center rounded-full transition-colors ${
+                isCompanySelected ? 'bg-[var(--color-secondary)]' : 'bg-[var(--color-grey-two)]'
+              }`}
+            >
+              <span
+                className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${
+                  isCompanySelected ? 'translate-x-8' : 'translate-x-1'
+                }`}
+              />
+            </button>
+          </div>
+        )}
       {/* Label indicateur de sélection - COMMENTÉ */}
       {/* <div className="mb-6">
         <span className="inline-block px-3 py-1 bg-[var(--color-validate)] text-white text-sm font-poppins rounded-full">
           {selectedUserIds.length} utilisateur{selectedUserIds.length !== 1 ? 's' : ''} sélectionné{selectedUserIds.length !== 1 ? 's' : ''}
         </span>
       </div> */}
+
+      {/* L'ancienne section entreprise est remplacée par le switch dans l'entête */}
+
+      {/* Section des teams */}
+      {teams.length > 0 && (
+        <div className="my-6">
+          <h3 className="text-lg font-semibold font-poppins text-[var(--color-text)] mb-3">
+            Teams
+          </h3>
+          <div className="flex flex-wrap gap-3">
+            {teams.map((team) => (
+              <button
+                key={team.id}
+                type="button"
+                onClick={() => handleTeamToggle(team.id)}
+                className={`inline-flex items-center gap-2 px-3 py-2 border-2 rounded-lg w-fit transition-all font-poppins ${
+                  selectedTeams.has(team.id)
+                    ? 'bg-[var(--color-main)] border-[var(--color-main)] text-white'
+                    : 'border-[var(--color-grey-two)] text-[var(--color-text)] hover:border-[var(--color-main)]'
+                }`}
+              >
+                <span className="text-md font-medium">{team.name}</span>
+                <span className={`text-xs ${selectedTeams.has(team.id) ? 'text-white/90' : 'text-[var(--color-grey-three)]'}`}>
+                  {team.users.length} utilisateur(s)
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Section de recherche */}
       <div className="mb-6">

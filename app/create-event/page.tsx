@@ -32,10 +32,14 @@ const CreateEventPage = () => {
         costPerPerson: string;
         city: string;
         maxDistance: string;
+        recurring: boolean;
+        duration: string;
+        recurringRate: string;
     };
 
     const [formData, setFormData] = useState<EventFormData | null>(null);
     const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
+    const [suggestedActivities, setSuggestedActivities] = useState<any[]>([]);
 
     // Redirection si pas connecté
     useEffect(() => {
@@ -44,13 +48,38 @@ const CreateEventPage = () => {
         }
     }, [user, isLoading, router]);
 
-    // Données pour chaque étape
+    // Données pour chaque étape - Types d'événements avec catégories Google Places API
     const eventTypes = [
-        { id: '1', text: 'Conférence' },
-        { id: '2', text: 'Atelier' },
-        { id: '3', text: 'Séminaire' },
-        { id: '4', text: 'Formation' },
-        { id: '5', text: 'Webinaire' },
+        { 
+            id: '1', 
+            text: 'Gastronomie', 
+            icon: '🍽️',
+            placeTypes: ['restaurant', 'cafe', 'bar']
+        },
+        { 
+            id: '2', 
+            text: 'Culture', 
+            icon: '🎭',
+            placeTypes: ['museum', 'art_gallery', 'theater']
+        },
+        { 
+            id: '3', 
+            text: 'Nature & Bien-être', 
+            icon: '🌳',
+            placeTypes: ['park', 'spa', 'gym']
+        },
+        { 
+            id: '4', 
+            text: 'Divertissement', 
+            icon: '🎪',
+            placeTypes: ['tourist_attraction', 'amusement_park', 'movie_theater']
+        },
+        { 
+            id: '5', 
+            text: 'Shopping', 
+            icon: '🛍️',
+            placeTypes: ['shopping_mall', 'store']
+        },
     ];
 
     // Handlers pour chaque étape
@@ -69,6 +98,9 @@ const CreateEventPage = () => {
         costPerPerson: string;
         city: string;
         maxDistance: string;
+        recurring: boolean;
+        duration: string;
+        recurringRate: string;
     }) => {
         setFormData(formData);
         setCurrentStep(3);
@@ -85,6 +117,32 @@ const CreateEventPage = () => {
                 return;
             }
 
+            // Récupérer les activités suggérées avant de créer l'événement
+            try {
+                const selectedType = eventTypes.find(type => type.id === selectedEventType);
+                if (selectedType && formData.city) {
+                    const placesResponse = await fetch('/api/places/nearby', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            city: formData.city,
+                            placeTypes: selectedType.placeTypes,
+                            radius: formData.maxDistance ? Number(formData.maxDistance) * 1000 : 5000
+                        }),
+                    });
+
+                    if (placesResponse.ok) {
+                        const placesData = await placesResponse.json();
+                        setSuggestedActivities(placesData.places || []);
+                        console.log('Activités suggérées:', placesData.places);
+                    } else {
+                        console.error('Erreur lors de la récupération des activités');
+                    }
+                }
+            } catch (error) {
+                console.error('Erreur lors de la récupération des activités:', error);
+            }
+
             try {
                 // Préparer les données pour l'API
                 const eventData = {
@@ -99,6 +157,10 @@ const CreateEventPage = () => {
                     maxPersons: formData.maxPersons ? Number(formData.maxPersons) : null,
                     costPerPerson: formData.costPerPerson ? Number(formData.costPerPerson) : null,
                     maxDistance: formData.maxDistance ? Number(formData.maxDistance) : null,
+                    // Champs récurrents
+                    recurring: formData.recurring || false,
+                    duration: formData.duration ? Number(formData.duration) : null,
+                    recurringRate: formData.recurringRate || null,
                     // Ajouter type d'événement sélectionné depuis l'étape 1
                     activityType: eventTypes.find(type => type.id === selectedEventType)?.text || '',
                     // Ajouter état par défaut
@@ -227,7 +289,7 @@ const CreateEventPage = () => {
 
     // Affichage de chargement
     if (isLoading) {
-        return <div className="flex items-center justify-center h-screen">Chargement...</div>;
+        return <div className="flex items-center justify-center">Chargement...</div>;
     }
 
     // Redirection si pas connecté (ne devrait pas arriver grâce à useEffect)
@@ -237,7 +299,7 @@ const CreateEventPage = () => {
 
     return (
         <>
-            <section className="overflow-y-auto md:overflow-hidden pt-24 flex flex-col h-screen items-center gap-10 p-10">
+            <section className="overflow-y-auto md:overflow-hidden pt-24 flex flex-col items-center gap-10 p-10">
                 {/* Section gauche */}
                 <div className="h-full w-full flex flex-col gap-6 items-start p-10">
                     <div>

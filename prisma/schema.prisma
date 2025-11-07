@@ -9,32 +9,43 @@ datasource db {
 }
 
 model User {
-  id           BigInt                @id @default(autoincrement())
-  email        String                @unique
-  password     String
-  role         String                @default("STANDARD")
-  photoUrl     String                @default("")
-  firstName    String                @default("")
-  lastName     String                @default("")
-  companyStats CompanyStats?
-  preferences  EventUserPreference[]
-  photos       EventsUsersPhoto[]
-  feedbacks    Feedback[]
-  votes        Vote[]
-  events       Event[]               @relation("EventUsers")
-  resetTokens  PasswordResetToken[]  @relation("UserResetTokens")
+  id                 BigInt                @id @default(autoincrement())
+  email              String                @unique
+  password           String
+  role               String                @default("STANDARD")
+  photoUrl           String                @default("")
+  firstName          String                @default("")
+  lastName           String                @default("")
+  companyId          BigInt?
+  teamId             BigInt?
+  companyStats       CompanyStats?
+  createdEvents      Event[]               @relation("EventCreator")
+  preferences        EventUserPreference[]
+  photos             EventsUsersPhoto[]
+  feedbacks          Feedback[]
+  Notification       Notification[]
+  PasswordResetToken PasswordResetToken[]
+  company            Company?              @relation(fields: [companyId], references: [id])
+  team               Team?                 @relation(fields: [teamId], references: [id])
+  votes              Vote[]
+  events             Event[]               @relation("EventUsers")
 }
 
-model PasswordResetToken {
-  id        BigInt   @id @default(autoincrement())
-  token     String   @unique
-  email     String
-  userId    BigInt
-  expiresAt DateTime
-  used      Boolean  @default(false)
-  createdAt DateTime @default(now())
+model Company {
+  id    BigInt @id @default(autoincrement())
+  name  String
+  teams Team[]
+  users User[]
+}
 
-  user User @relation("UserResetTokens", fields: [userId], references: [id], onDelete: Cascade)
+model Team {
+  id        BigInt   @id @default(autoincrement())
+  name      String
+  companyId BigInt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  company   Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  users     User[]
 }
 
 model Event {
@@ -53,10 +64,16 @@ model Event {
   maxDistance   Float?
   startDate     DateTime?
   startTime     DateTime?
+  createdById   BigInt?
+  duration      Int?
+  recurring     Boolean               @default(false)
+  recurringRate String?
+  createdBy     User?                 @relation("EventCreator", fields: [createdById], references: [id])
   location      EventLocation?
   preferences   EventUserPreference[]
   photos        EventsUsersPhoto[]
   feedbacks     Feedback[]
+  Notification  Notification[]
   votes         Vote[]
   tags          Tag[]                 @relation("EventTags")
   users         User[]                @relation("EventUsers")
@@ -128,4 +145,31 @@ model CompanyStats {
   price        BigInt
   companyName  String
   superAdmin   User   @relation(fields: [superAdminId], references: [id])
+}
+
+model PasswordResetToken {
+  id        BigInt    @id @default(autoincrement())
+  token     String    @unique @db.VarChar(255)
+  email     String    @db.VarChar(255)
+  userId    BigInt
+  expiresAt DateTime  @db.Timestamp(6)
+  used      Boolean?  @default(false)
+  createdAt DateTime? @default(now()) @db.Timestamp(6)
+  User      User      @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([token])
+}
+
+model Notification {
+  id        BigInt   @id @default(autoincrement())
+  userId    BigInt
+  message   String
+  read      Boolean  @default(false)
+  type      String?
+  eventId   BigInt?
+  createdAt DateTime @default(now())
+  Event     Event?   @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  User      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, read])
 }
