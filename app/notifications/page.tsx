@@ -5,12 +5,15 @@ import { useRouter } from "next/navigation";
 import { useUser } from "../../context/UserContext";
 import Image from "next/image";
 import BackArrow from "@/components/ui/BackArrow";
+import FeedbackModal from "@/components/FeedbackModal";
 
 type Notification = {
   id: string;
   message: string;
   read: boolean;
   createdAt: string;
+  type?: string;
+  eventId?: string;
 };
 
 export default function NotificationsPage() {
@@ -18,6 +21,11 @@ export default function NotificationsPage() {
   const { user, isLoading } = useUser();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedFeedback, setSelectedFeedback] = useState<{
+    eventId: string;
+    eventTitle: string;
+    notificationId: string;
+  } | null>(null);
 
   // Récupérer les notifications depuis l'API
   useEffect(() => {
@@ -61,6 +69,37 @@ export default function NotificationsPage() {
       }
     } catch (error) {
       console.error("Erreur mise à jour notification:", error);
+    }
+  };
+
+  const handleFeedbackClick = async (notification: Notification) => {
+    if (!notification.eventId) return;
+    
+    try {
+      // Récupérer les détails de l'événement
+      const eventResponse = await fetch(`/api/events/${notification.eventId}`);
+      if (eventResponse.ok) {
+        const eventData = await eventResponse.json();
+        setSelectedFeedback({
+          eventId: notification.eventId!,
+          eventTitle: eventData.event?.title || eventData.title || "Événement",
+          notificationId: notification.id,
+        });
+      } else {
+        // Si on ne peut pas récupérer l'événement, utiliser quand même la notification
+        setSelectedFeedback({
+          eventId: notification.eventId,
+          eventTitle: "Événement",
+          notificationId: notification.id,
+        });
+      }
+    } catch (error) {
+      console.error("Erreur lors de la récupération de l'événement:", error);
+      setSelectedFeedback({
+        eventId: notification.eventId,
+        eventTitle: "Événement",
+        notificationId: notification.id,
+      });
     }
   };
 
@@ -125,7 +164,16 @@ export default function NotificationsPage() {
                   key={notification.id}
                   className="flex items-center gap-3"
                 >
-                  <div className="flex items-center justify-between gap-4 p-3 bg-[#F4F4F4] rounded-lg flex-1">
+                  <div
+                    className={`flex items-center justify-between gap-4 p-3 bg-[#F4F4F4] rounded-lg flex-1 ${
+                      notification.type === "FEEDBACK_REQUEST" ? "cursor-pointer hover:bg-gray-200 transition" : ""
+                    }`}
+                    onClick={() => {
+                      if (notification.type === "FEEDBACK_REQUEST") {
+                        handleFeedbackClick(notification);
+                      }
+                    }}
+                  >
                     <p className="text-gray-800 flex-1">{notification.message}</p>
                     <span className="text-sm text-gray-500 whitespace-nowrap">
                       {formatDate(notification.createdAt)}
@@ -205,6 +253,33 @@ export default function NotificationsPage() {
           </div>
         )}
       </div>
+
+      {/* Modal de feedback */}
+      {selectedFeedback && user && (
+        <FeedbackModal
+          isOpen={true}
+          onClose={() => {
+            setSelectedFeedback(null);
+            // Recharger les notifications pour mettre à jour l'état
+            const fetchNotifications = async () => {
+              try {
+                const response = await fetch(`/api/notifications?userId=${user.id}`);
+                if (response.ok) {
+                  const data = await response.json();
+                  setNotifications(data);
+                }
+              } catch (error) {
+                console.error("Erreur:", error);
+              }
+            };
+            fetchNotifications();
+          }}
+          eventId={selectedFeedback.eventId}
+          eventTitle={selectedFeedback.eventTitle}
+          userId={user.id}
+          notificationId={selectedFeedback.notificationId}
+        />
+      )}
     </main>
   );
 }
