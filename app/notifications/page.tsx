@@ -438,9 +438,7 @@ export default function NotificationsPage() {
           userId={user.id}
           notificationId={selectedInvitation.notificationId}
           onResponse={(accepted) => {
-            // Optionnel: rediriger vers l'événement si accepté
             if (accepted) {
-              // Vous pouvez ajouter une redirection ici si nécessaire
             }
           }}
         />

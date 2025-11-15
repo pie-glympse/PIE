@@ -24,7 +24,7 @@ export function useFeedbackNotification() {
         const response = await fetch(`/api/notifications?userId=${user.id}`);
         if (response.ok) {
           const notifications = await response.json();
-          
+
           // Trouver toutes les notifications de feedback (lues ou non)
           const feedbackNotifications = notifications.filter(
             (n: any) => n.type === "FEEDBACK_REQUEST"
@@ -37,7 +37,7 @@ export function useFeedbackNotification() {
               const feedbackResponse = await fetch(
                 `/api/feedback?eventId=${feedbackNotification.eventId}&userId=${user.id}`
               );
-              
+
               if (feedbackResponse.ok) {
                 const feedbacks = await feedbackResponse.json();
                 // Si aucun feedback n'existe, afficher la popup pour cette notification
