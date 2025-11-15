@@ -23,8 +23,8 @@ model User {
   preferences                   EventUserPreference[]
   photos                        EventsUsersPhoto[]
   feedbacks                     Feedback[]
-  PasswordResetToken            PasswordResetToken[]
   notifications                 Notification[]
+  PasswordResetToken            PasswordResetToken[]
   company                       Company?              @relation(fields: [companyId], references: [id])
   team                          Team?                 @relation(fields: [teamId], references: [id])
   votes                         Vote[]
@@ -73,10 +73,10 @@ model Event {
   preferences                  EventUserPreference[]
   photos                       EventsUsersPhoto[]
   feedbacks                    Feedback[]
+  notifications                Notification[]
   votes                        Vote[]
   tags                         Tag[]                 @relation("EventTags")
   users                        User[]                @relation("EventUsers")
-  notifications                Notification[]
 }
 
 model Tag {
@@ -110,13 +110,14 @@ model EventsUsersPhoto {
 }
 
 model Feedback {
-  userId    BigInt
-  eventId   BigInt
-  rating    BigInt
-  message   String
-  createdAt DateTime
-  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId      BigInt
+  eventId     BigInt
+  rating      BigInt?
+  message     String?
+  participated Boolean?
+  createdAt   DateTime @default(now())
+  event       Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@id([userId, eventId])
 }
@@ -168,8 +169,8 @@ model Notification {
   type      String?
   eventId   BigInt?
   createdAt DateTime @default(now())
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   event     Event?   @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, read])
 }
