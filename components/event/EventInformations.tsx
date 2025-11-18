@@ -4,6 +4,7 @@ import NearbyActivities from '@/components/event/NearbyActivities';
 
 interface EventInformationsProps {
   event: {
+    id?: string;
     description?: string;
     date?: string;
     startDate?: string;
@@ -17,6 +18,10 @@ interface EventInformationsProps {
     activityType?: string;
     maxDistance?: number;
     tags: { id: string; name: string }[];
+    users?: {
+      id: string;
+      companyId?: string;
+    }[];
   };
 }
 
@@ -237,6 +242,8 @@ const EventInformations = ({ event }: EventInformationsProps) => {
         city={event.city} 
         activityType={event.activityType}
         maxDistance={event.maxDistance || 5}
+        eventId={event.id}
+        companyId={event.users?.[0]?.companyId?.toString()}
       />
     </div>
   );

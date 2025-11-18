@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
+import { useUser } from '@/context/UserContext';
 
 interface Place {
   id: string;
@@ -19,6 +20,8 @@ interface NearbyActivitiesProps {
   city?: string;
   activityType?: string;
   maxDistance?: number;
+  eventId?: string;
+  companyId?: string;
 }
 
 // Mapping des types d'événements vers les types Google Places
@@ -34,11 +37,39 @@ const getPlaceTypesFromActivityType = (activityType?: string): string[] => {
   return mapping[activityType || ''] || ['tourist_attraction'];
 };
 
-const NearbyActivities = ({ city, activityType, maxDistance = 5 }: NearbyActivitiesProps) => {
+const NearbyActivities = ({ city, activityType, maxDistance = 5, eventId, companyId }: NearbyActivitiesProps) => {
+  const { user } = useUser();
   const [places, setPlaces] = useState<Place[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [blacklistedPlaceIds, setBlacklistedPlaceIds] = useState<Set<string>>(new Set());
+  const [showBlacklistModal, setShowBlacklistModal] = useState(false);
+  const [selectedPlace, setSelectedPlace] = useState<Place | null>(null);
+  const [isBlacklisting, setIsBlacklisting] = useState(false);
 
+  // Récupérer les lieux blacklistés
+  useEffect(() => {
+    const fetchBlacklistedPlaces = async () => {
+      if (!companyId) return;
+
+      try {
+        const url = `/api/blacklisted-places?companyId=${companyId}${eventId ? `&eventId=${eventId}` : ''}`;
+        const response = await fetch(url);
+        
+        if (response.ok) {
+          const data = await response.json() as Array<{ placeId: string }>;
+          const blacklistedIds = new Set<string>(data.map((item) => item.placeId));
+          setBlacklistedPlaceIds(blacklistedIds);
+        }
+      } catch (err) {
+        console.error('Erreur lors de la récupération de la blacklist:', err);
+      }
+    };
+
+    fetchBlacklistedPlaces();
+  }, [companyId, eventId]);
+
+  // Récupérer les lieux recommandés
   useEffect(() => {
     const fetchPlaces = async () => {
       if (!city) {
@@ -60,7 +91,11 @@ const NearbyActivities = ({ city, activityType, maxDistance = 5 }: NearbyActivit
 
         if (response.ok) {
           const data = await response.json();
-          setPlaces(data.places || []);
+          // Filtrer les lieux blacklistés
+          const filteredPlaces = (data.places || []).filter(
+            (place: Place) => !blacklistedPlaceIds.has(place.id)
+          );
+          setPlaces(filteredPlaces);
         } else {
           setError('Impossible de charger les recommandations');
         }
@@ -73,7 +108,7 @@ const NearbyActivities = ({ city, activityType, maxDistance = 5 }: NearbyActivit
     };
 
     fetchPlaces();
-  }, [city, activityType, maxDistance]);
+  }, [city, activityType, maxDistance, blacklistedPlaceIds]);
 
   // Fonction pour obtenir les étoiles
   const renderStars = (rating?: number) => {
@@ -171,6 +206,50 @@ const NearbyActivities = ({ city, activityType, maxDistance = 5 }: NearbyActivit
     return decorativeShapes[index % decorativeShapes.length];
   };
 
+  // Gérer l'ouverture de la modal de blacklist
+  const handleBlacklistClick = (e: React.MouseEvent, place: Place) => {
+    e.stopPropagation(); // Empêcher le clic sur la card
+    setSelectedPlace(place);
+    setShowBlacklistModal(true);
+  };
+
+  // Blacklister un lieu
+  const handleBlacklist = async (forAllEvents: boolean) => {
+    if (!selectedPlace || !companyId || !user) {
+      return;
+    }
+
+    setIsBlacklisting(true);
+    try {
+      const response = await fetch('/api/blacklisted-places', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          placeId: selectedPlace.id,
+          companyId: companyId,
+          eventId: forAllEvents ? null : eventId,
+          createdById: user.id,
+        }),
+      });
+
+      if (response.ok) {
+        // Retirer le lieu de la liste immédiatement
+        setPlaces(prev => prev.filter(p => p.id !== selectedPlace.id));
+        setBlacklistedPlaceIds(prev => new Set([...prev, selectedPlace.id]));
+        setShowBlacklistModal(false);
+        setSelectedPlace(null);
+      } else {
+        const error = await response.json();
+        alert(error.error || 'Erreur lors de la blacklist');
+      }
+    } catch (err) {
+      console.error('Erreur lors de la blacklist:', err);
+      alert('Erreur lors de la blacklist');
+    } finally {
+      setIsBlacklisting(false);
+    }
+  };
+
   return (
     <div className="py-8">
       <h3 className="text-h3 font-urbanist mb-6 text-[var(--color-text)]">
@@ -187,6 +266,30 @@ const NearbyActivities = ({ city, activityType, maxDistance = 5 }: NearbyActivit
               window.open(`https://www.google.com/maps/place/?q=place_id:${place.id}`, '_blank');
             }}
           >
+            {/* Icône croix pour blacklister (coin supérieur droit) */}
+            {user && companyId && (
+              <button
+                onClick={(e) => handleBlacklistClick(e, place)}
+                className="absolute top-3 right-3 z-20 w-6 h-6 rounded-full bg-red-100 hover:bg-red-200 flex items-center justify-center transition-colors"
+                aria-label="Blacklister ce lieu"
+                title="Blacklister ce lieu"
+              >
+                <svg 
+                  className="w-4 h-4 text-red-600" 
+                  fill="none" 
+                  stroke="currentColor" 
+                  viewBox="0 0 24 24"
+                >
+                  <path 
+                    strokeLinecap="round" 
+                    strokeLinejoin="round" 
+                    strokeWidth={2} 
+                    d="M6 18L18 6M6 6l12 12" 
+                  />
+                </svg>
+              </button>
+            )}
+
             {/* Contenu principal */}
             <div className="relative z-10">
               {/* Image et note */}
@@ -277,6 +380,54 @@ const NearbyActivities = ({ city, activityType, maxDistance = 5 }: NearbyActivit
           </div>
         ))}
       </div>
+
+      {/* Modal de confirmation de blacklist */}
+      {showBlacklistModal && selectedPlace && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 p-6">
+            <h3 className="text-xl font-bold font-urbanist text-[var(--color-text)] mb-4">
+              Blacklister ce lieu ?
+            </h3>
+            <p className="text-body-large font-poppins text-[var(--color-grey-three)] mb-6">
+              Souhaitez-vous exclure <strong>{selectedPlace.name}</strong> des recommandations ?
+            </p>
+            
+            <div className="space-y-3">
+              {/* Bouton: Pour cet événement uniquement */}
+              {eventId && (
+                <button
+                  onClick={() => handleBlacklist(false)}
+                  disabled={isBlacklisting}
+                  className="w-full px-6 py-3 bg-[var(--color-main)] text-white rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition font-poppins font-medium"
+                >
+                  {isBlacklisting ? 'Blacklist en cours...' : 'Pour cet événement uniquement'}
+                </button>
+              )}
+              
+              {/* Bouton: Pour tous les événements */}
+              <button
+                onClick={() => handleBlacklist(true)}
+                disabled={isBlacklisting}
+                className="w-full px-6 py-3 bg-[var(--color-secondary)] text-white rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition font-poppins font-medium"
+              >
+                {isBlacklisting ? 'Blacklist en cours...' : 'Pour tous les événements'}
+              </button>
+              
+              {/* Bouton Annuler */}
+              <button
+                onClick={() => {
+                  setShowBlacklistModal(false);
+                  setSelectedPlace(null);
+                }}
+                disabled={isBlacklisting}
+                className="w-full px-6 py-3 text-[var(--color-grey-three)] hover:text-[var(--color-text)] transition font-poppins"
+              >
+                Annuler
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
