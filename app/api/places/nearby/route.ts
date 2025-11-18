@@ -92,8 +92,39 @@ export async function POST(request: Request) {
       .sort((a, b) => (b.user_ratings_total || 0) - (a.user_ratings_total || 0))
       .slice(0, 20);
 
+    // Récupérer les détails complets (incluant website) pour chaque lieu
+    // Note: Cela nécessite des appels API supplémentaires mais permet d'obtenir le website
+    const placesWithDetails = await Promise.all(
+      sortedPlaces.map(async (place) => {
+        try {
+          // Appel Place Details pour obtenir le website
+          const detailsResponse = await fetch(
+            `https://maps.googleapis.com/maps/api/place/details/json?` +
+            `place_id=${place.place_id}&fields=website&key=${apiKey}`
+          );
+
+          if (detailsResponse.ok) {
+            const detailsData = await detailsResponse.json();
+            if (detailsData.status === 'OK' && detailsData.result) {
+              return {
+                ...place,
+                website: detailsData.result.website || null,
+              };
+            }
+          }
+        } catch (error) {
+          console.error(`Erreur récupération détails pour ${place.place_id}:`, error);
+        }
+        
+        return {
+          ...place,
+          website: null,
+        };
+      })
+    );
+
     // Formater les résultats
-    const formattedPlaces = sortedPlaces.map(place => {
+    const formattedPlaces = placesWithDetails.map(place => {
       // Debug: vérifier si price_level existe
       if (place.price_level === undefined) {
         console.log(`[API Places] Pas de price_level pour: ${place.name}`);
@@ -113,7 +144,8 @@ export async function POST(request: Request) {
           url: `https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photo_reference=${photo.photo_reference}&key=${apiKey}`
         })) || [],
         priceLevel: place.price_level ?? null, // Explicitement null si undefined
-        openNow: place.opening_hours?.open_now
+        openNow: place.opening_hours?.open_now,
+        website: place.website || undefined
       };
     });
 
