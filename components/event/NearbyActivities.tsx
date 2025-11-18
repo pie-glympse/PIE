@@ -95,12 +95,27 @@ const NearbyActivities = ({ city, activityType, maxDistance = 5 }: NearbyActivit
     );
   };
 
-  // Fonction pour obtenir le niveau de prix
-  const renderPriceLevel = (priceLevel?: number) => {
-    if (!priceLevel) return null;
+  // Fonction pour obtenir le niveau de prix (comme Google Maps)
+  const renderPriceLevel = (priceLevel?: number | null) => {
+    // Si priceLevel est null, undefined, ou 0, ne rien afficher (pas de message "non disponible")
+    if (!priceLevel || priceLevel === 0) {
+      return (<span className="text-sm text-[var(--color-grey-three)] font-poppins">
+        Prix non disponible
+      </span>);
+    }
+    
+    // Google Maps utilise 0-4 pour les niveaux de prix
+    // 1 = € (économique), 2 = €€ (modéré), 3 = €€€ (cher), 4 = €€€€ (très cher)
+    const priceLabels: Record<number, string> = {
+      1: '€',
+      2: '€€',
+      3: '€€€',
+      4: '€€€€',
+    };
+    
     return (
-      <span className="text-[var(--color-grey-three)] text-sm">
-        {'€'.repeat(priceLevel)}
+      <span className="text-sm text-[var(--color-grey-three)] font-poppins">
+        {priceLabels[priceLevel] || '€'.repeat(priceLevel)}
       </span>
     );
   };
@@ -217,10 +232,17 @@ const NearbyActivities = ({ city, activityType, maxDistance = 5 }: NearbyActivit
 
               {/* Prix et statut */}
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  {renderPriceLevel(place.priceLevel)}
+                <div className="flex items-center gap-3">
+                  {/* Niveau de prix (comme Google Maps) - affiché seulement si disponible */}
+                  {renderPriceLevel(place.priceLevel) && (
+                    <div className="flex items-center gap-1">
+                      {renderPriceLevel(place.priceLevel)}
+                    </div>
+                  )}
+                  
+                  {/* Nombre d'avis */}
                   {place.userRatingsTotal && (
-                    <span className="text-xs text-[var(--color-grey-three)]">
+                    <span className="text-xs text-[var(--color-grey-three)] font-poppins">
                       {place.userRatingsTotal} avis
                     </span>
                   )}
