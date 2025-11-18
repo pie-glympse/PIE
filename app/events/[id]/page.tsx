@@ -31,6 +31,7 @@ type EventDetails = {
     firstName: string;
     lastName: string;
     email: string;
+    companyId?: string;
   }[];
   createdBy?: {
     id: string;

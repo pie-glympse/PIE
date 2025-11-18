@@ -24,7 +24,9 @@ export default function ProfilePage() {
     firstName: '',
     lastName: '',
     email: '',
-    password: ''
+    password: '',
+    role: '',
+    companyId: ''
   });
 
   // Données temporaires pour l'édition
@@ -32,7 +34,9 @@ export default function ProfilePage() {
     firstName: '',
     lastName: '',
     email: '',
-    password: ''
+    password: '',
+    role: '',
+    companyId: ''
   });
 
   // Redirect if not logged in
@@ -61,7 +65,9 @@ export default function ProfilePage() {
           firstName: userData.firstName || '',
           lastName: userData.lastName || '',
           email: userData.email || '',
-          password: '' // Never show actual password
+          password: '', // Never show actual password
+          role: userData.role || '',
+          companyId: userData.companyId || ''
         };
         
         setSavedUserInfo(userDataFormatted);

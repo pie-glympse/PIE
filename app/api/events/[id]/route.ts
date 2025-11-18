@@ -43,6 +43,7 @@ export async function GET(
             firstName: true,
             lastName: true,
             email: true,
+            companyId: true,
           },
         },
         // Prisma relation field for the event creator is named `User_Event_createdByIdToUser` in schema
