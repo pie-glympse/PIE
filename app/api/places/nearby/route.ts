@@ -93,22 +93,29 @@ export async function POST(request: Request) {
       .slice(0, 20);
 
     // Formater les résultats
-    const formattedPlaces = sortedPlaces.map(place => ({
-      id: place.place_id,
-      name: place.name,
-      address: place.vicinity,
-      rating: place.rating,
-      userRatingsTotal: place.user_ratings_total,
-      types: place.types,
-      placeType: place.place_type,
-      location: place.geometry.location,
-      photos: place.photos?.slice(0, 1).map((photo) => ({
-        reference: photo.photo_reference,
-        url: `https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photo_reference=${photo.photo_reference}&key=${apiKey}`
-      })) || [],
-      priceLevel: place.price_level,
-      openNow: place.opening_hours?.open_now
-    }));
+    const formattedPlaces = sortedPlaces.map(place => {
+      // Debug: vérifier si price_level existe
+      if (place.price_level === undefined) {
+        console.log(`[API Places] Pas de price_level pour: ${place.name}`);
+      }
+      
+      return {
+        id: place.place_id,
+        name: place.name,
+        address: place.vicinity,
+        rating: place.rating,
+        userRatingsTotal: place.user_ratings_total,
+        types: place.types,
+        placeType: place.place_type,
+        location: place.geometry.location,
+        photos: place.photos?.slice(0, 1).map((photo) => ({
+          reference: photo.photo_reference,
+          url: `https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photo_reference=${photo.photo_reference}&key=${apiKey}`
+        })) || [],
+        priceLevel: place.price_level ?? null, // Explicitement null si undefined
+        openNow: place.opening_hours?.open_now
+      };
+    });
 
     return NextResponse.json({
       location: { lat, lng },
