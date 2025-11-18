@@ -14,6 +14,7 @@ interface Place {
   photos: { url: string }[];
   priceLevel?: number;
   openNow?: boolean;
+  website?: string;
 }
 
 interface NearbyActivitiesProps {
@@ -250,6 +251,80 @@ const NearbyActivities = ({ city, activityType, maxDistance = 5, eventId, compan
     }
   };
 
+  // Fonction pour tracker les clics sur les liens de réservation
+  const trackBookingClick = (venueId: string, eventId?: string, companyId?: string) => {
+    // Événement analytics
+    const analyticsEvent = {
+      event: 'click_booking_link',
+      venueId,
+      eventId: eventId || null,
+      companyId: companyId || null,
+      partner: 'google_maps',
+      timestamp: new Date().toISOString(),
+    };
+
+    // Log dans la console (peut être remplacé par un service analytics)
+    console.log('Analytics Event:', analyticsEvent);
+
+    // Si vous utilisez Google Analytics ou un autre service, ajoutez-le ici
+    // Exemple avec gtag:
+    // if (typeof window !== 'undefined' && (window as any).gtag) {
+    //   (window as any).gtag('event', 'click_booking_link', {
+    //     venue_id: venueId,
+    //     event_id: eventId,
+    //     company_id: companyId,
+    //     partner: 'google_maps',
+    //   });
+    // }
+
+    // Optionnel: Envoyer à votre API backend pour tracking
+    // fetch('/api/analytics', {
+    //   method: 'POST',
+    //   headers: { 'Content-Type': 'application/json' },
+    //   body: JSON.stringify(analyticsEvent),
+    // }).catch(err => console.error('Erreur tracking analytics:', err));
+  };
+
+  // Construire l'URL de réservation (site web du lieu ou Google Maps en fallback)
+  const handleBookingClick = (place: Place): string => {
+    // Si le site web du lieu est disponible, l'utiliser avec paramètres UTM
+    if (place.website) {
+      try {
+        // S'assurer que l'URL a un protocole
+        let websiteUrl = place.website;
+        if (!websiteUrl.startsWith('http://') && !websiteUrl.startsWith('https://')) {
+          websiteUrl = `https://${websiteUrl}`;
+        }
+        
+        const url = new URL(websiteUrl);
+        url.searchParams.set('utm_source', 'glimpse');
+        url.searchParams.set('utm_medium', 'recommendation');
+        url.searchParams.set('utm_campaign', 'booking');
+        if (eventId) url.searchParams.set('eventId', eventId);
+        if (companyId) url.searchParams.set('companyId', companyId);
+        return url.toString();
+      } catch (error) {
+        console.error('Erreur construction URL website:', error);
+        // Fallback sur Google Maps si l'URL est invalide
+      }
+    }
+
+    // Sinon, utiliser Google Maps avec paramètres UTM et query params
+    const params = new URLSearchParams({
+      q: `place_id:${place.id}`,
+      // Paramètres UTM pour le tracking
+      utm_source: 'glimpse',
+      utm_medium: 'recommendation',
+      utm_campaign: 'booking',
+      // Paramètres internes
+      src: 'glimpse',
+      ...(eventId && { eventId }),
+      ...(companyId && { companyId }),
+    });
+
+    return `https://www.google.com/maps/place/?${params.toString()}`;
+  };
+
   return (
     <div className="py-8">
       <h3 className="text-h3 font-urbanist mb-6 text-[var(--color-text)]">
@@ -334,7 +409,7 @@ const NearbyActivities = ({ city, activityType, maxDistance = 5, eventId, compan
               </p>
 
               {/* Prix et statut */}
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
                   {/* Niveau de prix (comme Google Maps) - affiché seulement si disponible */}
                   {renderPriceLevel(place.priceLevel) && (
@@ -362,6 +437,20 @@ const NearbyActivities = ({ city, activityType, maxDistance = 5, eventId, compan
                   </span>
                 )}
               </div>
+
+              {/* Lien Voir le site */}
+              <a
+                href={handleBookingClick(place)}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => {
+                  e.stopPropagation(); // Empêcher l'ouverture de Google Maps
+                  trackBookingClick(place.id, eventId || undefined, companyId || undefined);
+                }}
+                className="block mt-2 text-sm text-[var(--color-main)] hover:text-[var(--color-main)]/80 underline font-poppins"
+              >
+                Voir le site
+              </a>
             </div>
             
             {/* Image d'arrière-plan décorative (style EventCard) */}
