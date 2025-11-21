@@ -1,3 +1,6 @@
+'use client';
+
+import { useState, useCallback } from 'react';
 import Image from 'next/image';
 import Map from '@/components/Map';
 import NearbyActivities from '@/components/event/NearbyActivities';
@@ -25,8 +28,27 @@ interface EventInformationsProps {
   };
 }
 
+interface Place {
+  id: string;
+  name: string;
+  address?: string;
+  photos?: { url: string }[];
+  location?: {
+    lat: number;
+    lng: number;
+  };
+}
+
 const EventInformations = ({ event }: EventInformationsProps) => {
   const isConfirmed = event.state?.toLowerCase() === 'confirmed';
+  const [recommendedPlaces, setRecommendedPlaces] = useState<Place[]>([]);
+  
+  // Callback stable pour éviter les re-renders infinis
+  const handlePlacesLoaded = useCallback((places: Place[]) => {
+    // Filtrer uniquement les lieux qui ont des coordonnées
+    const placesWithLocation = places.filter(place => place.location);
+    setRecommendedPlaces(placesWithLocation);
+  }, []);
 
   // Formatter la date en français
   const formatDate = (dateString: string) => {
@@ -230,10 +252,19 @@ const EventInformations = ({ event }: EventInformationsProps) => {
           Localisation
         </h3>
         <div 
-          className="w-full h-64 rounded overflow-hidden"
+          className="w-full h-96 rounded overflow-hidden"
           style={{ backgroundColor: '#F4F4F4' }}
         >
-          <Map address={event.city} />
+          <Map 
+            address={event.city} 
+            places={recommendedPlaces.map(place => ({
+              id: place.id,
+              name: place.name,
+              address: place.address,
+              photoUrl: place.photos && place.photos.length > 0 ? place.photos[0].url : undefined,
+              location: place.location!
+            }))}
+          />
         </div>
       </div>
 
@@ -244,6 +275,7 @@ const EventInformations = ({ event }: EventInformationsProps) => {
         maxDistance={event.maxDistance || 5}
         eventId={event.id}
         companyId={event.users?.[0]?.companyId?.toString()}
+        onPlacesLoaded={handlePlacesLoaded}
       />
     </div>
   );

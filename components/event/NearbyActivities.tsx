@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import { useUser } from '@/context/UserContext';
 
@@ -15,6 +15,10 @@ interface Place {
   priceLevel?: number;
   openNow?: boolean;
   website?: string;
+  location?: {
+    lat: number;
+    lng: number;
+  };
 }
 
 interface NearbyActivitiesProps {
@@ -23,6 +27,7 @@ interface NearbyActivitiesProps {
   maxDistance?: number;
   eventId?: string;
   companyId?: string;
+  onPlacesLoaded?: (places: Place[]) => void;
 }
 
 // Mapping des types d'événements vers les types Google Places
@@ -38,15 +43,24 @@ const getPlaceTypesFromActivityType = (activityType?: string): string[] => {
   return mapping[activityType || ''] || ['tourist_attraction'];
 };
 
-const NearbyActivities = ({ city, activityType, maxDistance = 5, eventId, companyId }: NearbyActivitiesProps) => {
+const NearbyActivities = ({ city, activityType, maxDistance = 5, eventId, companyId, onPlacesLoaded }: NearbyActivitiesProps) => {
   const { user } = useUser();
   const [places, setPlaces] = useState<Place[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [blacklistedPlaceIds, setBlacklistedPlaceIds] = useState<Set<string>>(new Set());
   const [showBlacklistModal, setShowBlacklistModal] = useState(false);
   const [selectedPlace, setSelectedPlace] = useState<Place | null>(null);
   const [isBlacklisting, setIsBlacklisting] = useState(false);
+  
+  // Utiliser useRef pour stocker la dernière valeur de blacklistedPlaceIds
+  // pour éviter les re-renders infinis
+  const blacklistedPlaceIdsRef = useRef<Set<string>>(new Set());
+  
+  // Callback stable pour onPlacesLoaded
+  const onPlacesLoadedRef = useRef(onPlacesLoaded);
+  useEffect(() => {
+    onPlacesLoadedRef.current = onPlacesLoaded;
+  }, [onPlacesLoaded]);
 
   // Récupérer les lieux blacklistés
   useEffect(() => {
@@ -60,7 +74,7 @@ const NearbyActivities = ({ city, activityType, maxDistance = 5, eventId, compan
         if (response.ok) {
           const data = await response.json() as Array<{ placeId: string }>;
           const blacklistedIds = new Set<string>(data.map((item) => item.placeId));
-          setBlacklistedPlaceIds(blacklistedIds);
+          blacklistedPlaceIdsRef.current = blacklistedIds;
         }
       } catch (err) {
         console.error('Erreur lors de la récupération de la blacklist:', err);
@@ -92,11 +106,15 @@ const NearbyActivities = ({ city, activityType, maxDistance = 5, eventId, compan
 
         if (response.ok) {
           const data = await response.json();
-          // Filtrer les lieux blacklistés
+          // Filtrer les lieux blacklistés en utilisant le ref
           const filteredPlaces = (data.places || []).filter(
-            (place: Place) => !blacklistedPlaceIds.has(place.id)
+            (place: Place) => !blacklistedPlaceIdsRef.current.has(place.id)
           );
           setPlaces(filteredPlaces);
+          // Notifier le parent que les lieux sont chargés
+          if (onPlacesLoadedRef.current) {
+            onPlacesLoadedRef.current(filteredPlaces);
+          }
         } else {
           setError('Impossible de charger les recommandations');
         }
@@ -109,7 +127,9 @@ const NearbyActivities = ({ city, activityType, maxDistance = 5, eventId, compan
     };
 
     fetchPlaces();
-  }, [city, activityType, maxDistance, blacklistedPlaceIds]);
+    // Ne pas inclure blacklistedPlaceIds et onPlacesLoaded dans les dépendances
+    // pour éviter les boucles infinies
+  }, [city, activityType, maxDistance]);
 
   // Fonction pour obtenir les étoiles
   const renderStars = (rating?: number) => {
@@ -236,7 +256,8 @@ const NearbyActivities = ({ city, activityType, maxDistance = 5, eventId, compan
       if (response.ok) {
         // Retirer le lieu de la liste immédiatement
         setPlaces(prev => prev.filter(p => p.id !== selectedPlace.id));
-        setBlacklistedPlaceIds(prev => new Set([...prev, selectedPlace.id]));
+        // Mettre à jour le ref pour éviter les re-renders
+        blacklistedPlaceIdsRef.current.add(selectedPlace.id);
         setShowBlacklistModal(false);
         setSelectedPlace(null);
       } else {
