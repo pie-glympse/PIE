@@ -212,15 +212,13 @@ export default function HomePage() {
             ))}
 
             {/* Bouton Ajouter */}
-            {isAuthorized && (
-              <Link
-                href="/create-event"
-                aria-label="Ajouter un évènement"
-                className="w-full md:w-20 h-60 md:flex-shrink-0 flex items-center justify-center border border-gray-300 rounded-xl hover:bg-gray-100 transition text-3xl text-gray-500"
-              >
-                +
-              </Link>
-            )}
+            <Link
+              href="/create-event"
+              aria-label="Ajouter un évènement"
+              className="w-full md:w-20 h-60 md:flex-shrink-0 flex items-center justify-center border border-gray-300 rounded-xl hover:bg-gray-100 transition text-3xl text-gray-500"
+            >
+              +
+            </Link>
           </div>
           
           {/* Lien "voir plus" */}

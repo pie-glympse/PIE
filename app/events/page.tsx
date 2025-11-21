@@ -186,7 +186,7 @@ export default function EventForm() {
                 }}
                 onDelete={handleDeleteEvent}
                 onShowAddEvent={() => router.push('/create-event')}
-                showAddButton={isAuthorized}
+                showAddButton={true}
               />
             )}
           </section>
