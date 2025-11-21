@@ -2,18 +2,27 @@
 import React, { useState, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import MainButton from '@/components/ui/MainButton';
-import dynamic from 'next/dynamic';
-
-// Déplacer le dynamic import EN DEHORS du composant pour éviter les re-renders
-const AutocompleteInput = dynamic(() => import('@/components/ui/SimpleAutocomplete'), {
-  ssr: false
-});
+import SimpleAutocomplete from '@/components/ui/SimpleAutocomplete';
 
 
 interface EventFormProps {
     title: React.ReactNode;
     subtitle?: string;
     buttonText: string;
+    initialData?: {
+        title?: string;
+        startDate?: string;
+        endDate?: string;
+        startTime?: string;
+        endTime?: string;
+        maxPersons?: string;
+        costPerPerson?: string;
+        city?: string;
+        maxDistance?: string;
+        recurring?: boolean;
+        duration?: string;
+        recurringRate?: string;
+    };
     onSubmit?: (formData: {
         title: string;
         startDate: string;
@@ -34,21 +43,22 @@ const EventForm: React.FC<EventFormProps> = ({
     title,
     subtitle,
     buttonText,
+    initialData,
     onSubmit
 }) => {
     const router = useRouter();
-    const [eventTitle, setEventTitle] = useState('');
-    const [startDate, setStartDate] = useState('');
-    const [endDate, setEndDate] = useState('');
-    const [startTime, setStartTime] = useState('');
-    const [endTime, setEndTime] = useState('');
-    const [maxPersons, setMaxPersons] = useState('');
-    const [costPerPerson, setCostPerPerson] = useState('');
-    const [city, setCity] = useState('');
-    const [maxDistance, setMaxDistance] = useState('');
-    const [isRecurring, setIsRecurring] = useState(false);
-    const [duration, setDuration] = useState('');
-    const [recurringRate, setRecurringRate] = useState('');
+    const [eventTitle, setEventTitle] = useState(initialData?.title || '');
+    const [startDate, setStartDate] = useState(initialData?.startDate || '');
+    const [endDate, setEndDate] = useState(initialData?.endDate || '');
+    const [startTime, setStartTime] = useState(initialData?.startTime || '');
+    const [endTime, setEndTime] = useState(initialData?.endTime || '');
+    const [maxPersons, setMaxPersons] = useState(initialData?.maxPersons || '');
+    const [costPerPerson, setCostPerPerson] = useState(initialData?.costPerPerson || '');
+    const [city, setCity] = useState(initialData?.city || '');
+    const [maxDistance, setMaxDistance] = useState(initialData?.maxDistance || '');
+    const [isRecurring, setIsRecurring] = useState(initialData?.recurring || false);
+    const [duration, setDuration] = useState(initialData?.duration || '');
+    const [recurringRate, setRecurringRate] = useState(initialData?.recurringRate || '');
     const [errors, setErrors] = useState<{[key: string]: string}>({});
 
     
@@ -407,7 +417,7 @@ const EventForm: React.FC<EventFormProps> = ({
                     <label htmlFor="city" className="block mb-1 text-body-large font-poppins text-[var(--color-grey-three)]">
                         Ville <span className="text-red-500">*</span>
                     </label>
-                    <AutocompleteInput 
+                    <SimpleAutocomplete 
                         value={city} 
                         onChange={setCity} 
                         placeholder="Ville ou adresse (obligatoire)" 
