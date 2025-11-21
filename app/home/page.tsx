@@ -14,8 +14,18 @@ type EventType = {
   title: string;
   description?: string;
   date?: string;
+  startDate?: string;
+  endDate?: string;
+  startTime?: string;
+  endTime?: string;
   maxPersons?: string;
   costPerPerson?: string;
+  city?: string;
+  maxDistance?: string;
+  activityType?: string;
+  recurring?: boolean;
+  duration?: string;
+  recurringRate?: string;
   state?: string;
   tags: { id: string; name: string }[];
   users?: { // Ajouter users pour les participants
@@ -97,6 +107,43 @@ export default function HomePage() {
     alert(`Partager l'événement: ${eventTitle}`);
   };
 
+  // Fonction pour copier un événement
+  const handleCopyEvent = (event: EventType) => {
+    // Fonctions utilitaires pour formater les dates et heures
+    const formatDate = (dateString: string | undefined) => {
+      if (!dateString) return '';
+      const date = new Date(dateString);
+      return date.toISOString().split('T')[0]; // Format YYYY-MM-DD
+    };
+
+    const formatTime = (timeString: string | undefined) => {
+      if (!timeString) return '';
+      const time = new Date(timeString);
+      return time.toTimeString().split(' ')[0].substring(0, 5); // Format HH:MM
+    };
+
+    // Créer les paramètres URL pour pré-remplir le formulaire avec TOUS les champs
+    const params = new URLSearchParams();
+    
+    params.set('copy', 'true');
+    if (event.title) params.set('title',`${event.title}`);
+    if (event.startDate) params.set('startDate', formatDate(event.startDate));
+    if (event.endDate) params.set('endDate', formatDate(event.endDate));
+    if (event.startTime) params.set('startTime', formatTime(event.startTime));
+    if (event.endTime) params.set('endTime', formatTime(event.endTime));
+    if (event.maxPersons) params.set('maxPersons', event.maxPersons);
+    if (event.costPerPerson) params.set('costPerPerson', event.costPerPerson);
+    if (event.city) params.set('city', event.city);
+    if (event.maxDistance) params.set('maxDistance', event.maxDistance);
+    if (event.activityType) params.set('activityType', event.activityType);
+    if (event.recurring !== undefined) params.set('recurring', event.recurring.toString());
+    if (event.duration) params.set('duration', event.duration);
+    if (event.recurringRate) params.set('recurringRate', event.recurringRate);
+    
+    // Rediriger vers la page de création avec les paramètres
+    router.push(`/create-event?${params.toString()}`);
+  };
+
   if (isLoading) {
     return <div>Chargement...</div>;
   }
@@ -159,6 +206,7 @@ export default function HomePage() {
                 onShare={() => handleShare(event.id, event.title)}
                 onPreferences={() => handleFillPreferences(event)}
                 onDelete={() => handleDeleteEvent(event.id)}
+                onCopy={() => handleCopyEvent(event)}
                 showPreferencesButton={true} // ou logique selon si l'utilisateur a déjà des préférences
               />
             ))}
