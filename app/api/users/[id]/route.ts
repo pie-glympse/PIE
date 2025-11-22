@@ -5,47 +5,49 @@ import bcrypt from "bcryptjs";
 const prisma = new PrismaClient();
 
 function safeJson(obj: unknown) {
-  return JSON.parse(
-    JSON.stringify(obj, (_, value) =>
-      typeof value === "bigint" ? value.toString() : value
-    )
-  );
+  return JSON.parse(JSON.stringify(obj, (_, value) => (typeof value === "bigint" ? value.toString() : value)));
 }
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id: userId } = await params;
 
+    // Récupérer l'utilisateur avec tous les champs disponibles
     const user = await prisma.user.findUnique({
       where: { id: BigInt(userId) },
-      select: {
-        id: true,
-        firstName: true,
-        lastName: true,
-        email: true,
-        role: true,
-        companyId: true,
-      }
     });
 
     if (!user) {
       return NextResponse.json({ error: "Utilisateur non trouvé" }, { status: 404 });
     }
 
-    return NextResponse.json(safeJson(user), { status: 200 });
+    // Construire la réponse avec les champs nécessaires
+    const userData = {
+      id: user.id.toString(),
+      firstName: user.firstName,
+      lastName: user.lastName,
+      email: user.email,
+      role: user.role,
+      companyId: user.companyId?.toString() || null,
+      hasSeenOnboarding: user.hasSeenOnboarding ?? false,
+    };
+
+    return NextResponse.json(userData, { status: 200 });
   } catch (error) {
     console.error("Erreur récupération utilisateur:", error);
-    return NextResponse.json({ error: "Erreur serveur" }, { status: 500 });
+    return NextResponse.json(
+      {
+        error: "Erreur serveur",
+        message: error instanceof Error ? error.message : String(error),
+      },
+      { status: 500 }
+    );
+  } finally {
+    await prisma.$disconnect();
   }
 }
 
-export async function PUT(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id: userId } = await params;
     const body = await request.json();
@@ -60,11 +62,11 @@ export async function PUT(
       firstName,
       lastName,
       email,
-      password
+      password,
     };
 
     // Hash password if provided
-    if (password && password.trim() !== '') {
+    if (password && password.trim() !== "") {
       updateData.password = await bcrypt.hash(password, 10);
     }
 
@@ -77,7 +79,7 @@ export async function PUT(
         lastName: true,
         email: true,
         role: true,
-      }
+      },
     });
 
     return NextResponse.json(safeJson(updatedUser), { status: 200 });

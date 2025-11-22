@@ -16,6 +16,7 @@ model User {
   photoUrl                      String                @default("")
   firstName                     String                @default("")
   lastName                      String                @default("")
+  hasSeenOnboarding             Boolean               @default(false)
   companyId                     BigInt?
   teamId                        BigInt?
   blacklistedPlaces             BlacklistedPlace[]
