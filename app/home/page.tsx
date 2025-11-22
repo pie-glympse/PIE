@@ -58,6 +58,13 @@ export default function HomePage() {
   } | null>(null);
   const [leaveError, setLeaveError] = useState<string | null>(null);
 
+  const [deleteModal, setDeleteModal] = useState<{
+    isOpen: boolean;
+    eventId: string;
+    eventTitle: string;
+  } | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+
   const handleFillPreferences = (event: EventType) => {
     router.push(`/answer-event/${event.id}?eventTitle=${encodeURIComponent(event.title)}`);
   };
@@ -96,28 +103,42 @@ export default function HomePage() {
     };
   };
 
-  // Fonction pour supprimer un événement
-  const handleDeleteEvent = async (eventId: string) => {
-    if (!confirm("Voulez-vous vraiment supprimer cet événement ?")) return;
+  const openDeleteModal = (eventId: string, eventTitle: string) => {
+    setDeleteError(null);
+    setDeleteModal({
+      isOpen: true,
+      eventId,
+      eventTitle,
+    });
+  };
+
+  const closeDeleteModal = () => {
+    setDeleteModal(null);
+    setDeleteError(null);
+  };
+
+  const handleDeleteEvent = async () => {
+    if (!deleteModal || !user) return;
 
     try {
-      const res = await fetch(`/api/events/${eventId}`, {
+      const res = await fetch(`/api/events/${deleteModal.eventId}`, {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ userId: user?.id }),
+        body: JSON.stringify({ userId: user.id }),
       });
       if (res.ok) {
         // Mise à jour locale en supprimant l'event supprimé
-        setEvents((prev) => prev.filter((event) => event.id !== eventId));
+        setEvents((prev) => prev.filter((event) => event.id !== deleteModal.eventId));
+        closeDeleteModal();
       } else {
         const errorData = await res.json();
-        alert(errorData.error || "Erreur lors de la suppression de l'événement.");
+        setDeleteError(errorData.error || "Erreur lors de la suppression de l'événement.");
       }
     } catch (error) {
       console.error("Erreur réseau lors de la suppression :", error);
-      alert("Erreur réseau lors de la suppression.");
+      setDeleteError("Erreur réseau lors de la suppression.");
     }
   };
 
@@ -298,7 +319,7 @@ export default function HomePage() {
                   isAuthorized={isAuthorized}
                   onShare={() => handleShare(event.id, event.title)}
                   onPreferences={() => handleFillPreferences(event)}
-                  onDelete={() => handleDeleteEvent(event.id)}
+                  onDelete={() => openDeleteModal(event.id, event.title)}
                   onCopy={() => handleCopyEvent(event)}
                   onEdit={isCreator ? () => handleEditEvent(event.id) : undefined}
                   canLeave={canLeave}
@@ -355,6 +376,19 @@ export default function HomePage() {
             confirmButtonText="Oui, quitter"
             cancelButtonText="Annuler"
             error={leaveError}
+          />
+        )}
+
+        {deleteModal && (
+          <ConfirmationModal
+            isOpen={deleteModal.isOpen}
+            onClose={closeDeleteModal}
+            onConfirm={handleDeleteEvent}
+            title={`Supprimer l'événement "${deleteModal.eventTitle}"`}
+            message="Êtes-vous sûr de vouloir supprimer cet événement ? Cette action est irréversible et supprimera définitivement l'événement."
+            confirmButtonText="Oui, supprimer"
+            cancelButtonText="Annuler"
+            error={deleteError}
           />
         )}
       </main>

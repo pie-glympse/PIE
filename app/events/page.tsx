@@ -55,6 +55,13 @@ export default function EventForm() {
   } | null>(null);
   const [leaveError, setLeaveError] = useState<string | null>(null);
 
+  const [deleteModal, setDeleteModal] = useState<{
+    isOpen: boolean;
+    eventId: string;
+    eventTitle: string;
+  } | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+
   // Redirection si pas connecté
   useEffect(() => {
     if (!isLoading && !user) {
@@ -123,11 +130,25 @@ export default function EventForm() {
 
   if (!user) return null;
 
-  const handleDeleteEvent = async (eventId: string) => {
-    if (!confirm("Voulez-vous vraiment supprimer cet événement ?")) return;
+  const openDeleteModal = (eventId: string, eventTitle: string) => {
+    setDeleteError(null);
+    setDeleteModal({
+      isOpen: true,
+      eventId,
+      eventTitle,
+    });
+  };
+
+  const closeDeleteModal = () => {
+    setDeleteModal(null);
+    setDeleteError(null);
+  };
+
+  const handleDeleteEvent = async () => {
+    if (!deleteModal || !user) return;
 
     try {
-      const res = await fetch(`/api/events/${eventId}`, {
+      const res = await fetch(`/api/events/${deleteModal.eventId}`, {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",
@@ -135,14 +156,15 @@ export default function EventForm() {
         body: JSON.stringify({ userId: user.id }),
       });
       if (res.ok) {
-        setEvents((prev) => prev.filter((event) => event.id !== eventId));
+        setEvents((prev) => prev.filter((event) => event.id !== deleteModal.eventId));
+        closeDeleteModal();
       } else {
         const errorData = await res.json();
-        alert(errorData.error || "Erreur lors de la suppression de l'événement.");
+        setDeleteError(errorData.error || "Erreur lors de la suppression de l'événement.");
       }
     } catch (error) {
       console.error("Erreur réseau lors de la suppression :", error);
-      alert("Erreur réseau lors de la suppression.");
+      setDeleteError("Erreur réseau lors de la suppression.");
     }
   };
 
@@ -241,7 +263,12 @@ export default function EventForm() {
                   setSelectedEvent(event);
                   setShowPreferenceForm(true);
                 }}
-                onDelete={handleDeleteEvent}
+                onDelete={(eventId) => {
+                  const event = filteredEvents.find((e) => e.id === eventId);
+                  if (event) {
+                    openDeleteModal(eventId, event.title);
+                  }
+                }}
                 onEdit={handleEditEvent}
                 currentUserId={user.id}
                 onShowAddEvent={() => router.push("/create-event")}
@@ -326,6 +353,19 @@ export default function EventForm() {
               confirmButtonText="Oui, quitter"
               cancelButtonText="Annuler"
               error={leaveError}
+            />
+          )}
+
+          {deleteModal && (
+            <ConfirmationModal
+              isOpen={deleteModal.isOpen}
+              onClose={closeDeleteModal}
+              onConfirm={handleDeleteEvent}
+              title={`Supprimer l'événement "${deleteModal.eventTitle}"`}
+              message="Êtes-vous sûr de vouloir supprimer cet événement ? Cette action est irréversible et supprimera définitivement l'événement."
+              confirmButtonText="Oui, supprimer"
+              cancelButtonText="Annuler"
+              error={deleteError}
             />
           )}
         </div>
