@@ -40,13 +40,7 @@ const CreateEventPage = () => {
     const [formData, setFormData] = useState<EventFormData | null>(null);
     const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
     const [suggestedActivities, setSuggestedActivities] = useState<any[]>([]);
-
-    // Redirection si pas connecté
-    useEffect(() => {
-        if (!isLoading && !user) {
-            router.push("/login");
-        }
-    }, [user, isLoading, router]);
+    const [createdEventId, setCreatedEventId] = useState<string | null>(null);
 
     // Données pour chaque étape - Types d'événements avec catégories Google Places API
     const eventTypes = [
@@ -81,6 +75,51 @@ const CreateEventPage = () => {
             placeTypes: ['shopping_mall', 'store']
         },
     ];
+
+    // Gérer les paramètres URL pour la copie d'événement
+    useEffect(() => {
+        const searchParams = new URLSearchParams(window.location.search);
+        const isCopy = searchParams.get('copy');
+        
+        if (isCopy === 'true') {
+            // Pré-remplir les données depuis les paramètres URL avec TOUS les champs
+            const copiedData: EventFormData = {
+                title: searchParams.get('title') || '',
+                startDate: searchParams.get('startDate') || '',
+                endDate: searchParams.get('endDate') || '',
+                startTime: searchParams.get('startTime') || '',
+                endTime: searchParams.get('endTime') || '',
+                maxPersons: searchParams.get('maxPersons') || '',
+                costPerPerson: searchParams.get('costPerPerson') || '',
+                city: searchParams.get('city') || '',
+                maxDistance: searchParams.get('maxDistance') || '',
+                recurring: searchParams.get('recurring') === 'true',
+                duration: searchParams.get('duration') || '',
+                recurringRate: searchParams.get('recurringRate') || ''
+            };
+
+            // Gérer le type d'activité si fourni
+            const activityType = searchParams.get('activityType');
+            if (activityType) {
+                // Trouver l'ID du type d'événement correspondant
+                const eventType = eventTypes.find(type => type.text === activityType);
+                if (eventType) {
+                    setSelectedEventType(eventType.id);
+                }
+            }
+
+            setFormData(copiedData);
+            // Passer automatiquement à l'étape 2 si on copie un événement
+            setCurrentStep(2);
+        }
+    }, []);
+
+    // Redirection si pas connecté
+    useEffect(() => {
+        if (!isLoading && !user) {
+            router.push("/login");
+        }
+    }, [user, isLoading, router]);
 
     // Handlers pour chaque étape
     const handleEventTypeSelect = (id: string) => {
@@ -181,6 +220,8 @@ const CreateEventPage = () => {
                 });
 
                 if (response.ok) {
+                    const createdEvent = await response.json();
+                    setCreatedEventId(createdEvent.id);
                     setIsModalOpen(true);
                 } else {
                     const error = await response.json();
@@ -226,18 +267,19 @@ const CreateEventPage = () => {
         });
     };
 
-    // Handlers pour la modal
     const handleModalClose = () => {
         setIsModalOpen(false);
     };
 
     const handleModalButtonClick = () => {
-        // Fermer la modal et rediriger vers la page d'accueil
         setIsModalOpen(false);
-        router.push('/home'); 
+        if (createdEventId) {
+            router.push(`/events/${createdEventId}`);
+        } else {
+            router.push('/home');
+        }
     };
 
-    // Fonction pour obtenir le contenu de l'étape actuelle
     const renderStepContent = () => {
         switch (currentStep) {
             case 1:
@@ -266,6 +308,7 @@ const CreateEventPage = () => {
                             title="Détails de votre Événement"
                             subtitle="Remplissez les informations pour créer votre événement"
                             buttonText="Continuer"
+                            initialData={formData || undefined}
                             onSubmit={handleFormSubmit}
                         />
                     </div>
@@ -292,7 +335,6 @@ const CreateEventPage = () => {
         return <div className="flex items-center justify-center min-h-screen">Chargement...</div>;
     }
 
-    // Redirection si pas connecté (ne devrait pas arriver grâce à useEffect)
     if (!user) {
         return null;
     }
@@ -306,7 +348,6 @@ const CreateEventPage = () => {
                         <BackArrow onClick={handleBack} className="" />
                     </div>
                     
-                    {/* Indicateur d'étape - maintenant 3 étapes */}
                     <div className="flex items-center gap-4 mb-4">
                         <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
                             currentStep >= 1 ? 'bg-[var(--color-main)] text-white' : 'bg-gray-200 text-gray-500'
@@ -331,7 +372,6 @@ const CreateEventPage = () => {
                         {renderStepContent()}
                     </div>
                     
-                    {/* Bouton en bas - caché à l'étape 2 car EventForm a son propre bouton */}
                     {currentStep !== 2 && (
                         <div className='w-1/6'>
                             <MainButton
@@ -345,7 +385,6 @@ const CreateEventPage = () => {
                 </div>
             </section>
 
-            {/* Modal simplifiée */}
             <Modal
                 isOpen={isModalOpen}
                 onClose={handleModalClose}
@@ -353,11 +392,11 @@ const CreateEventPage = () => {
                 showSteppers={false}
                 title="Événement créé avec succès !"
                 text="Votre événement a été créé et est maintenant disponible."
-                buttonText="Voir mes événements"
+                buttonText="Voir l'événement"
                 stepContents={[{
                     title: "Félicitations !",
                     text: "Votre événement a été créé avec succès.",
-                    buttonText: "Retour aux événements",
+                    buttonText: "Voir l'événement",
                     image: "/images/mascotte/joy.png",
                     imagePosition: 'center' as const
                 }]}
