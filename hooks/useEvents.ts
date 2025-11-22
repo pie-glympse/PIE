@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
 
 export type EventType = {
   id: string;
@@ -21,6 +21,12 @@ export type EventType = {
     lastName: string;
     email: string;
   }[];
+  createdBy?: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+  } | null;
 };
 
 export const useEvents = (userId?: string) => {
@@ -53,25 +59,24 @@ export const useEvents = (userId?: string) => {
 
 export const filterEventsByStatus = (
   events: EventType[],
-  statusFilter: 'all' | 'past' | 'upcoming' | 'preparation'
+  statusFilter: "all" | "past" | "upcoming" | "preparation"
 ): EventType[] => {
   const now = new Date();
-  return events.filter(event => {
-    if (statusFilter === 'all') return true;
-    
-    const eventDate = new Date(event.startDate || '');
-    
-    if (statusFilter === 'past') {
+  return events.filter((event) => {
+    if (statusFilter === "all") return true;
+
+    const eventDate = new Date(event.startDate || "");
+
+    if (statusFilter === "past") {
       return eventDate < now;
     }
-    if (statusFilter === 'upcoming') {
-      return eventDate > now && event.state !== 'pending';
+    if (statusFilter === "upcoming") {
+      return eventDate > now && event.state !== "pending";
     }
-    if (statusFilter === 'preparation') {
-      return event.state === 'pending';
+    if (statusFilter === "preparation") {
+      return event.state === "pending";
     }
-    
+
     return true;
   });
 };
-

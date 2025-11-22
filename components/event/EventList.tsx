@@ -3,7 +3,7 @@ import type { EventType } from "@/hooks/useEvents";
 
 interface EventListProps {
   events: EventType[];
-  viewMode: 'grid' | 'list';
+  viewMode: "grid" | "list";
   dropdownEvent: string | null;
   onDropdownToggle: (eventId: string) => void;
   isAuthorized: boolean;
@@ -12,18 +12,17 @@ interface EventListProps {
   onShare: (eventId: string, eventTitle: string) => void;
   onPreferences: (event: EventType) => void;
   onDelete: (eventId: string) => void;
+  onLeaveEvent: (event: EventType) => void;
+  currentUserId: string;
   onShowAddEvent?: () => void;
   showAddButton?: boolean;
 }
 
 const adaptEventForGcard = (event: EventType) => {
   const getBackgroundUrl = (tags: { id: string; name: string }[]) => {
-    if (tags.some((tag) => tag.name === "Restauration"))
-      return "/images/illustration/palm.svg";
-    if (tags.some((tag) => tag.name === "Afterwork"))
-      return "/images/illustration/stack.svg";
-    if (tags.some((tag) => tag.name === "Team Building"))
-      return "/images/illustration/roundstar.svg";
+    if (tags.some((tag) => tag.name === "Restauration")) return "/images/illustration/palm.svg";
+    if (tags.some((tag) => tag.name === "Afterwork")) return "/images/illustration/stack.svg";
+    if (tags.some((tag) => tag.name === "Team Building")) return "/images/illustration/roundstar.svg";
     return "/images/illustration/roundstar.svg";
   };
 
@@ -47,35 +46,40 @@ export const EventList = ({
   onShare,
   onPreferences,
   onDelete,
+  onLeaveEvent,
+  currentUserId,
   onShowAddEvent,
   showAddButton = true,
 }: EventListProps) => {
-  if (viewMode === 'grid') {
+  if (viewMode === "grid") {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {events.map((event) => (
-          <div
-            key={event.id}
-            onClick={() => onEventClick(event.id)}
-            className="cursor-pointer"
-          >
-            <Gcard
-              eventId={event.id}
-              {...adaptEventForGcard(event)}
-              className="w-full h-60"
-              dropdownOpen={dropdownEvent === event.id}
-              onDropdownToggle={() => onDropdownToggle(event.id)}
-              isAuthorized={isAuthorized}
-              onShare={() => onShare(event.id, event.title)}
-              onPreferences={() => onPreferences(event)}
-              onDelete={() => onDelete(event.id)}
-              showPreferencesButton={
-                !userEventPreferences.has(event.id) && 
-                event.state?.toLowerCase() !== 'confirmed'
-              }
-            />
-          </div>
-        ))}
+        {events.map((event) => {
+          const isParticipant = event.users?.some((participant) => participant.id === currentUserId);
+          const isCreator = event.createdBy?.id === currentUserId;
+          const canLeave = Boolean(isParticipant && !isCreator);
+
+          return (
+            <div key={event.id} onClick={() => onEventClick(event.id)} className="cursor-pointer">
+              <Gcard
+                eventId={event.id}
+                {...adaptEventForGcard(event)}
+                className="w-full h-60"
+                dropdownOpen={dropdownEvent === event.id}
+                onDropdownToggle={() => onDropdownToggle(event.id)}
+                isAuthorized={isAuthorized}
+                onShare={() => onShare(event.id, event.title)}
+                onPreferences={() => onPreferences(event)}
+                onDelete={() => onDelete(event.id)}
+                canLeave={canLeave}
+                onLeave={canLeave ? () => onLeaveEvent(event) : undefined}
+                showPreferencesButton={
+                  !userEventPreferences.has(event.id) && event.state?.toLowerCase() !== "confirmed"
+                }
+              />
+            </div>
+          );
+        })}
         {showAddButton && onShowAddEvent && (
           <button
             onClick={onShowAddEvent}
@@ -91,29 +95,30 @@ export const EventList = ({
 
   return (
     <div className="space-y-4">
-      {events.map((event) => (
-        <div
-          key={event.id}
-          onClick={() => onEventClick(event.id)}
-          className="cursor-pointer"
-        >
-          <Gcard
-            eventId={event.id}
-            {...adaptEventForGcard(event)}
-            className="w-full ha-auto"
-            dropdownOpen={dropdownEvent === event.id}
-            onDropdownToggle={() => onDropdownToggle(event.id)}
-            isAuthorized={isAuthorized}
-            onShare={() => onShare(event.id, event.title)}
-            onPreferences={() => onPreferences(event)}
-            onDelete={() => onDelete(event.id)}
-            showPreferencesButton={
-              !userEventPreferences.has(event.id) && 
-              event.state?.toLowerCase() !== 'confirmed'
-            }
-          />
-        </div>
-      ))}
+      {events.map((event) => {
+        const isParticipant = event.users?.some((participant) => participant.id === currentUserId);
+        const isCreator = event.createdBy?.id === currentUserId;
+        const canLeave = Boolean(isParticipant && !isCreator);
+
+        return (
+          <div key={event.id} onClick={() => onEventClick(event.id)} className="cursor-pointer">
+            <Gcard
+              eventId={event.id}
+              {...adaptEventForGcard(event)}
+              className="w-full ha-auto"
+              dropdownOpen={dropdownEvent === event.id}
+              onDropdownToggle={() => onDropdownToggle(event.id)}
+              isAuthorized={isAuthorized}
+              onShare={() => onShare(event.id, event.title)}
+              onPreferences={() => onPreferences(event)}
+              onDelete={() => onDelete(event.id)}
+              canLeave={canLeave}
+              onLeave={canLeave ? () => onLeaveEvent(event) : undefined}
+              showPreferencesButton={!userEventPreferences.has(event.id) && event.state?.toLowerCase() !== "confirmed"}
+            />
+          </div>
+        );
+      })}
       {showAddButton && onShowAddEvent && (
         <button
           onClick={onShowAddEvent}
@@ -126,4 +131,3 @@ export const EventList = ({
     </div>
   );
 };
-

@@ -35,8 +35,19 @@ export default function EventForm() {
   const [selectedEvent, setSelectedEvent] = useState<EventType | null>(null);
   const [showPreferenceForm, setShowPreferenceForm] = useState(false);
   const [dropdownEvent, setDropdownEvent] = useState<string | null>(null);
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'past' | 'upcoming' | 'preparation'>('all');
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [statusFilter, setStatusFilter] = useState<"all" | "past" | "upcoming" | "preparation">("all");
+  const [leaveModal, setLeaveModal] = useState<{
+    isOpen: boolean;
+    eventId: string;
+    eventTitle: string;
+  }>({
+    isOpen: false,
+    eventId: "",
+    eventTitle: "",
+  });
+  const [leaveLoading, setLeaveLoading] = useState(false);
+  const [leaveError, setLeaveError] = useState<string | null>(null);
 
   const [shareModal, setShareModal] = useState<{
     isOpen: boolean;
@@ -70,12 +81,15 @@ export default function EventForm() {
                 const participantsData = await participantsRes.json();
                 return {
                   ...event,
-                  users: participantsData.users || participantsData.userIds?.map((id: string) => ({
-                    id,
-                    firstName: "User",
-                    lastName: id,
-                    email: `user${id}@example.com`
-                  })) || []
+                  users:
+                    participantsData.users ||
+                    participantsData.userIds?.map((id: string) => ({
+                      id,
+                      firstName: "User",
+                      lastName: id,
+                      email: `user${id}@example.com`,
+                    })) ||
+                    [],
                 };
               }
               return { ...event, users: [] };
@@ -120,7 +134,6 @@ export default function EventForm() {
       const res = await fetch(`/api/events/${eventId}`, { method: "DELETE" });
       if (res.ok) {
         setEvents((prev) => prev.filter((event) => event.id !== eventId));
-        alert("Événement supprimé avec succès !");
       } else {
         alert("Erreur lors de la suppression de l'événement.");
       }
@@ -132,6 +145,51 @@ export default function EventForm() {
 
   const handleFillPreferences = (event: EventType) => {
     router.push(`/answer-event/${event.id}?eventTitle=${encodeURIComponent(event.title)}`);
+  };
+
+  const openLeaveModal = (event: EventType) => {
+    setLeaveError(null);
+    setLeaveModal({
+      isOpen: true,
+      eventId: event.id,
+      eventTitle: event.title,
+    });
+  };
+
+  const closeLeaveModal = () => {
+    if (leaveLoading) return;
+    setLeaveModal({ isOpen: false, eventId: "", eventTitle: "" });
+    setLeaveError(null);
+  };
+
+  const handleLeaveEvent = async () => {
+    if (!user || !leaveModal.eventId) return;
+
+    setLeaveLoading(true);
+    setLeaveError(null);
+
+    try {
+      const response = await fetch(`/api/events/${leaveModal.eventId}/leave`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ userId: user.id }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || "Impossible de quitter l'événement");
+      }
+
+      setEvents((prev) => prev.filter((event) => event.id !== leaveModal.eventId));
+      closeLeaveModal();
+    } catch (error) {
+      console.error("Erreur lors du départ de l'événement:", error);
+      setLeaveError(error instanceof Error ? error.message : "Erreur lors du départ de l'événement");
+    } finally {
+      setLeaveLoading(false);
+    }
   };
 
   const openShareModal = (eventId: string, eventTitle: string) => {
@@ -152,9 +210,7 @@ export default function EventForm() {
 
         <div className="flex flex-col md:flex-row md:justify-between md:items-start w-full gap-4">
           <div className="flex flex-row items-center gap-4">
-            <h1 className="text-h1 font-urbanist text-[var(--color-text)] mb-2">
-              Tous vos événements
-            </h1>
+            <h1 className="text-h1 font-urbanist text-[var(--color-text)] mb-2">Tous vos événements</h1>
             <button className="">
               <Image src="/icons/filterIcon.svg" alt="Filtrer" width={24} height={24} className="" />
             </button>
@@ -169,7 +225,7 @@ export default function EventForm() {
             {fetchError && <p className="text-red-600 font-semibold">Erreur: {fetchError}</p>}
 
             {filteredEvents.length === 0 ? (
-              <EmptyState onButtonClick={() => router.push('/create-event')} />
+              <EmptyState onButtonClick={() => router.push("/create-event")} />
             ) : (
               <EventList
                 events={filteredEvents}
@@ -185,7 +241,9 @@ export default function EventForm() {
                   setShowPreferenceForm(true);
                 }}
                 onDelete={handleDeleteEvent}
-                onShowAddEvent={() => router.push('/create-event')}
+                onLeaveEvent={openLeaveModal}
+                currentUserId={user.id}
+                onShowAddEvent={() => router.push("/create-event")}
                 showAddButton={isAuthorized}
               />
             )}
@@ -202,9 +260,7 @@ export default function EventForm() {
 
           {showPreferenceForm && selectedEvent && (
             <div className="fixed top-0 left-0 w-full h-full bg-white z-50 p-8 overflow-auto">
-              <h2 className="text-2xl font-bold mb-6">
-                Préférences pour : {selectedEvent.title}
-              </h2>
+              <h2 className="text-2xl font-bold mb-6">Préférences pour : {selectedEvent.title}</h2>
 
               {step === 1 && (
                 <>
@@ -215,9 +271,7 @@ export default function EventForm() {
                         key={tag.id}
                         onClick={() => setSelectedTagId(tag.id)}
                         className={`p-3 rounded border ${
-                          selectedTagId === tag.id
-                            ? "bg-blue-500 text-white"
-                            : "bg-gray-100"
+                          selectedTagId === tag.id ? "bg-blue-500 text-white" : "bg-gray-100"
                         }`}
                       >
                         {tag.name}
@@ -244,10 +298,7 @@ export default function EventForm() {
                     className="p-2 border rounded"
                   />
                   <div className="mt-6 flex gap-4">
-                    <button
-                      className="px-4 py-2 bg-gray-300 rounded"
-                      onClick={() => setStep(1)}
-                    >
+                    <button className="px-4 py-2 bg-gray-300 rounded" onClick={() => setStep(1)}>
                       Retour
                     </button>
                     <button
@@ -260,6 +311,34 @@ export default function EventForm() {
                   </div>
                 </>
               )}
+            </div>
+          )}
+          {leaveModal.isOpen && (
+            <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+              <div className="bg-white rounded-lg p-8 w-full max-w-md mx-4">
+                <h3 className="text-h3 font-urbanist mb-4 text-[var(--color-text)]">Quitter l&apos;événement ?</h3>
+                <p className="text-body-large font-poppins text-[var(--color-grey-four)] mb-4">
+                  Êtes-vous sûr de vouloir quitter <span className="font-semibold">{leaveModal.eventTitle}</span> ? Vous
+                  ne recevrez plus d&apos;informations sur cet événement.
+                </p>
+                {leaveError && <p className="text-sm text-red-600 mb-4">{leaveError}</p>}
+                <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
+                  <button
+                    onClick={closeLeaveModal}
+                    disabled={leaveLoading}
+                    className="px-4 py-2 bg-white border border-[var(--color-grey-three)] text-[var(--color-grey-four)] rounded hover:border-[var(--color-main)] hover:bg-[var(--color-grey-one)] transition cursor-pointer disabled:cursor-not-allowed"
+                  >
+                    Annuler
+                  </button>
+                  <button
+                    onClick={handleLeaveEvent}
+                    disabled={leaveLoading}
+                    className="px-4 py-2 bg-[#FFD1D1] text-red-700 rounded hover:bg-[#FFBDBD] transition disabled:opacity-70 cursor-pointer disabled:cursor-not-allowed"
+                  >
+                    {leaveLoading ? "Départ..." : "Quitter l'événement"}
+                  </button>
+                </div>
+              </div>
             </div>
           )}
         </div>
