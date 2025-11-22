@@ -12,6 +12,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { EventList } from "@/components/event/EventList";
 import { useEvents, filterEventsByStatus, type EventType } from "@/hooks/useEvents";
 import { useEventPreferences } from "@/hooks/useEventPreferences";
+import ConfirmationModal from "@/components/ui/ConfirmationModal";
 
 const TAGS = [
   { id: 1, name: "Restauration" },
@@ -47,6 +48,13 @@ export default function EventForm() {
     eventId: "",
     eventTitle: "",
   });
+
+  const [leaveModal, setLeaveModal] = useState<{
+    isOpen: boolean;
+    eventId: string;
+    eventTitle: string;
+  } | null>(null);
+  const [leaveError, setLeaveError] = useState<string | null>(null);
 
   // Redirection si pas connecté
   useEffect(() => {
@@ -117,16 +125,61 @@ export default function EventForm() {
     if (!confirm("Voulez-vous vraiment supprimer cet événement ?")) return;
 
     try {
-      const res = await fetch(`/api/events/${eventId}`, { method: "DELETE" });
+      const res = await fetch(`/api/events/${eventId}`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ userId: user.id }),
+      });
       if (res.ok) {
         setEvents((prev) => prev.filter((event) => event.id !== eventId));
-        alert("Événement supprimé avec succès !");
       } else {
-        alert("Erreur lors de la suppression de l'événement.");
+        const errorData = await res.json();
+        alert(errorData.error || "Erreur lors de la suppression de l'événement.");
       }
     } catch (error) {
       console.error("Erreur réseau lors de la suppression :", error);
       alert("Erreur réseau lors de la suppression.");
+    }
+  };
+
+  const openLeaveModal = (event: EventType) => {
+    setLeaveError(null);
+    setLeaveModal({
+      isOpen: true,
+      eventId: event.id,
+      eventTitle: event.title,
+    });
+  };
+
+  const closeLeaveModal = () => {
+    setLeaveModal(null);
+    setLeaveError(null);
+  };
+
+  const handleLeaveEvent = async () => {
+    if (!leaveModal || !user) return;
+
+    try {
+      const response = await fetch(`/api/events/${leaveModal.eventId}/leave`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ userId: user.id }),
+      });
+
+      if (response.ok) {
+        setEvents((prev) => prev.filter((event) => event.id !== leaveModal.eventId));
+        closeLeaveModal();
+      } else {
+        const errorData = await response.json();
+        setLeaveError(errorData.error || "Erreur lors du départ de l'événement.");
+      }
+    } catch (error) {
+      console.error("Erreur réseau lors du départ de l'événement :", error);
+      setLeaveError("Erreur réseau lors du départ de l'événement.");
     }
   };
 
@@ -187,6 +240,8 @@ export default function EventForm() {
                 onDelete={handleDeleteEvent}
                 onShowAddEvent={() => router.push('/create-event')}
                 showAddButton={true}
+                onLeaveEvent={openLeaveModal}
+                currentUserId={user.id}
               />
             )}
           </section>
@@ -261,6 +316,19 @@ export default function EventForm() {
                 </>
               )}
             </div>
+          )}
+
+          {leaveModal && (
+            <ConfirmationModal
+              isOpen={leaveModal.isOpen}
+              onClose={closeLeaveModal}
+              onConfirm={handleLeaveEvent}
+              title={`Quitter l'événement "${leaveModal.eventTitle}"`}
+              message="Êtes-vous sûr de vouloir quitter cet événement ? Cette action est irréversible."
+              confirmButtonText="Oui, quitter"
+              cancelButtonText="Annuler"
+              error={leaveError}
+            />
           )}
         </div>
       </div>
