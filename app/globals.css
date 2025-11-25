@@ -140,3 +140,6 @@ body {
 .custom-orange-scrollbar::-webkit-scrollbar-thumb:hover {
   background-color: #e6b330;
 }
+.bg-red {
+  background-color: #FF5B5B;
+}
