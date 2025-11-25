@@ -1,0 +1,197 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model BlacklistedPlace {
+  id          BigInt   @id @default(autoincrement())
+  placeId     String
+  companyId   BigInt
+  eventId     BigInt?
+  createdById BigInt
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime
+  Company     Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  User        User     @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  Event       Event?   @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@index([companyId, eventId])
+  @@index([companyId, placeId])
+  @@index([eventId, placeId])
+}
+
+model Company {
+  id               BigInt             @id @default(autoincrement())
+  name             String
+  BlacklistedPlace BlacklistedPlace[]
+  Team             Team[]
+  User             User[]
+}
+
+model CompanyStats {
+  superAdminId BigInt @id
+  totalPersons BigInt
+  subscription String
+  price        BigInt
+  companyName  String
+  User         User   @relation(fields: [superAdminId], references: [id])
+}
+
+model Event {
+  id                           BigInt                @id @default(autoincrement())
+  title                        String
+  maxPersons                   BigInt?
+  costPerPerson                BigInt?
+  state                        String                @default("PENDING")
+  createdAt                    DateTime              @default(now())
+  updatedAt                    DateTime
+  uuid                         String                @unique
+  activityType                 String?
+  city                         String?
+  endDate                      DateTime?
+  endTime                      DateTime?
+  maxDistance                  Float?
+  startDate                    DateTime?
+  startTime                    DateTime?
+  createdById                  BigInt?
+  duration                     Int?
+  recurring                    Boolean               @default(false)
+  recurringRate                String?
+  BlacklistedPlace             BlacklistedPlace[]
+  User_Event_createdByIdToUser User?                 @relation("Event_createdByIdToUser", fields: [createdById], references: [id])
+  EventLocation                EventLocation?
+  EventUserPreference          EventUserPreference[]
+  EventsUsersPhoto             EventsUsersPhoto[]
+  Feedback                     Feedback[]
+  Notification                 Notification[]
+  Vote                         Vote[]
+  Tag                          Tag[]                 @relation("EventTags")
+  User_EventUsers              User[]                @relation("EventUsers")
+}
+
+model EventLocation {
+  eventId BigInt @unique
+  id      BigInt @id
+  Event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+}
+
+model EventUserPreference {
+  userId        BigInt
+  eventId       BigInt
+  preferredDate DateTime
+  tagId         BigInt
+  Event         Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  Tag           Tag      @relation(fields: [tagId], references: [id])
+  User          User     @relation(fields: [userId], references: [id])
+
+  @@id([userId, eventId])
+}
+
+model EventsUsersPhoto {
+  id        BigInt  @id @default(autoincrement())
+  userId    BigInt
+  eventId   BigInt
+  photoUrl  String
+  caption   String?
+  createdAt BigInt
+  Event     Event   @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  User      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Feedback {
+  userId       BigInt
+  eventId      BigInt
+  rating       BigInt?
+  message      String?
+  createdAt    DateTime @default(now())
+  participated Boolean?
+  Event        Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  User         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, eventId])
+}
+
+model Notification {
+  id        BigInt   @id @default(autoincrement())
+  userId    BigInt
+  message   String
+  read      Boolean  @default(false)
+  type      String?
+  eventId   BigInt?
+  createdAt DateTime @default(now())
+  Event     Event?   @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  User      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, read])
+}
+
+model PasswordResetToken {
+  id        BigInt    @id @default(autoincrement())
+  token     String    @unique @db.VarChar(255)
+  email     String    @db.VarChar(255)
+  userId    BigInt
+  expiresAt DateTime  @db.Timestamp(6)
+  used      Boolean?  @default(false)
+  createdAt DateTime? @default(now()) @db.Timestamp(6)
+  User      User      @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([token])
+}
+
+model Tag {
+  id                  BigInt                @id
+  name                String
+  EventUserPreference EventUserPreference[]
+  Event               Event[]               @relation("EventTags")
+}
+
+model Team {
+  id        BigInt   @id @default(autoincrement())
+  name      String
+  companyId BigInt
+  createdAt DateTime @default(now())
+  updatedAt DateTime
+  Company   Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  User      User[]
+}
+
+model User {
+  id                            BigInt                @id @default(autoincrement())
+  email                         String                @unique
+  password                      String
+  role                          String                @default("STANDARD")
+  photoUrl                      String                @default("")
+  firstName                     String                @default("")
+  lastName                      String                @default("")
+  companyId                     BigInt?
+  teamId                        BigInt?
+  hasSeenOnboarding             Boolean               @default(false)
+  BlacklistedPlace              BlacklistedPlace[]
+  CompanyStats                  CompanyStats?
+  Event_Event_createdByIdToUser Event[]               @relation("Event_createdByIdToUser")
+  EventUserPreference           EventUserPreference[]
+  EventsUsersPhoto              EventsUsersPhoto[]
+  Feedback                      Feedback[]
+  Notification                  Notification[]
+  PasswordResetToken            PasswordResetToken[]
+  Company                       Company?              @relation(fields: [companyId], references: [id])
+  Team                          Team?                 @relation(fields: [teamId], references: [id])
+  Vote                          Vote[]
+  Event_EventUsers              Event[]               @relation("EventUsers")
+}
+
+model Vote {
+  userId    BigInt
+  eventId   BigInt
+  total     BigInt
+  createdAt DateTime
+  Event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  User      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, eventId])
+}
