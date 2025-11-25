@@ -18,6 +18,9 @@ model User {
   lastName                      String                @default("")
   companyId                     BigInt?
   teamId                        BigInt?
+  hasSeenOnboarding             Boolean               @default(false)
+  points                        Int                   @default(0)
+  selectedBadgeId               BigInt?
   companyStats                  CompanyStats?
   Event_Event_createdByIdToUser Event[]               @relation("Event_createdByIdToUser")
   preferences                   EventUserPreference[]
@@ -30,6 +33,9 @@ model User {
   votes                         Vote[]
   events                        Event[]               @relation("EventUsers")
   blacklistedPlaces             BlacklistedPlace[]
+  userBadges                    UserBadge[]
+  pointsHistory                 PointsHistory[]
+  selectedBadge                 Badge?                @relation("SelectedBadge", fields: [selectedBadgeId], references: [id])
 }
 
 model Company {
@@ -193,4 +199,45 @@ model Notification {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, read])
+}
+
+// Définition des badges disponibles dans le système
+model Badge {
+  id              BigInt      @id @default(autoincrement())
+  name            String      @unique
+  description     String
+  icon            String 
+  pointsRequired  Int
+  order           Int // Pour l'ordre d'affichage (1=Débutant, 2=Explorateur, etc.)
+  createdAt       DateTime    @default(now())
+  userBadges      UserBadge[]
+  selectedByUsers User[]      @relation("SelectedBadge")
+
+  @@index([pointsRequired])
+}
+
+// Table de liaison pour les badges débloqués par les utilisateurs
+model UserBadge {
+  userId      BigInt
+  badgeId     BigInt
+  unlockedAt  DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  badge       Badge    @relation(fields: [badgeId], references: [id], onDelete: Cascade)
+
+  @@id([userId, badgeId])
+  @@index([userId])
+}
+
+// Historique des points gagnés/perdus
+model PointsHistory {
+  id          BigInt   @id @default(autoincrement())
+  userId      BigInt
+  points      Int // Positif = gagné, négatif = perdu
+  action      String // Type d'action: "event_participation", "feedback_given", "event_created", etc.
+  description String? // Description optionnelle
+  eventId     BigInt? // Référence optionnelle à l'événement concerné
+  createdAt   DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
 }
