@@ -43,6 +43,16 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    // Ajouter des points pour la participation à l'événement
+    const { addPoints, POINT_ACTIONS } = await import("@/lib/points-badges");
+    await addPoints(
+      BigInt(userId),
+      POINT_ACTIONS.EVENT_PARTICIPATION,
+      "event_participation",
+      `Participation à un événement`,
+      eventId
+    );
+
     return NextResponse.json({ message: "User linked to event successfully" });
   } catch (error) {
     console.error("Error linking user to event:", error);

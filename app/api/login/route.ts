@@ -25,6 +25,23 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Mot de passe incorrect" }, { status: 401 });
     }
 
+    // Ajouter des points pour la première connexion
+    if (!user.hasSeenOnboarding) {
+      const { addPoints, POINT_ACTIONS } = await import("@/lib/points-badges");
+      await addPoints(
+        user.id,
+        POINT_ACTIONS.FIRST_LOGIN,
+        "first_login",
+        `Bienvenue sur la plateforme !`
+      );
+      
+      // Marquer l'utilisateur comme ayant vu l'onboarding
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { hasSeenOnboarding: true }
+      });
+    }
+
     // Créer un token JWT avec id, email, name, role
     const token = jwt.sign(
       {

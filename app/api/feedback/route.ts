@@ -81,6 +81,16 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    // Ajouter des points pour le feedback donné
+    const { addPoints, POINT_ACTIONS } = await import("@/lib/points-badges");
+    await addPoints(
+      BigInt(userId),
+      POINT_ACTIONS.FEEDBACK_GIVEN,
+      "feedback_given",
+      `Feedback donné pour l'événement`,
+      BigInt(eventId)
+    );
+
     // Marquer la notification de feedback comme lue
     await prisma.notification.updateMany({
       where: {

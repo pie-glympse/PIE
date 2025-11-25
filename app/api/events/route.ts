@@ -154,6 +154,16 @@ export async function POST(request: Request) {
       },
     });
 
+    // Ajouter des points pour la création d'événement
+    const { addPoints, POINT_ACTIONS } = await import("@/lib/points-badges");
+    await addPoints(
+      BigInt(userId),
+      POINT_ACTIONS.EVENT_CREATED,
+      "event_created",
+      `Création de l'événement "${title}"`,
+      newEvent.id
+    );
+
     // Créer une notification pour le créateur
     await prisma.notification.create({
       data: {
