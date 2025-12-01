@@ -130,6 +130,10 @@ export default function EventForm() {
     }
   };
 
+  const handleEditEvent = (eventId: string) => {
+    router.push(`/edit-event/${eventId}`);
+  };
+
   const handleFillPreferences = (event: EventType) => {
     router.push(`/answer-event/${event.id}?eventTitle=${encodeURIComponent(event.title)}`);
   };
@@ -185,6 +189,8 @@ export default function EventForm() {
                   setShowPreferenceForm(true);
                 }}
                 onDelete={handleDeleteEvent}
+                onEdit={handleEditEvent}
+                currentUserId={user.id}
                 onShowAddEvent={() => router.push('/create-event')}
                 showAddButton={true}
               />
