@@ -106,6 +106,74 @@ export async function PATCH(req: Request) {
   }
 }
 
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const resolvedParams = await params;
+    const eventId = BigInt(resolvedParams.id);
+    const body = await request.json();
+
+    // Vérifier d'abord si l'événement existe et récupérer son créateur
+    const existingEvent = await prisma.event.findUnique({
+      where: { id: eventId },
+      select: { createdById: true },
+    });
+
+    if (!existingEvent) {
+      return NextResponse.json(
+        { message: "Événement non trouvé" },
+        { status: 404 }
+      );
+    }
+
+    // Vérifier que l'utilisateur est le créateur de l'événement
+    if (body.userId && existingEvent.createdById !== BigInt(body.userId)) {
+      return NextResponse.json(
+        { message: "Vous n'êtes pas autorisé à modifier cet événement" },
+        { status: 403 }
+      );
+    }
+
+    // Préparer les données à mettre à jour
+    const updateData: any = {};
+    
+    if (body.title !== undefined) updateData.title = body.title;
+    if (body.startDate !== undefined) updateData.startDate = body.startDate ? new Date(body.startDate) : null;
+    if (body.endDate !== undefined) updateData.endDate = body.endDate ? new Date(body.endDate) : null;
+    if (body.startTime !== undefined) updateData.startTime = body.startTime ? new Date(body.startTime) : null;
+    if (body.endTime !== undefined) updateData.endTime = body.endTime ? new Date(body.endTime) : null;
+    if (body.city !== undefined) updateData.city = body.city;
+
+    const updatedEvent = await prisma.event.update({
+      where: { id: eventId },
+      data: updateData,
+      include: {
+        tags: true,
+        users: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+          },
+        },
+      },
+    });
+
+    return NextResponse.json({ event: safeJson(updatedEvent) }, { status: 200 });
+  } catch (error) {
+    console.error("Erreur lors de la modification de l'événement:", error);
+    return NextResponse.json(
+      { message: "Erreur lors de la modification de l'événement" },
+      { status: 500 }
+    );
+  } finally {
+    await prisma.$disconnect();
+  }
+}
+
 export async function DELETE(req: Request) {
   const eventId = getEventIdFromUrl(req);
 

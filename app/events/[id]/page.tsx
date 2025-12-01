@@ -279,7 +279,7 @@ export default function SingleEventPage() {
     <section className="min-h-screen pt-24 p-6 flex flex-col gap-8">
       <div className="w-full flex flex-col gap-6 items-start p-4 md:p-10">
         {/* Header avec logo et back arrow */}
-        <BackArrow onClick={() => router.back()} className="!mb-0" />
+        <BackArrow onClick={() => router.push("/home")} className="!mb-0" />
 
         {/* Header de l'événement */}
         <div className="flex justify-between items-start w-full">
