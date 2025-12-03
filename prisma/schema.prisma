@@ -16,9 +16,11 @@ model User {
   photoUrl                      String                @default("")
   firstName                     String                @default("")
   lastName                      String                @default("")
-  hasSeenOnboarding             Boolean               @default(false)
   companyId                     BigInt?
   teamId                        BigInt?
+  hasSeenOnboarding             Boolean               @default(false)
+  points                        Int                   @default(0)
+  selectedBadgeId               BigInt?
   blacklistedPlaces             BlacklistedPlace[]
   companyStats                  CompanyStats?
   Event_Event_createdByIdToUser Event[]               @relation("Event_createdByIdToUser")
@@ -27,8 +29,11 @@ model User {
   feedbacks                     Feedback[]
   notifications                 Notification[]
   PasswordResetToken            PasswordResetToken[]
+  PointsHistory                 PointsHistory[]
   company                       Company?              @relation(fields: [companyId], references: [id])
+  Badge                         Badge?                @relation(fields: [selectedBadgeId], references: [id])
   team                          Team?                 @relation(fields: [teamId], references: [id])
+  UserBadge                     UserBadge[]
   votes                         Vote[]
   events                        Event[]               @relation("EventUsers")
 }
@@ -194,4 +199,42 @@ model Notification {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, read])
+}
+
+model Badge {
+  id             BigInt      @id @default(autoincrement())
+  name           String      @unique
+  description    String
+  icon           String
+  pointsRequired Int
+  order          Int
+  createdAt      DateTime    @default(now())
+  User           User[]
+  UserBadge      UserBadge[]
+
+  @@index([pointsRequired])
+}
+
+model PointsHistory {
+  id          BigInt   @id @default(autoincrement())
+  userId      BigInt
+  points      Int
+  action      String
+  description String?
+  eventId     BigInt?
+  createdAt   DateTime @default(now())
+  User        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+}
+
+model UserBadge {
+  userId     BigInt
+  badgeId    BigInt
+  unlockedAt DateTime @default(now())
+  Badge      Badge    @relation(fields: [badgeId], references: [id], onDelete: Cascade)
+  User       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, badgeId])
+  @@index([userId])
 }

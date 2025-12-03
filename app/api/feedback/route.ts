@@ -81,15 +81,13 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Marquer la notification de feedback comme lue
-    await prisma.notification.updateMany({
+    // Supprimer la notification de feedback après soumission
+    // (pour ne plus afficher la popup)
+    await prisma.notification.deleteMany({
       where: {
         userId: BigInt(userId),
         eventId: BigInt(eventId),
         type: "FEEDBACK_REQUEST",
-      },
-      data: {
-        read: true,
       },
     });
 

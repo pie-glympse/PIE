@@ -24,39 +24,58 @@ export function useFeedbackNotification() {
         const response = await fetch(`/api/notifications?userId=${user.id}`);
         if (response.ok) {
           const notifications = await response.json();
+          
+          // Trouver toutes les notifications de feedback (lues ou non)
+          const feedbackNotifications = notifications.filter(
+            (n: any) => n.type === "FEEDBACK_REQUEST"
+          );
 
-          // Trouver la première notification de feedback non lue
-          const feedbackNotification = notifications.find((n: any) => n.type === "FEEDBACK_REQUEST" && !n.read);
-
-          if (feedbackNotification) {
-            // Récupérer les détails de l'événement pour avoir le titre
+          // Pour chaque notification de feedback, vérifier si un feedback a été soumis
+          for (const feedbackNotification of feedbackNotifications) {
+            // Vérifier si l'utilisateur a déjà soumis un feedback pour cet événement
             try {
-              const eventResponse = await fetch(`/api/events/${feedbackNotification.eventId}`);
-              if (eventResponse.ok) {
-                const eventData = await eventResponse.json();
-                setPendingFeedback({
-                  id: feedbackNotification.id,
-                  eventId: feedbackNotification.eventId,
-                  message: feedbackNotification.message,
-                  eventTitle: eventData.event?.title || eventData.title || "Événement",
-                });
-              } else {
-                // Si on ne peut pas récupérer l'événement, utiliser quand même la notification
-                setPendingFeedback({
-                  id: feedbackNotification.id,
-                  eventId: feedbackNotification.eventId,
-                  message: feedbackNotification.message,
-                  eventTitle: "Événement",
-                });
+              const feedbackResponse = await fetch(
+                `/api/feedback?eventId=${feedbackNotification.eventId}&userId=${user.id}`
+              );
+              
+              if (feedbackResponse.ok) {
+                const feedbacks = await feedbackResponse.json();
+                // Si aucun feedback n'existe, afficher la popup pour cette notification
+                if (!feedbacks || feedbacks.length === 0) {
+                  // Récupérer les détails de l'événement pour avoir le titre
+                  try {
+                    const eventResponse = await fetch(`/api/events/${feedbackNotification.eventId}`);
+                    if (eventResponse.ok) {
+                      const eventData = await eventResponse.json();
+                      setPendingFeedback({
+                        id: feedbackNotification.id,
+                        eventId: feedbackNotification.eventId,
+                        message: feedbackNotification.message,
+                        eventTitle: eventData.event?.title || eventData.title || "Événement",
+                      });
+                    } else {
+                      setPendingFeedback({
+                        id: feedbackNotification.id,
+                        eventId: feedbackNotification.eventId,
+                        message: feedbackNotification.message,
+                        eventTitle: "Événement",
+                      });
+                    }
+                  } catch (error) {
+                    console.error("Erreur lors de la récupération de l'événement:", error);
+                    setPendingFeedback({
+                      id: feedbackNotification.id,
+                      eventId: feedbackNotification.eventId,
+                      message: feedbackNotification.message,
+                      eventTitle: "Événement",
+                    });
+                  }
+                  // Sortir de la boucle après avoir trouvé la première notification sans feedback
+                  break;
+                }
               }
             } catch (error) {
-              console.error("Erreur lors de la récupération de l'événement:", error);
-              setPendingFeedback({
-                id: feedbackNotification.id,
-                eventId: feedbackNotification.eventId,
-                message: feedbackNotification.message,
-                eventTitle: "Événement",
-              });
+              console.error("Erreur lors de la vérification du feedback:", error);
             }
           }
         }
