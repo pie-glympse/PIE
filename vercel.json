@@ -5,8 +5,8 @@
       "schedule": "0 10 * * *"
     },
     {
-      "path": "/api/feedback/create-requests",
-      "schedule": "0 8 * * *"
+      "path": "/api/events/check-ended",
+      "schedule": "0 * * * *"
     }
   ]
 }

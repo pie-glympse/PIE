@@ -17,7 +17,6 @@ model User {
   bannerUrl                     String                @default("")
   firstName                     String                @default("")
   lastName                      String                @default("")
-  hasSeenOnboarding             Boolean               @default(false)
   companyId                     BigInt?
   teamId                        BigInt?
   hasSeenOnboarding             Boolean               @default(false)
