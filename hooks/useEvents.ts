@@ -14,6 +14,7 @@ export type EventType = {
   activityType?: string;
   city?: string;
   maxDistance?: number;
+  createdById?: string;
   tags: { id: string; name: string }[];
   users: {
     id: string;

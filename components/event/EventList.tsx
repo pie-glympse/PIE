@@ -12,8 +12,10 @@ interface EventListProps {
   onShare: (eventId: string, eventTitle: string) => void;
   onPreferences: (event: EventType) => void;
   onDelete: (eventId: string) => void;
+  onEdit?: (eventId: string) => void;
   onShowAddEvent?: () => void;
   showAddButton?: boolean;
+  currentUserId?: string;
 }
 
 const adaptEventForGcard = (event: EventType) => {
@@ -47,8 +49,10 @@ export const EventList = ({
   onShare,
   onPreferences,
   onDelete,
+  onEdit,
   onShowAddEvent,
   showAddButton = true,
+  currentUserId,
 }: EventListProps) => {
   if (viewMode === 'grid') {
     return (
@@ -69,6 +73,9 @@ export const EventList = ({
               onShare={() => onShare(event.id, event.title)}
               onPreferences={() => onPreferences(event)}
               onDelete={() => onDelete(event.id)}
+              onEdit={onEdit ? () => onEdit(event.id) : undefined}
+              createdById={event.createdById}
+              currentUserId={currentUserId}
               showPreferencesButton={
                 !userEventPreferences.has(event.id) && 
                 event.state?.toLowerCase() !== 'confirmed'
@@ -107,6 +114,9 @@ export const EventList = ({
             onShare={() => onShare(event.id, event.title)}
             onPreferences={() => onPreferences(event)}
             onDelete={() => onDelete(event.id)}
+            onEdit={onEdit ? () => onEdit(event.id) : undefined}
+            createdById={event.createdById}
+            currentUserId={currentUserId}
             showPreferencesButton={
               !userEventPreferences.has(event.id) && 
               event.state?.toLowerCase() !== 'confirmed'

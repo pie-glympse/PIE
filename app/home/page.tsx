@@ -27,6 +27,7 @@ type EventType = {
   duration?: string;
   recurringRate?: string;
   state?: string;
+  createdById?: string;
   tags: { id: string; name: string }[];
   users?: { // Ajouter users pour les participants
     id: string;
@@ -105,6 +106,11 @@ export default function HomePage() {
   const handleShare = (eventId: string, eventTitle: string) => {
     // Logique de partage - vous pouvez adapter selon vos besoins
     alert(`Partager l'événement: ${eventTitle}`);
+  };
+
+  // Fonction pour modifier un événement
+  const handleEditEvent = (eventId: string) => {
+    router.push(`/edit-event/${eventId}`);
   };
 
   // Fonction pour copier un événement
@@ -207,6 +213,9 @@ export default function HomePage() {
                 onPreferences={() => handleFillPreferences(event)}
                 onDelete={() => handleDeleteEvent(event.id)}
                 onCopy={() => handleCopyEvent(event)}
+                onEdit={() => handleEditEvent(event.id)}
+                createdById={event.createdById}
+                currentUserId={user?.id}
                 showPreferencesButton={true} // ou logique selon si l'utilisateur a déjà des préférences
               />
             ))}
