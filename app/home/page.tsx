@@ -182,6 +182,29 @@ export default function HomePage() {
         {/* Calendrier */}
         <section>
           <GCalendar year={2025} />
+          {/* Légende des couleurs */}
+          <div className="mt-4 flex flex-wrap gap-4 justify-center md:justify-start">
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 rounded  bg-[var(--color-secondary)]"></div>
+              <span className="text-sm text-gray-500">Gastronomie</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 rounded bg-[var(--color-calendar-green)]"></div>
+              <span className="text-sm text-gray-500">Nature & Bien-être</span>
+            </div>
+             <div className="flex items-center gap-2">
+              <div className="w-4 h-4 rounded bg-[var(--color-tertiary)]"></div>
+              <span className="text-sm text-gray-500">Divertissement</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 rounded bg-[var(--color-main)]"></div>
+              <span className="text-sm text-gray-500">Culture</span>
+            </div>  
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 rounded bg-orange-500"></div>
+              <span className="text-sm text-gray-500">Shopping</span>
+            </div>
+          </div>
         </section>
 
         {/* Évènements à venir */}
