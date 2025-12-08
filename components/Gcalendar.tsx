@@ -112,11 +112,11 @@ const MiniCalendar = ({ eventsData = [] }: MiniCalendarProps) => {
   // Mapping des couleurs pour les types d'événements (activityType)
   const getColorForActivityType = (activityType: string): string => {
     const activityColors: Record<string, string> = {
-      'Conférence': 'bg-[var(--color-main)] hover:bg-[#ca9e2d]',
-      'Atelier': 'bg-[var(--color-secondary)] hover:bg-[#df4f4f]',
-      'Séminaire': 'bg-[var(--color-tertiary)] hover:bg-[#c16bc7]',
-      'Formation': 'bg-[var(--color-calendar-green)] hover:bg-[var(--color-calendar-green-hover)]',
-      'Webinaire': 'bg-orange-500 hover:bg-orange-600',
+      'Gastronomie': 'bg-[var(--color-main)] hover:bg-[#ca9e2d]',
+      'Culture': 'bg-[var(--color-secondary)] hover:bg-[#df4f4f]',
+      'Nature & Bien-être': 'bg-[var(--color-tertiary)] hover:bg-[#c16bc7]',
+      'Divertissement': 'bg-[var(--color-calendar-green)] hover:bg-[var(--color-calendar-green-hover)]',
+      'Shopping': 'bg-orange-500 hover:bg-orange-600',
     };
 
     return activityColors[activityType] || 'bg-[var(--color-calendar-grey)] hover:bg-[var(--color-calendar-grey-hover)]';
@@ -572,16 +572,19 @@ const MiniCalendar = ({ eventsData = [] }: MiniCalendarProps) => {
       {/* Container de scroll avec tous les mois */}
       <div 
         ref={scrollContainerRef}
-        className={`flex space-x-4 snap-x snap-mandatory px-1 py-5 gap-6 ${
+        className={`flex space-x-4 snap-x snap-mandatory px-1 py-5 gap-6 scrollbar-hide ${
           isMobile 
             ? 'overflow-x-auto'
-            : 'overflow-x-auto' // ✅ Changer de 'overflow-hidden' à 'overflow-x-auto'
+            : 'overflow-x-auto' 
         }`}
         style={{
           WebkitOverflowScrolling: 'touch',
           scrollBehavior: 'smooth',
           // S'assurer que le conteneur a une largeur maximale pour forcer le scroll
-          maxWidth: '100%'
+          maxWidth: '100%',
+          // Masquer la scrollbar sur tous les navigateurs
+          scrollbarWidth: 'none', // Firefox
+          msOverflowStyle: 'none', // IE et Edge
         }}
         onScroll={() => {
           // Forcer une vérification immédiate lors du scroll manuel
