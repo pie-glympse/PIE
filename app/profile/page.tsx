@@ -1,4 +1,4 @@
-// app/profile/page.tsx (si tu es en app directory avec Next.js 13+)
+// app/profile/page.tsx
 "use client";
 
 import { useState, useEffect } from "react";
@@ -243,7 +243,7 @@ export default function ProfilePage() {
                 Editer le profil
               </button>
               <button className="px-4 py-2 bg-white text-h3 font-poppins text-[var(--color-grey-three)] border-2 border-[var(--color-grey-three)] rounded-lg hover: transition cursor-pointer">
-                Parametres
+                Paramètres
               </button>
             </>
           ) : (
@@ -328,7 +328,7 @@ export default function ProfilePage() {
                   type={showPassword ? "text" : "password"}
                   value={userInfo.password}
                   onChange={(e) => handleInputChange('password', e.target.value)}
-                  placeholder="Laissez vide pour ne pas changer"
+                  placeholder="Laissez vide pour conserver le mot de passe actuel"
                   disabled={!isEditing}
                   className={`w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all ${
                     !isEditing ? 'bg-gray-100 cursor-not-allowed text-[var(--color-grey-three)]' : 'bg-white'

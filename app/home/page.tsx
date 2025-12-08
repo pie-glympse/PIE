@@ -167,7 +167,12 @@ export default function HomePage() {
           </div>
           <div className="flex items-center gap-3">
             <p className="text-3xl font-semibold text-gray-800">
-              {user?.firstName || "invité"}
+              {user ? (
+                <>
+                  <span className="uppercase">{user.lastName}</span>{" "}
+                  <span className="capitalize">{user.firstName}</span>
+                </>
+              ) : "invité"}
             </p>
             <Image
                 src="/images/icones/pastille.svg"

@@ -143,7 +143,7 @@ const ResetPasswordForm = () => {
                                 onChange={e => setPassword(e.target.value)}
                                 required
                                 placeholder="Au moins 8 caractères"
-                                className="w-full px-5 py-2 text-base border-2 border-[var(--color-grey-two)] rounded placeholder:text-body-large placeholder:font-poppins placeholder:text-[#EAEAEF]"
+                                className="w-full px-5 py-2 text-base bg-white border-2 border-[var(--color-grey-two)] rounded placeholder:text-body-large placeholder:font-poppins placeholder:text-[#EAEAEF]"
                             />
                         </div>
                         
@@ -158,7 +158,7 @@ const ResetPasswordForm = () => {
                                 onChange={e => setConfirmPassword(e.target.value)}
                                 required
                                 placeholder="Répétez votre mot de passe"
-                                className="w-full px-5 py-2 text-base border-2 border-[var(--color-grey-two)] rounded placeholder:text-body-large placeholder:font-poppins placeholder:text-[#EAEAEF]"
+                                className="w-full px-5 py-2 text-base bg-white border-2 border-[var(--color-grey-two)] rounded placeholder:text-body-large placeholder:font-poppins placeholder:text-[#EAEAEF]"
                             />
                         </div>
                         

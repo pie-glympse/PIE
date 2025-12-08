@@ -84,7 +84,7 @@ const ContactForm: React.FC<ContactFormProps> = ({
                     onChange={e => setObjet(e.target.value)}
                     placeholder={placeholderObjet}
                     required
-                    className="w-full px-5 py-2 text-base border-2 border-[var(--color-grey-two)] rounded placeholder:font-poppins placeholder:text-[#EAEAEF]"
+                    className="w-full px-5 py-2 text-base bg-white border-2 border-[var(--color-grey-two)] rounded placeholder:font-poppins placeholder:text-[#EAEAEF]"
                 />
             </div>
 
@@ -99,7 +99,7 @@ const ContactForm: React.FC<ContactFormProps> = ({
                         onChange={e => setEmail(e.target.value)}
                         required
                         placeholder={placeholderEmail}
-                        className="w-full px-5 py-2 text-base border-2 border-[var(--color-grey-two)] rounded placeholder:text-body-large placeholder:font-poppins placeholder:text-[#EAEAEF]"
+                        className="w-full px-5 py-2 text-base bg-white border-2 border-[var(--color-grey-two)] rounded placeholder:text-body-large placeholder:font-poppins placeholder:text-[#EAEAEF]"
                     />
                 </div>
                 <div className="w-1/4">
@@ -109,7 +109,7 @@ const ContactForm: React.FC<ContactFormProps> = ({
                         type="date"
                         value={date}
                         onChange={e => setDate(e.target.value)}
-                        className="w-full px-5 py-2 text-base border-2 border-[var(--color-grey-two)] rounded placeholder:font-poppins placeholder:text-[#EAEAEF]"
+                        className="w-full px-5 py-2 text-base bg-white border-2 border-[var(--color-grey-two)] rounded placeholder:font-poppins placeholder:text-[#EAEAEF]"
                     />
                 </div>
             </div>
@@ -124,7 +124,7 @@ const ContactForm: React.FC<ContactFormProps> = ({
                     placeholder={placeholderMessage}
                     required
                     rows={8}
-                    className="w-full px-5 py-3 text-base border-2 border-[var(--color-grey-two)] rounded placeholder:font-poppins placeholder:text-[#EAEAEF] resize-vertical min-h-[200px]"
+                    className="w-full px-5 py-3 text-base bg-white border-2 border-[var(--color-grey-two)] rounded placeholder:font-poppins placeholder:text-[#EAEAEF] resize-vertical min-h-[200px]"
                 />
             </div>
 

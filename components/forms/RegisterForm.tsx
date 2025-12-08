@@ -106,7 +106,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({
                         onChange={e => setFirstName(e.target.value)}
                         placeholder="Prénom"
                         required
-                        className="w-full px-5 py-2 text-base border-2 border-[var(--color-grey-two)] rounded placeholder:font-poppins placeholder:text-[#EAEAEF]"
+                        className="w-full px-5 py-2 text-base bg-white border-2 border-[var(--color-grey-two)] rounded placeholder:font-poppins placeholder:text-[#EAEAEF]"
                     />
                 </div>
                 <div className="flex-1">
@@ -118,7 +118,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({
                         onChange={e => setLastName(e.target.value)}
                         placeholder="Nom"
                         required
-                        className="w-full px-5 py-2 text-base border-2 border-[var(--color-grey-two)] rounded placeholder:font-poppins placeholder:text-[#EAEAEF]"
+                        className="w-full px-5 py-2 text-base bg-white border-2 border-[var(--color-grey-two)] rounded placeholder:font-poppins placeholder:text-[#EAEAEF]"
                     />
                 </div>
             </div>
@@ -132,7 +132,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({
                     value={companyName}
                     onChange={e => setCompanyName(e.target.value)}
                     placeholder="Nom de la société"
-                    className="w-full px-5 py-2 text-base border-2 border-[var(--color-grey-two)] rounded placeholder:font-poppins placeholder:text-[#EAEAEF]"
+                    className="w-full px-5 py-2 text-base bg-white border-2 border-[var(--color-grey-two)] rounded placeholder:font-poppins placeholder:text-[#EAEAEF]"
                 />
             </div>
 
@@ -146,7 +146,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({
                         value={address}
                         onChange={e => setAddress(e.target.value)}
                         placeholder="Adresse"
-                        className="w-full px-5 py-2 text-base border-2 border-[var(--color-grey-two)] rounded placeholder:font-poppins placeholder:text-[#EAEAEF]"
+                        className="w-full px-5 py-2 text-base bg-white border-2 border-[var(--color-grey-two)] rounded placeholder:font-poppins placeholder:text-[#EAEAEF]"
                     />
                 </div>
                 <div className="flex-1">
@@ -157,7 +157,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({
                         value={postalCode}
                         onChange={e => setPostalCode(e.target.value)}
                         placeholder="Code postal"
-                        className="w-full px-5 py-2 text-base border-2 border-[var(--color-grey-two)] rounded placeholder:font-poppins placeholder:text-[#EAEAEF]"
+                        className="w-full px-5 py-2 text-base bg-white border-2 border-[var(--color-grey-two)] rounded placeholder:font-poppins placeholder:text-[#EAEAEF]"
                     />
                 </div>
             </div>
@@ -172,7 +172,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({
                     onChange={e => setEmail(e.target.value)}
                     required
                     placeholder={placeholderText}
-                    className="w-full px-5 py-2 text-base border-2 border-[var(--color-grey-two)] rounded placeholder:text-body-large placeholder:font-poppins placeholder:text-[#EAEAEF]"
+                    className="w-full px-5 py-2 text-base bg-white border-2 border-[var(--color-grey-two)] rounded placeholder:text-body-large placeholder:font-poppins placeholder:text-[#EAEAEF]"
                 />
             </div>
 
@@ -186,7 +186,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({
                     onChange={e => setPassword(e.target.value)}
                     placeholder={placeholderTextPswrd}
                     required
-                    className="w-full px-5 py-2 text-base border-2 border-[var(--color-grey-two)] rounded placeholder:font-poppins placeholder:text-[#EAEAEF] mb-6"
+                    className="w-full px-5 py-2 text-base bg-white border-2 border-[var(--color-grey-two)] rounded placeholder:font-poppins placeholder:text-[#EAEAEF] mb-6"
                 />
             </div>
 
