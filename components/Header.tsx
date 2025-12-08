@@ -62,7 +62,7 @@ export default function Header() {
   }, [user]);
 
   return (
-    <header className="fixed top-0 left-0 right-0 w-full p-6 bg-white z-50 border-b border-gray-100">
+    <header className="fixed top-0 left-0 right-0 w-full px-6 py-4 bg-white z-50 border-b border-gray-100">
       <div className="mx-auto flex items-center justify-between">
         <div className="flex items-center relative">
           {/* Menu button */}
@@ -106,25 +106,6 @@ export default function Header() {
               onMouseLeave={() => setIsMenuHovered(false)}
             >
               <Link
-                href="/profile"
-                className="flex items-center px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-secondary transition-colors duration-200 group"
-              >
-                <svg
-                  className="w-5 h-5 mr-3 text-gray-500 group-hover:text-secondary transition-colors duration-200"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                  />
-                </svg>
-                <span className="font-medium">Profil</span>
-              </Link>
-              <Link
                 href="/home"
                 className="flex items-center px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-secondary transition-colors duration-200 group"
               >
@@ -163,6 +144,7 @@ export default function Header() {
                 </svg>
                 <span className="font-medium">Événements</span>
               </Link>
+
               <Link
                 href="/create-groups"
                 className="flex items-center px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-secondary transition-colors duration-200 group"
@@ -173,6 +155,26 @@ export default function Header() {
 
                 <span className="font-medium">Entreprise</span>
               </Link>
+
+              <Link
+                href="/profile"
+                className="flex items-center px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-secondary transition-colors duration-200 group"
+              >
+                <svg
+                  className="w-5 h-5 mr-3 text-gray-500 group-hover:text-secondary transition-colors duration-200"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                  />
+                </svg>
+                <span className="font-medium">Profil</span>
+              </Link>
             </div>
           </div>
 
@@ -182,8 +184,8 @@ export default function Header() {
               <Image
                 src="/images/logo/Logotype.svg"
                 alt="Logo Glymps"
-                width={150}
-                height={150}
+                width={125}
+                height={125}
                 priority
               />
             </Link>
@@ -196,7 +198,7 @@ export default function Header() {
         </div>
 
         {/* Right: Avatars */}
-        <div className="flex items-center gap-8">
+        <div className="flex items-center gap-6 pr-2">
           <Link href="/notifications" className="w-10 h-10 relative cursor-pointer hover:opacity-80 transition">
             <Image
               src="/images/icones/notification.svg"

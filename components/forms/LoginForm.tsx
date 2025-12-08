@@ -110,7 +110,7 @@ const LoginForm: React.FC<LoginFormProps> = ({
                     onChange={e => setEmail(e.target.value)}
                     required
                     placeholder={placeholderText}
-                    className="w-full px-5 py-2 text-base border-2 border-[var(--color-grey-two)] rounded placeholder:text-body-large placeholder:font-poppins placeholder:text-[#EAEAEF]"
+                    className="w-full px-5 py-2 text-base bg-white border-2 border-[var(--color-grey-two)] rounded placeholder:text-body-large placeholder:font-poppins placeholder:text-[#EAEAEF]"
                 />
             </div>
             
@@ -123,7 +123,7 @@ const LoginForm: React.FC<LoginFormProps> = ({
                     onChange={e => setPassword(e.target.value)}
                     placeholder={placeholderTextPswrd}
                     required
-                    className="w-full px-5 py-2 text-base border-2 border-[var(--color-grey-two)] rounded placeholder:font-poppins placeholder:text-[#EAEAEF]"
+                    className="w-full px-5 py-2 text-base bg-white border-2 border-[var(--color-grey-two)] rounded placeholder:font-poppins placeholder:text-[#EAEAEF]"
                 />
             </div>
             
@@ -134,7 +134,7 @@ const LoginForm: React.FC<LoginFormProps> = ({
             )}
             
             <span
-                className="text-[var(--color-grey-three)] text-body-small cursor-pointer text-sm block mb-6 text-right underline focus:underline"
+                className="text-[var(--color-grey-three)] text-body-small font-poppins cursor-pointer text-sm block mb-6 text-right underline focus:underline"
                 onClick={onForgotPassword}
                 tabIndex={0}
                 role="button"

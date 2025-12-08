@@ -237,7 +237,7 @@ const EventForm: React.FC<EventFormProps> = ({
                     onChange={e => setEventTitle(e.target.value)}
                     placeholder="Nom de l'événement"
                     required
-                    className="w-full px-5 py-2 text-base border-2 border-[var(--color-grey-two)] rounded placeholder:font-poppins placeholder:text-[#EAEAEF]"
+                    className="w-full px-5 py-2 text-base bg-white border-2 border-[var(--color-grey-two)] rounded placeholder:font-poppins placeholder:text-[#EAEAEF]"
                 />
             </div>
 
@@ -252,7 +252,7 @@ const EventForm: React.FC<EventFormProps> = ({
                         onChange={handleStartDateChange}
                         min={new Date().toISOString().split('T')[0]}
                         required
-                        className="w-full px-5 py-2 text-base border-2 border-[var(--color-grey-two)] rounded font-poppins"
+                        className="w-full px-5 py-2 text-base bg-white border-2 border-[var(--color-grey-two)] rounded font-poppins"
                     />
                     {errors.startDate && (
                         <p className="text-red-500 text-sm mt-1 font-poppins">{errors.startDate}</p>
@@ -267,7 +267,7 @@ const EventForm: React.FC<EventFormProps> = ({
                             value={endDate}
                             onChange={handleEndDateChange}
                             min={startDate || new Date().toISOString().split('T')[0]}
-                            className="w-full px-5 py-2 text-base border-2 border-[var(--color-grey-two)] rounded font-poppins"
+                            className="w-full px-5 py-2 text-base bg-white border-2 border-[var(--color-grey-two)] rounded font-poppins"
                         />
                         {errors.endDate && (
                             <p className="text-red-500 text-sm mt-1 font-poppins">{errors.endDate}</p>
@@ -287,7 +287,7 @@ const EventForm: React.FC<EventFormProps> = ({
                             placeholder="Ex: 1"
                             min="1"
                             required
-                            className="w-full px-5 py-2 text-base border-2 border-[var(--color-grey-two)] rounded placeholder:font-poppins placeholder:text-[#EAEAEF]"
+                            className="w-full px-5 py-2 text-base bg-white border-2 border-[var(--color-grey-two)] rounded placeholder:font-poppins placeholder:text-[#EAEAEF]"
                         />
                         {errors.duration && (
                             <p className="text-red-500 text-sm mt-1 font-poppins">{errors.duration}</p>
@@ -309,7 +309,7 @@ const EventForm: React.FC<EventFormProps> = ({
                                 setErrors(prev => ({ ...prev, recurringRate: '' }));
                             }}
                             required
-                            className="w-full px-5 py-2 pr-12 text-base border-2 border-[var(--color-grey-two)] rounded font-poppins text-[var(--color-text)] appearance-none bg-white cursor-pointer"
+                            className="w-full px-5 py-2 pr-12 text-base bg-white border-2 border-[var(--color-grey-two)] rounded font-poppins text-[var(--color-text)] appearance-none bg-white cursor-pointer"
                         >
                             <option value="">Sélectionner une récurrence</option>
                             <option value="day">Par jour</option>
@@ -339,7 +339,7 @@ const EventForm: React.FC<EventFormProps> = ({
                             value={startTime}
                             onChange={handleStartTimeChange}
                             required
-                            className="w-full px-5 py-2 pr-12 text-base border-2 border-[var(--color-grey-two)] rounded font-poppins text-[var(--color-text)] appearance-none bg-white cursor-pointer"
+                            className="w-full px-5 py-2 pr-12 text-base bg-white border-2 border-[var(--color-grey-two)] rounded font-poppins text-[var(--color-text)] appearance-none bg-white cursor-pointer"
                         >
                             <option value="">Sélectionner une heure</option>
                             {timeOptions.map(time => (
@@ -364,7 +364,7 @@ const EventForm: React.FC<EventFormProps> = ({
                             value={endTime}
                             onChange={handleEndTimeChange}
                             required
-                            className="w-full px-5 py-2 pr-12 text-base border-2 border-[var(--color-grey-two)] rounded font-poppins text-[var(--color-text)] appearance-none bg-white cursor-pointer"
+                            className="w-full px-5 py-2 pr-12 text-base bg-white border-2 border-[var(--color-grey-two)] rounded font-poppins text-[var(--color-text)] appearance-none bg-white cursor-pointer"
                         >
                             <option value="">Sélectionner une heure</option>
                             {timeOptions.map(time => (
@@ -394,7 +394,7 @@ const EventForm: React.FC<EventFormProps> = ({
                         onChange={e => setMaxPersons(e.target.value)}
                         placeholder="Nombre de places"
                         min="1"
-                        className="w-full px-5 py-2 text-base border-2 border-[var(--color-grey-two)] rounded placeholder:font-poppins placeholder:text-[#EAEAEF]"
+                        className="w-full px-5 py-2 text-base bg-white border-2 border-[var(--color-grey-two)] rounded placeholder:font-poppins placeholder:text-[#EAEAEF]"
                     />
                 </div>
                 <div className="flex-1">
@@ -406,7 +406,7 @@ const EventForm: React.FC<EventFormProps> = ({
                         onChange={e => setCostPerPerson(e.target.value)}
                         placeholder="Ex: 50"
                         min="0"
-                        className="w-full px-5 py-2 text-base border-2 border-[var(--color-grey-two)] rounded placeholder:font-poppins placeholder:text-[#EAEAEF]"
+                        className="w-full px-5 py-2 text-base bg-white border-2 border-[var(--color-grey-two)] rounded placeholder:font-poppins placeholder:text-[#EAEAEF]"
                     />
                 </div>
             </div>
@@ -436,7 +436,7 @@ const EventForm: React.FC<EventFormProps> = ({
                         placeholder="Ex: 50"
                         min="0"
                         step="0.1"
-                        className="w-full px-5 py-2 text-base border-2 border-[var(--color-grey-two)] rounded placeholder:font-poppins placeholder:text-[#EAEAEF]"
+                        className="w-full px-5 py-2 text-base bg-white border-2 border-[var(--color-grey-two)] rounded placeholder:font-poppins placeholder:text-[#EAEAEF]"
                     />
                 </div>
             </div>

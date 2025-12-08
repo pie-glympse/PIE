@@ -85,7 +85,7 @@ export default function LoginPage() {
                     </div>
                 </div>
             </div>
-            <div className="hidden md:block md:w-1/2  absolute right-10 aspect-[738/1049]">
+            <div className="hidden md:block md:w-[45%]  absolute right-10 aspect-[738/1049]">
                 <Image
                     src="/images/mascotte/login-light.png"
                     alt="Image de connexion"

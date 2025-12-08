@@ -159,9 +159,9 @@ export default function EventForm() {
             <h1 className="text-h1 font-urbanist text-[var(--color-text)] mb-2">
               Tous vos événements
             </h1>
-            <button className="">
+            {/* <button className="">
               <Image src="/icons/filterIcon.svg" alt="Filtrer" width={24} height={24} className="" />
-            </button>
+            </button> */}
           </div>
           <ViewModeToggle currentMode={viewMode} onModeChange={setViewMode} />
         </div>

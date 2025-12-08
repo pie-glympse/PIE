@@ -16,7 +16,7 @@ export const StatusFilterButtons = ({ currentFilter, onFilterChange }: StatusFil
       {filters.map((filter) => (
         <button
           key={filter.id}
-          className={`px-2 py-1 rounded text-body-large ${
+          className={`px-2 py-1 rounded text-body-large cursor-pointer ${
             currentFilter === filter.id
               ? 'bg-black text-white'
               : 'bg-[var(--color-grey-one)] text-[var(--color-text)]'

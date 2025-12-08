@@ -142,15 +142,12 @@ export async function POST(request: Request) {
             lastName: true,
           }
         },
-        // Prisma relation field name for event creator
-        User_Event_createdByIdToUser: {
-          select: {
-            id: true,
-            email: true,
-            firstName: true,
-            lastName: true,
-          }
-        },
+        location: true,
+        preferences: true,
+        photos: true,
+        feedbacks: true,
+        votes: true,
+        notifications: true
       },
     });
 
@@ -193,13 +190,7 @@ export async function POST(request: Request) {
     }
 
     // Map Prisma relation field to `createdBy` for API consumers
-    const newEventObj: any = { ...newEvent };
-    if (newEventObj.User_Event_createdByIdToUser) {
-      newEventObj.createdBy = newEventObj.User_Event_createdByIdToUser;
-      delete newEventObj.User_Event_createdByIdToUser;
-    } else {
-      newEventObj.createdBy = null;
-    }
+    const newEventObj: any = { ...newEvent, createdBy: null };
 
     return NextResponse.json(
       JSON.parse(
@@ -242,30 +233,20 @@ export async function GET(request: Request) {
             lastName: true,
           }
         },
-        User_Event_createdByIdToUser: {
-          select: {
-            id: true,
-            email: true,
-            firstName: true,
-            lastName: true,
-          }
-        },
+        location: true,
+        preferences: true,
+        photos: true,
+        feedbacks: true,
+        votes: true,
+        notifications: true
       },
       orderBy: {
         createdAt: 'desc'
       }
     });
 
-    // Map relation field name to `createdBy` for each event
     const mapped = events.map((ev: any) => {
-      const e = { ...ev };
-      if (e.User_Event_createdByIdToUser) {
-        e.createdBy = e.User_Event_createdByIdToUser;
-        delete e.User_Event_createdByIdToUser;
-      } else {
-        e.createdBy = null;
-      }
-      return e;
+      return { ...ev, createdBy: null };
     });
 
     return NextResponse.json(

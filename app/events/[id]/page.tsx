@@ -130,7 +130,7 @@ export default function SingleEventPage() {
   const handleEmailShare = () => {
     if (!event) return;
     const subject = encodeURIComponent(`Invitation à l'événement: ${event.title}`);
-    const body = encodeURIComponent(`Salut ! Je t'invite à participer à l'événement "${event.title}". Tu peux voir tous les détails et t'inscrire via ce lien : ${window.location.href}`);
+    const body = encodeURIComponent(`Bonjour ! Nous vous invitons à participer à l'événement "${event.title}". Vous pouvez voir tous les détails et vous inscrire via ce lien : ${window.location.href}`);
     window.open(`mailto:?subject=${subject}&body=${body}`);
     setIsShareModalOpen(false);
   };
