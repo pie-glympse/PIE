@@ -9,6 +9,7 @@ export default function Header() {
   const { user } = useUser();
   const [isMenuHovered, setIsMenuHovered] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [companyName, setCompanyName] = useState<string>("");
 
   // Charger le nombre de notifications non lues depuis l'API
   useEffect(() => {
@@ -40,6 +41,24 @@ export default function Header() {
     return () => {
       window.removeEventListener('notificationsUpdated', handleUpdate);
     };
+  }, [user]);
+
+  // Charger le nom de la compagnie
+  useEffect(() => {
+    const fetchCompanyName = async () => {
+      if (user?.companyId) {
+        try {
+          const response = await fetch(`/api/company/${user.companyId}`);
+          if (response.ok) {
+            const company = await response.json();
+            setCompanyName(company.name || "");
+          }
+        } catch (error) {
+          console.error("Erreur récupération nom compagnie:", error);
+        }
+      }
+    };
+    fetchCompanyName();
   }, [user]);
 
   return (
@@ -158,15 +177,22 @@ export default function Header() {
           </div>
 
           {/* Logo */}
-          <Link href="/home" aria-label="Retour à l'accueil" className="ml-4">
-            <Image
-              src="/images/logo/Logotype.svg"
-              alt="Logo Glymps"
-              width={150}
-              height={150}
-              priority
-            />
-          </Link>
+          <div className="ml-4">
+            <Link href="/home" aria-label="Retour à l'accueil">
+              <Image
+                src="/images/logo/Logotype.svg"
+                alt="Logo Glymps"
+                width={150}
+                height={150}
+                priority
+              />
+            </Link>
+            {companyName && (
+              <p className="text-xs font-poppins text-gray-500 mt-1 font-medium">
+                Espace {companyName}
+              </p>
+            )}
+          </div>
         </div>
 
         {/* Right: Avatars */}
