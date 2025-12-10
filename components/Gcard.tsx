@@ -1,5 +1,5 @@
 "use client";
-import React from "react";
+import React, { useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 
@@ -53,8 +53,23 @@ export default function EventCard({
   currentUserId,
 }: EventCardProps) {
   const router = useRouter();
+  const dropdownRef = useRef<HTMLDivElement>(null);
   const displayParticipants = participants.slice(0, 5);
   const remainingCount = participants.length - 5;
+
+  // Fermer le dropdown quand on clique en dehors
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node) && dropdownOpen) {
+        onDropdownToggle?.();
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [dropdownOpen, onDropdownToggle]);
 
   const handleCardClick = () => {
     router.push(`/events/${eventId}`);
@@ -83,7 +98,7 @@ export default function EventCard({
 
   return (
     <div
-      className={`relative rounded-xl border border-gray-200 p-6 overflow-hidden cursor-pointer hover:shadow-lg transition-shadow duration-200 ${className}`}
+      className={`relative rounded-xl border border-gray-200 bg-white p-6 cursor-pointer hover:shadow-lg transition-shadow duration-200 ${className}`}
       onClick={handleCardClick}
     >
       {/* Contenu principal */}
@@ -99,7 +114,7 @@ export default function EventCard({
             )}
             
             {/* Menu dropdown avec 3 petits points */}
-            <div className="relative">
+            <div className="relative" ref={dropdownRef}>
               <button
                 className="p-1 rounded-full hover:bg-gray-100"
                 onClick={(e) => {
@@ -118,7 +133,7 @@ export default function EventCard({
 
               {/* Dropdown Menu */}
               {dropdownOpen && (
-                <div className="absolute top-8 right-0 z-30 bg-white border border-gray-200 rounded-lg shadow-lg py-2 min-w-48">
+                <div className="absolute top-8 right-0 z-30 bg-white border border-gray-200 rounded-lg shadow-lg py-2 min-w-48 z-50">
                   {isAuthorized && onShare && (
                     <button
                       onClick={(e) => {
@@ -258,21 +273,22 @@ export default function EventCard({
           )}
         </div>
       </div>
-      
-      {/* Image d'arrière-plan */}
-      <Image
-        src={backgroundUrl}
-        alt=""
-        aria-hidden="true"
-        className="absolute right-[-25px] bottom-[-25px] pointer-events-none"
-        width={backgroundSize}
-        height={200}
-        style={{
-          objectFit: "contain",
-          zIndex: 1,
-        }}
-        priority
-      />
+
+      {/* Container pour l'image d'arrière-plan avec overflow-hidden */}
+      <div className="absolute inset-0 overflow-hidden rounded-xl pointer-events-none" style={{ zIndex: 1 }}>
+        <Image
+          src={backgroundUrl}
+          alt=""
+          aria-hidden="true"
+          className="absolute right-[-25px] bottom-[-25px]"
+          width={backgroundSize}
+          height={200}
+          style={{
+            objectFit: "contain",
+          }}
+          priority
+        />
+      </div>
     </div>
   );
 }

@@ -251,12 +251,11 @@ const EventInformations = ({ event }: EventInformationsProps) => {
         <h3 className="text-body-large font-poppins mb-4 text-[var(--color-text)]">
           Localisation
         </h3>
-        <div 
-          className="w-full h-96 rounded overflow-hidden"
-          style={{ backgroundColor: '#F4F4F4' }}
+        <div
+          className="w-full h-[600px] rounded overflow-hidden bg-[var(--color-grey-one)]"
         >
-          <Map 
-            address={event.city} 
+          <Map
+            address={event.city}
             places={recommendedPlaces.map(place => ({
               id: place.id,
               name: place.name,

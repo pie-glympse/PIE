@@ -219,7 +219,7 @@ const EventForm: React.FC<EventFormProps> = ({
                                 setEndDate('');
                             }
                         }}
-                        className="w-5 h-5 mr-2 text-[var(--color-main)] border-2 border-[var(--color-grey-two)] rounded focus:ring-2 focus:ring-[var(--color-main)]"
+                        className="w-5 h-5 mr-2 border-2 border-[var(--color-grey-two)] rounded accent-[var(--color-secondary)]"
                     />
                     <span className="text-body-large font-poppins text-[var(--color-grey-three)]">
                         Événement récurrent
@@ -252,7 +252,7 @@ const EventForm: React.FC<EventFormProps> = ({
                         onChange={handleStartDateChange}
                         min={new Date().toISOString().split('T')[0]}
                         required
-                        className="w-full px-5 py-2 text-base bg-white border-2 border-[var(--color-grey-two)] rounded font-poppins"
+                        className="w-full px-5 py-2 text-base bg-white border-2 border-[var(--color-grey-two)] rounded font-poppins text-[var(--color-grey-three)]"
                     />
                     {errors.startDate && (
                         <p className="text-red-500 text-sm mt-1 font-poppins">{errors.startDate}</p>
@@ -267,7 +267,7 @@ const EventForm: React.FC<EventFormProps> = ({
                             value={endDate}
                             onChange={handleEndDateChange}
                             min={startDate || new Date().toISOString().split('T')[0]}
-                            className="w-full px-5 py-2 text-base bg-white border-2 border-[var(--color-grey-two)] rounded font-poppins"
+                            className="w-full px-5 py-2 text-base bg-white border-2 border-[var(--color-grey-two)] rounded font-poppins text-[var(--color-grey-three)]"
                         />
                         {errors.endDate && (
                             <p className="text-red-500 text-sm mt-1 font-poppins">{errors.endDate}</p>
@@ -417,14 +417,11 @@ const EventForm: React.FC<EventFormProps> = ({
                     <label htmlFor="city" className="block mb-1 text-body-large font-poppins text-[var(--color-grey-three)]">
                         Ville <span className="text-red-500">*</span>
                     </label>
-                    <SimpleAutocomplete 
-                        value={city} 
-                        onChange={setCity} 
-                        placeholder="Ville ou adresse (obligatoire)" 
+                    <SimpleAutocomplete
+                        value={city}
+                        onChange={setCity}
+                        placeholder="Ville ou adresse (obligatoire)"
                     />
-                    {!city && (
-                        <p className="text-red-500 text-sm mt-1 font-poppins">La ville est obligatoire</p>
-                    )}
                 </div>
                 <div className="flex-1">
                     <label htmlFor="maxDistance" className="block mb-1 text-body-large font-poppins text-[var(--color-grey-three)]">Distance max (km)</label>

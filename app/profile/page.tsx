@@ -26,7 +26,8 @@ export default function ProfilePage() {
     email: '',
     password: '',
     role: '',
-    companyId: ''
+    companyId: '',
+    teamName: ''
   });
 
   // Données temporaires pour l'édition
@@ -36,7 +37,8 @@ export default function ProfilePage() {
     email: '',
     password: '',
     role: '',
-    companyId: ''
+    companyId: '',
+    teamName: ''
   });
 
   // Redirect if not logged in
@@ -67,9 +69,10 @@ export default function ProfilePage() {
           email: userData.email || '',
           password: '', // Never show actual password
           role: userData.role || '',
-          companyId: userData.companyId || ''
+          companyId: userData.companyId || '',
+          teamName: userData.team?.name || ''
         };
-        
+
         setSavedUserInfo(userDataFormatted);
         setUserInfo(userDataFormatted);
         
@@ -191,7 +194,7 @@ export default function ProfilePage() {
   return (
     <div className="mt-24 p-6 max-w-7xl mx-auto">
       {/* Bannière */}
-      <div className="relative h-48 rounded-lg bg-gray-200 group cursor-pointer">
+      <div className="relative h-48 rounded-lg bg-gray-200 group/banner cursor-pointer">
         {banner && (
           <Image
             src={banner}
@@ -201,7 +204,7 @@ export default function ProfilePage() {
           />
         )}
         {/* Overlay avec icône caméra - visible seulement au hover */}
-        <div className="absolute inset-0 rounded-lg bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
+        <div className="absolute inset-0 rounded-lg bg-black/30 opacity-0 group-hover/banner:opacity-100 transition-opacity duration-200 flex items-center justify-center">
           <label className="cursor-pointer p-3 bg-white/20 rounded-full hover:bg-white/30 transition-colors">
             <Camera size={24} className="text-white" />
             <input type="file" className="hidden" onChange={handleBannerChange} accept="image/*" />
@@ -210,14 +213,14 @@ export default function ProfilePage() {
 
         {/* Avatar */}
         <div className="absolute -bottom-12 left-6 bg-amber-400 rounded-full">
-          <div className="relative w-24 h-24 rounded-full border-4 border-white overflow-hidden group cursor-pointer">
+          <div className="relative w-24 h-24 rounded-full border-4 border-white overflow-hidden group/avatar cursor-pointer">
             {avatar ? (
               <Image src={avatar} alt="Avatar" fill className="object-cover" />
             ) : (
               <div className="w-full h-full bg-gray-300" />
             )}
             {/* Overlay avec icône caméra pour l'avatar */}
-            <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center rounded-full">
+            <div className="absolute inset-0 bg-black/30 opacity-0 group-hover/avatar:opacity-100 transition-opacity duration-200 flex items-center justify-center rounded-full">
               <label className="cursor-pointer p-2 bg-white/20 rounded-full hover:bg-white/30 transition-colors">
                 <Camera size={16} className="text-white" />
                 <input type="file" className="hidden" onChange={handleAvatarChange} accept="image/*" />
@@ -230,7 +233,9 @@ export default function ProfilePage() {
       {/* Infos utilisateur */}
       <div className="mt-16 ml-6">
         <h2 className="text-xl font-semibold font-poppins">{savedUserInfo.firstName} {savedUserInfo.lastName}</h2>
-        <p className="font-poppins font-medium">Équipe Front-End Dev Jedi</p>
+        <p className="font-poppins font-medium">
+          {savedUserInfo.teamName ? `Équipe ${savedUserInfo.teamName}` : 'Pas d\'équipe définie'}
+        </p>
 
         {/* Boutons */}
         <div className="mt-4 flex space-x-4">
@@ -241,9 +246,6 @@ export default function ProfilePage() {
                 className="px-4 py-2 bg-[var(--color-grey-one)] hover:bg-white text-h3 font-poppins text-[var(--color-grey-three)] rounded-lg hover: transition cursor-pointer"
               >
                 Editer le profil
-              </button>
-              <button className="px-4 py-2 bg-white text-h3 font-poppins text-[var(--color-grey-three)] border-2 border-[var(--color-grey-three)] rounded-lg hover: transition cursor-pointer">
-                Paramètres
               </button>
             </>
           ) : (
@@ -349,10 +351,10 @@ export default function ProfilePage() {
             </div>
           </div>
           <button
-                    onClick={handleLogout}
-                    className="mt-2 text-red-600 rounded hover:text-red-700 transition text-sm">
-                    Se déconnecter
-                </button>
+              onClick={handleLogout}
+              className="mt-4 px-6 py-3 bg-[var(--color-secondary)] text-white font-poppins rounded-lg hover:bg-red-600 transition cursor-pointer">
+              Se déconnecter
+          </button>
         </div>
       </div>
     </div>

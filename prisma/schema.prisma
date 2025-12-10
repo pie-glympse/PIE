@@ -14,6 +14,7 @@ model User {
   password                      String
   role                          String                @default("STANDARD")
   photoUrl                      String                @default("")
+  bannerUrl                     String                @default("")
   firstName                     String                @default("")
   lastName                      String                @default("")
   companyId                     BigInt?
