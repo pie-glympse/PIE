@@ -47,33 +47,43 @@ const CreateEventPage = () => {
         { 
             id: '1', 
             text: 'Gastronomie', 
+            image: '/images/mascotte/afterwork.png',
             icon: '🍽️',
             placeTypes: ['restaurant', 'cafe', 'bar']
         },
         { 
             id: '2', 
-            text: 'Culture', 
+            text: 'Culture',
+            image: '/images/mascotte/game.png',
             icon: '🎭',
             placeTypes: ['museum', 'art_gallery', 'theater']
         },
         { 
             id: '3', 
             text: 'Nature & Bien-être', 
+            image: '/images/mascotte/sad_1.png',
             icon: '🌳',
             placeTypes: ['park', 'spa', 'gym']
         },
         { 
             id: '4', 
             text: 'Divertissement', 
+            image: '/images/mascotte/fiesta.png',
             icon: '🎪',
             placeTypes: ['tourist_attraction', 'amusement_park', 'movie_theater']
         },
         { 
             id: '5', 
-            text: 'Shopping', 
-            icon: '🛍️',
-            placeTypes: ['shopping_mall', 'store']
+            text: 'Sport', 
+            image: '/images/mascotte/joy_1.png',
+            icon: '🚴‍♂️',
         },
+        {
+            id: '6',
+            text: 'Je sais ce que je veux',
+            image: '/images/mascotte/data.png',
+            icon: '🎯',
+        }
     ];
 
     // Gérer les paramètres URL pour la copie d'événement
@@ -286,10 +296,10 @@ const CreateEventPage = () => {
                 return (
                     <>
                         <h1 className="text-h1 mb-4 text-left w-full font-urbanist">
-                            Créer un Nouvel Événement
+                            Créez vos évènements personnalisés !
                         </h1>
                         <h3 className="text-h3 mb-8 text-left md:w-2/3 w-full font-poppins text-[var(--color-grey-three)]">
-                            Quel type d&#39;événement souhaitez-vous créer ?
+                            Sélectionnez le type d’évènement correspondant
                         </h3>
                         <div className="w-full">
                             <EventTypeCards
@@ -305,8 +315,8 @@ const CreateEventPage = () => {
                 return (
                     <div className="w-full">
                         <EventForm
-                            title="Détails de votre Événement"
-                            subtitle="Remplissez les informations pour créer votre événement"
+                            title="Créez vos évènements personnalisés !"
+                            subtitle="Entrez les informations générales de l’événement"
                             buttonText="Continuer"
                             initialData={formData || undefined}
                             onSubmit={handleFormSubmit}
@@ -317,8 +327,8 @@ const CreateEventPage = () => {
             case 3:
                 return (
                     <UserSelectionStep
-                        title="Inviter des Participants"
-                        subtitle="Sélectionnez les utilisateurs que vous souhaitez inviter à cet événement"
+                        title="Créez vos évènements personnalisés !"
+                        subtitle="Séléctionnez vos collaborateurs"
                         currentUserId={user?.id || ''}
                         selectedUserIds={selectedUserIds}
                         onUserToggle={handleUserToggle}

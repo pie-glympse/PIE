@@ -87,9 +87,27 @@ export const EventList = ({
           <button
             onClick={onShowAddEvent}
             aria-label="Ajouter un évènement"
-            className="w-full md:w-20 h-60 flex-shrink-0 flex items-center bg-[var(--color-main)] justify-center rounded-xl hover:opacity-80 transition text-h1 text-white"
+            className="w-16 h-60 flex items-center justify-center relative bg-white hover:bg-gray-50 transition rounded-xl"
           >
-            +
+            <svg
+              className="absolute inset-0 w-full h-full"
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 100 240"
+              preserveAspectRatio="none"
+            >
+              <rect
+                x="2"
+                y="2"
+                width="96"
+                height="236"
+                rx="12"
+                fill="none"
+                stroke="#FCC638"
+                strokeWidth="2"
+                strokeDasharray="12 8"
+              />
+            </svg>
+            <span className="relative z-10 text-6xl text-yellow-400 font-light">+</span>
           </button>
         )}
       </div>

@@ -28,6 +28,12 @@ export async function GET(
         email: true,
         role: true,
         companyId: true,
+        team: {
+          select: {
+            id: true,
+            name: true,
+          }
+        }
       }
     });
 
