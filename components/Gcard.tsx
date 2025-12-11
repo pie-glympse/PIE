@@ -8,6 +8,7 @@ interface Participant {
   firstName: string;
   lastName: string;
   email: string;
+  photoUrl?: string;
 }
 
 interface EventCardProps {
@@ -243,16 +244,18 @@ export default function EventCard({
                 {displayParticipants.map((participant) => (
                   <div
                     key={participant.id}
-                    className="w-10 h-10 rounded-full border-2 border-white bg-gray-200 overflow-hidden relative"
+                    className="w-10 h-10 rounded-full border-2 border-white bg-gray-300 overflow-hidden relative"
                     title={`${participant.firstName} ${participant.lastName}`}
                   >
-                    <Image
-                      src="/icons/round.png"
-                      alt={`Avatar de ${participant.firstName} ${participant.lastName}`}
-                      width={40}
-                      height={40}
-                      className="rounded-full object-cover"
-                    />
+                    {participant.photoUrl && participant.photoUrl.trim() !== '' ? (
+                      <Image
+                        src={participant.photoUrl}
+                        alt=""
+                        width={40}
+                        height={40}
+                        className="rounded-full object-cover w-full h-full"
+                      />
+                    ) : null}
                   </div>
                 ))}
                 

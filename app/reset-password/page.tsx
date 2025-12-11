@@ -1,6 +1,7 @@
 "use client"
 import { useState, FormEvent, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useUser } from '@/context/UserContext';
 import MainButton from '../../components/ui/MainButton';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -10,13 +11,21 @@ import BackArrow from '../../components/ui/BackArrow';
 const ResetPasswordForm = () => {
     const router = useRouter();
     const searchParams = useSearchParams();
+    const { user, isLoading: isUserLoading } = useUser();
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [message, setMessage] = useState('');
     const [errorMsg, setErrorMsg] = useState('');
-    const [isLoading, setIsLoading] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const [token, setToken] = useState('');
     const [email, setEmail] = useState('');
+
+    // Rediriger vers /home si l'utilisateur est déjà connecté
+    useEffect(() => {
+        if (!isUserLoading && user) {
+            router.push('/home');
+        }
+    }, [user, isUserLoading, router]);
 
     // Initialiser les paramètres de l'URL au chargement
     useEffect(() => {
@@ -52,7 +61,7 @@ const ResetPasswordForm = () => {
             return;
         }
         
-        setIsLoading(true);
+        setIsSubmitting(true);
         
         try {
             const res = await fetch("/api/reset-password", {
@@ -92,7 +101,7 @@ const ResetPasswordForm = () => {
             console.error("Erreur lors de la réinitialisation:", err);
             setErrorMsg("Erreur de connexion au serveur");
         } finally {
-            setIsLoading(false);
+            setIsSubmitting(false);
         }
     };
 
@@ -104,6 +113,16 @@ const ResetPasswordForm = () => {
     const handleFirstConnectionClick = () => {
         router.push('/first-connection'); // ou la route appropriée
     };
+
+    // Afficher un loader pendant la vérification
+    if (isUserLoading) {
+        return <div className="flex items-center justify-center h-screen">Chargement...</div>;
+    }
+
+    // Ne rien afficher si l'utilisateur est connecté (pendant la redirection)
+    if (user) {
+        return null;
+    }
 
     return (
         <section className="flex flex-row h-screen items-center gap-10 p-10">

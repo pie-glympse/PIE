@@ -22,7 +22,7 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "User ID requis" }, { status: 400 });
     }
 
-    // Récupérer l'utilisateur avec sa company
+    // Récupérer l'utilisateur avec son entreprise
     const user = await prisma.user.findUnique({
       where: { id: BigInt(userId) },
       include: {
@@ -39,7 +39,7 @@ export async function GET(request: Request) {
     }
 
     if (!user.company) {
-      return NextResponse.json({ error: "Utilisateur non associé à une company" }, { status: 404 });
+      return NextResponse.json({ error: "Utilisateur non associé à une entreprise" }, { status: 404 });
     }
 
     return NextResponse.json(safeJson({
@@ -48,7 +48,7 @@ export async function GET(request: Request) {
     }), { status: 200 });
 
   } catch (error) {
-    console.error("Erreur récupération company:", error);
+    console.error("Erreur récupération entreprise:", error);
     if (error instanceof Error) {
       console.error("Message d'erreur:", error.message);
       console.error("Stack trace:", error.stack);

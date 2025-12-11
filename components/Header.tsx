@@ -10,6 +10,7 @@ export default function Header() {
   const [isMenuHovered, setIsMenuHovered] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [companyName, setCompanyName] = useState<string>("");
+  const [userPhotoUrl, setUserPhotoUrl] = useState<string>("/images/mascotte/joy.png");
 
   // Charger le nombre de notifications non lues depuis l'API
   useEffect(() => {
@@ -59,6 +60,26 @@ export default function Header() {
       }
     };
     fetchCompanyName();
+  }, [user]);
+
+  // Charger la photo de profil de l'utilisateur
+  useEffect(() => {
+    const fetchUserPhoto = async () => {
+      if (user?.id) {
+        try {
+          const response = await fetch(`/api/users/${user.id}`);
+          if (response.ok) {
+            const userData = await response.json();
+            if (userData.photoUrl) {
+              setUserPhotoUrl(userData.photoUrl);
+            }
+          }
+        } catch (error) {
+          console.error("Erreur récupération photo utilisateur:", error);
+        }
+      }
+    };
+    fetchUserPhoto();
   }, [user]);
 
   return (
@@ -235,10 +256,10 @@ export default function Header() {
           </Link>
           <Link
             href="/profile"
-            className="w-12 h-12 rounded-full transition ease-in-out bg-gray-200 hover:bg-gray-300 border border-white"
+            className="w-12 h-12 rounded-full transition ease-in-out bg-gray-200 hover:bg-gray-300 border border-white overflow-hidden"
           >
             <Image
-              src="/images/mascotte/joy.png"
+              src={userPhotoUrl}
               alt="Avatar utilisateur"
               width={48}
               height={48}

@@ -6,6 +6,7 @@ import { useUser } from "../../context/UserContext";
 import Image from "next/image";
 import BackArrow from "@/components/ui/BackArrow";
 import FeedbackModal from "@/components/FeedbackModal";
+import MainButton from "@/components/ui/MainButton";
 
 type Notification = {
   id: string;
@@ -35,7 +36,7 @@ export default function NotificationsPage() {
           const response = await fetch(`/api/notifications?userId=${user.id}`);
           if (response.ok) {
             const data = await response.json();
-            console.log('[Notifications] Data received:', data);
+            console.log("[Notifications] Data received:", data);
             setNotifications(data);
           } else {
             console.error("Erreur récupération notifications");
@@ -65,7 +66,7 @@ export default function NotificationsPage() {
           )
         );
         // Déclencher un événement pour notifier le Header
-        window.dispatchEvent(new Event('notificationsUpdated'));
+        window.dispatchEvent(new Event("notificationsUpdated"));
       }
     } catch (error) {
       console.error("Erreur mise à jour notification:", error);
@@ -74,7 +75,7 @@ export default function NotificationsPage() {
 
   const handleFeedbackClick = async (notification: Notification) => {
     if (!notification.eventId) return;
-    
+
     try {
       // Récupérer les détails de l'événement
       const eventResponse = await fetch(`/api/events/${notification.eventId}`);
@@ -132,20 +133,20 @@ export default function NotificationsPage() {
     return n.read && notifDate < oneDayAgo;
   });
 
-  console.log('[Notifications] Total:', notifications.length);
-  console.log('[Notifications] New:', newNotifications.length);
-  console.log('[Notifications] Recent read:', recentReadNotifications.length);
-  console.log('[Notifications] Old:', oldNotifications.length);
+  console.log("[Notifications] Total:", notifications.length);
+  console.log("[Notifications] New:", newNotifications.length);
+  console.log("[Notifications] Recent read:", recentReadNotifications.length);
+  console.log("[Notifications] Old:", oldNotifications.length);
 
   const totalNotifications = notifications.length;
 
   if (isLoading || loading) {
-    return <div className="pt-24 p-6">Chargement...</div>;
+    return <div className="pt-24 p-10">Chargement...</div>;
   }
 
   return (
-    <main className="h-screen overflow-y-auto pt-24 p-6 flex flex-col gap-6">
-      <div className="h-full w-full flex flex-col gap-4 items-start p-4 md:p-10">
+    <main className="h-screen overflow-y-auto pt-24 p-10 flex flex-col gap-6">
+      <div className="h-full w-full flex flex-col gap-4 items-start p-10">
         {/* Back Arrow */}
         <BackArrow onClick={() => router.back()} className="!mb-0" />
 
@@ -157,16 +158,17 @@ export default function NotificationsPage() {
         {/* Section Nouveau */}
         {newNotifications.length > 0 && (
           <section className="mb-6 w-full">
-            <h2 className="text-lg font-semibold text-gray-700 mb-3">Nouveau</h2>
+            <h2 className="text-lg font-semibold text-gray-700 mb-3">
+              Nouveau
+            </h2>
             <div className="space-y-2">
               {newNotifications.map((notification) => (
-                <div
-                  key={notification.id}
-                  className="flex items-center gap-3"
-                >
+                <div key={notification.id} className="flex items-center gap-3">
                   <div
                     className={`flex items-center justify-between gap-4 p-3 bg-[#F4F4F4] rounded-lg flex-1 ${
-                      notification.type === "FEEDBACK_REQUEST" ? "cursor-pointer hover:bg-gray-200 transition" : ""
+                      notification.type === "FEEDBACK_REQUEST"
+                        ? "cursor-pointer hover:bg-gray-200 transition"
+                        : ""
                     }`}
                     onClick={() => {
                       if (notification.type === "FEEDBACK_REQUEST") {
@@ -174,7 +176,9 @@ export default function NotificationsPage() {
                       }
                     }}
                   >
-                    <p className="text-gray-800 flex-1">{notification.message}</p>
+                    <p className="text-gray-800 flex-1">
+                      {notification.message}
+                    </p>
                     <span className="text-sm text-gray-500 whitespace-nowrap">
                       {formatDate(notification.createdAt)}
                     </span>
@@ -200,7 +204,9 @@ export default function NotificationsPage() {
         {/* Section Récentes (lues < 24h) */}
         {recentReadNotifications.length > 0 && (
           <section className="mb-6 w-full">
-            <h2 className="text-lg font-semibold text-gray-700 mb-3">Récentes</h2>
+            <h2 className="text-lg font-semibold text-gray-700 mb-3">
+              Récentes
+            </h2>
             <div className="space-y-2">
               {recentReadNotifications.map((notification) => (
                 <div
@@ -241,15 +247,31 @@ export default function NotificationsPage() {
 
         {/* État vide */}
         {notifications.length === 0 && (
-          <div className="text-center py-12">
-            <Image
-              src="/images/icones/notification.svg"
-              alt="Aucune notification"
-              width={64}
-              height={64}
-              className="mx-auto mb-4 opacity-50"
-            />
-            <p className="text-gray-500 text-lg">Aucune notification</p>
+          <div className="flex flex-col items-center justify-center w-full min-h-96 pb-16">
+            <div className="text-center space-y-3">
+              <Image
+                src="/images/mascotte/hasard.png"
+                alt="Mascotte triste"
+                width={1000}
+                height={1000}
+                className="mx-auto object-contain w-48 h-48"
+              />
+              <div className="space-y-3">
+                <h3 className="text-2xl font-semibold text-gray-800 font-urbanist">
+                  Aucune notification trouvée
+                </h3>
+                <p className="text-gray-500 text-lg max-w-md mx-auto font-poppins">
+                  Il semble qu’il n’y ait aucune notification pour le moment. Ne vous inquiétez pas, ça ne va pas tarder !
+                </p>
+              </div>
+              <div className="pt-4">
+                <MainButton
+                  onClick={() => router.push("/")}
+                  text="Retourner à l'accueil"
+                  color="bg-[var(--color-main)]"
+                />
+              </div>
+            </div>
           </div>
         )}
       </div>
@@ -263,7 +285,9 @@ export default function NotificationsPage() {
             // Recharger les notifications pour mettre à jour l'état
             const fetchNotifications = async () => {
               try {
-                const response = await fetch(`/api/notifications?userId=${user.id}`);
+                const response = await fetch(
+                  `/api/notifications?userId=${user.id}`
+                );
                 if (response.ok) {
                   const data = await response.json();
                   setNotifications(data);

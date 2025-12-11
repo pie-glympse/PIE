@@ -528,7 +528,8 @@ const MiniCalendar = ({ eventsData = [] }: MiniCalendarProps) => {
 
   return (
     <div>
-      <div className="flex justify-end items-center">
+      <div className="flex justify-between items-center">
+        <h2 className="text-xl font-bold text-gray-800">Calendrier des Evènements</h2>
         {/* Boutons de navigation - cachés sur mobile */}
         {!isMobile && (
           <div className="flex gap-2">

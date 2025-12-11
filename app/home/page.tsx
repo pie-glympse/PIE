@@ -158,7 +158,7 @@ export default function HomePage() {
 
   return (
     <>
-      <main className="overflow-y-auto md:overflow-hidden pt-24 p-6 flex flex-col gap-8">
+      <main className="overflow-y-auto md:overflow-hidden pt-24 p-10 flex flex-col gap-8">
         
         {/* Section Bienvenue */}
         <section className="mt-10">
@@ -169,7 +169,7 @@ export default function HomePage() {
             <p className="text-3xl font-semibold text-gray-800">
               {user ? (
                 <>
-                  <span className="uppercase">{user.lastName}</span>{" "}
+                  <span className="capitalize">{user.lastName}</span>{" "}
                   <span className="capitalize">{user.firstName}</span>
                 </>
               ) : "invité"}
@@ -214,10 +214,12 @@ export default function HomePage() {
 
         {/* Évènements à venir */}
         <section className="flex flex-col">
-          <h2 className="text-xl font-bold text-gray-800 mb-4">Évènements à venir</h2>
+          <h2 className="text-xl font-bold text-gray-800 mb-4">
+            {events.length > 0 ? "Évènements à venir" : "Pas d'évènement à venir"}
+          </h2>
           
           {fetchError && (
-            <p className="text-red-600 font-semibold mb-4">Erreur: {fetchError}</p>
+            <p className="text-red-600 font-semibold mb-4">{fetchError}</p>
           )}
           
           {/* Container responsive pour les cartes */}
