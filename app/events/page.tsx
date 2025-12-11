@@ -150,7 +150,7 @@ export default function EventForm() {
   const filteredEvents = filterEventsByStatus(userEvents, statusFilter);
 
   return (
-    <section className="overflow-y-auto md:overflow-hidden pt-24 p-6 flex flex-col gap-8">
+    <section className="overflow-y-auto md:overflow-hidden pt-24 p-10 flex flex-col gap-8">
       <div className="h-full w-full flex flex-col gap-6 items-start p-4 md:p-10">
         <BackArrow onClick={() => router.back()} className="!mb-0" />
 

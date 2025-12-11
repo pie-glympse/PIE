@@ -276,7 +276,7 @@ export default function SingleEventPage() {
   const organizer = event.createdBy || event.users?.[0];
 
   return (
-    <section className="min-h-screen pt-24 p-6 flex flex-col gap-8">
+    <section className="min-h-screen pt-24 p-10 flex flex-col gap-8">
       <div className="w-full flex flex-col gap-6 items-start p-4 md:p-10">
         {/* Header avec logo et back arrow */}
         <BackArrow onClick={() => router.push("/home")} className="!mb-0" />

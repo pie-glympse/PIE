@@ -27,7 +27,9 @@ export default function ProfilePage() {
     password: '',
     role: '',
     companyId: '',
-    teamName: ''
+    teamName: '',
+    photoUrl: '',
+    bannerUrl: ''
   });
 
   // Données temporaires pour l'édition
@@ -38,7 +40,9 @@ export default function ProfilePage() {
     password: '',
     role: '',
     companyId: '',
-    teamName: ''
+    teamName: '',
+    photoUrl: '',
+    bannerUrl: ''
   });
 
   // Redirect if not logged in
@@ -56,12 +60,15 @@ export default function ProfilePage() {
       try {
         setLoading(true);
         const response = await fetch(`/api/users/${user.id}`);
-        
+
         if (!response.ok) {
-          throw new Error("Erreur lors de la récupération des données utilisateur");
+          const errorData = await response.json();
+          console.error("Erreur API:", errorData);
+          throw new Error(errorData.error || "Erreur lors de la récupération des données utilisateur");
         }
-        
+
         const userData = await response.json();
+        console.log("User data received:", userData);
         
         const userDataFormatted = {
           firstName: userData.firstName || '',
@@ -70,11 +77,21 @@ export default function ProfilePage() {
           password: '', // Never show actual password
           role: userData.role || '',
           companyId: userData.companyId || '',
-          teamName: userData.team?.name || ''
+          teamName: userData.team?.name || '',
+          photoUrl: userData.photoUrl || '',
+          bannerUrl: userData.bannerUrl || ''
         };
 
         setSavedUserInfo(userDataFormatted);
         setUserInfo(userDataFormatted);
+
+        // Set banner and avatar from saved URLs
+        if (userData.bannerUrl) {
+          setBanner(userData.bannerUrl);
+        }
+        if (userData.photoUrl) {
+          setAvatar(userData.photoUrl);
+        }
         
       } catch (error) {
         console.error("Erreur fetch user data:", error);
@@ -87,14 +104,82 @@ export default function ProfilePage() {
     fetchUserData();
   }, [user]);
 
-  const handleBannerChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleBannerChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) setBanner(URL.createObjectURL(file));
+    if (file) {
+      setBanner(URL.createObjectURL(file));
+
+      // Upload to server
+      try {
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const response = await fetch('/api/upload', {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (!response.ok) throw new Error('Upload failed');
+
+        const { url } = await response.json();
+
+        // Save to user profile
+        if (user) {
+          await fetch(`/api/users/${user.id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              ...savedUserInfo,
+              bannerUrl: url
+            }),
+          });
+
+          setSavedUserInfo(prev => ({ ...prev, bannerUrl: url }));
+        }
+      } catch (error) {
+        console.error('Error uploading banner:', error);
+        alert('Erreur lors de l\'upload de la bannière');
+      }
+    }
   };
 
-  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) setAvatar(URL.createObjectURL(file));
+    if (file) {
+      setAvatar(URL.createObjectURL(file));
+
+      // Upload to server
+      try {
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const response = await fetch('/api/upload', {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (!response.ok) throw new Error('Upload failed');
+
+        const { url } = await response.json();
+
+        // Save to user profile
+        if (user) {
+          await fetch(`/api/users/${user.id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              ...savedUserInfo,
+              photoUrl: url
+            }),
+          });
+
+          setSavedUserInfo(prev => ({ ...prev, photoUrl: url }));
+        }
+      } catch (error) {
+        console.error('Error uploading avatar:', error);
+        alert('Erreur lors de l\'upload de la photo de profil');
+      }
+    }
   };
 
   const handleInputChange = (field: string, value: string) => {
@@ -112,17 +197,19 @@ export default function ProfilePage() {
 
   const handleSave = async () => {
     if (!user) return;
-    
+
     try {
       setLoading(true);
-      
+
       const updateData = {
         firstName: userInfo.firstName,
         lastName: userInfo.lastName,
         email: userInfo.email,
+        photoUrl: savedUserInfo.photoUrl,
+        bannerUrl: savedUserInfo.bannerUrl,
         ...(userInfo.password && { password: userInfo.password })
       };
-      
+
       const response = await fetch(`/api/users/${user.id}`, {
         method: "PUT",
         headers: {
@@ -130,17 +217,17 @@ export default function ProfilePage() {
         },
         body: JSON.stringify(updateData)
       });
-      
+
       if (!response.ok) {
         throw new Error("Erreur lors de la sauvegarde");
       }
-      
+
       const updatedUser = await response.json();
-      
+
       // Sauvegarder les modifications
-      setSavedUserInfo({ ...userInfo });
+      setSavedUserInfo({ ...userInfo, photoUrl: savedUserInfo.photoUrl, bannerUrl: savedUserInfo.bannerUrl });
       setIsEditing(false);
-      
+
       // Update user context
       setUser({
         ...user,
@@ -148,7 +235,7 @@ export default function ProfilePage() {
         lastName: updatedUser.lastName,
         email: updatedUser.email
       });
-      
+
       // Update localStorage
       localStorage.setItem("user", JSON.stringify({
         ...user,
@@ -156,7 +243,7 @@ export default function ProfilePage() {
         lastName: updatedUser.lastName,
         email: updatedUser.email
       }));
-      
+
     } catch (error) {
       console.error("Erreur lors de la sauvegarde:", error);
       alert("Erreur lors de la sauvegarde des données");
@@ -192,7 +279,7 @@ export default function ProfilePage() {
   };
 
   return (
-    <div className="mt-24 p-6 max-w-7xl mx-auto">
+    <div className="mt-24 p-10 max-w-7xl mx-auto">
       {/* Bannière */}
       <div className="relative h-48 rounded-lg bg-gray-200 group/banner cursor-pointer">
         {banner && (

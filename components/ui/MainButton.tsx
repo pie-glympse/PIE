@@ -22,7 +22,6 @@ const MainButton: React.FC<MainButtonProps> = ({
             rounded-md
             px-5 
             py-2.5
-            w-full
             hover:cursor-pointer
             ${disabled ? 'opacity-50 cursor-not-allowed' : ''}
         `}

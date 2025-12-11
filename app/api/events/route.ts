@@ -100,7 +100,7 @@ export async function POST(request: Request) {
       data: {
         title,
         startDate: createDateOnly(startDate),
-        endDate: createDateOnly(endDate), 
+        endDate: createDateOnly(endDate),
         startTime: createTimeOnly(startTime),
         endTime: createTimeOnly(endTime),
         maxPersons: maxPersons ? BigInt(maxPersons) : null,
@@ -118,7 +118,7 @@ export async function POST(request: Request) {
         users: {
           connect: [
             { id: BigInt(userId) }, // Le créateur de l'événement
-            ...(invitedUsers && Array.isArray(invitedUsers) 
+            ...(invitedUsers && Array.isArray(invitedUsers)
               ? invitedUsers.map((id: number) => ({ id: BigInt(id) }))
               : []
             )
@@ -140,6 +140,7 @@ export async function POST(request: Request) {
             email: true,
             firstName: true,
             lastName: true,
+            photoUrl: true,
           }
         },
         location: true,
@@ -231,6 +232,7 @@ export async function GET(request: Request) {
             email: true,
             firstName: true,
             lastName: true,
+            photoUrl: true,
           }
         },
         location: true,

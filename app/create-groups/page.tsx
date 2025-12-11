@@ -159,12 +159,12 @@ const CreateGroupsPage = () => {
   }
 
   if (!user.companyId) {
-    return <div>Vous n&apos;êtes pas associé à une company.</div>;
+    return <div>Vous n&apos;êtes pas associé à une entreprise.</div>;
   }
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="flex h-screen pt-24">
+      <div className="flex h-screen pt-24 p-10">
         <TeamsSidebar
           teams={teams}
           selectedTeam={selectedTeam}
