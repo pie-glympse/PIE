@@ -1,10 +1,13 @@
 import { PrismaClient } from '@prisma/client';
 import { NextRequest, NextResponse } from 'next/server';
+import { calculateGoogleMapsTagsWeights } from '@/lib/preferences/questionsConfig';
 
 const prisma = new PrismaClient();
 
 export async function POST(request: NextRequest) {
   try {
+    console.log('=== Début de la requête POST /api/events/[id]/preferences ===');
+    
     // ✅ Récupérer l'eventId depuis l'URL correctement
     const url = new URL(request.url);
     const segments = url.pathname.split('/').filter(Boolean);
@@ -19,19 +22,33 @@ export async function POST(request: NextRequest) {
     }
 
     const eventId = BigInt(eventIdStr);
+    console.log('EventId:', eventIdStr);
 
-    const { userId, tagId, preferredDate } = await request.json();
+    const body = await request.json();
+    console.log('Body reçu:', JSON.stringify(body, null, 2));
+    const { userId, tagId, preferredDate, answers, activityType } = body;
 
-    if (!userId || !tagId || !preferredDate) {
+    // Vérifier que userId est présent
+    if (!userId) {
       return NextResponse.json(
-        { message: 'userId, tagId et preferredDate sont requis' },
+        { message: 'userId est requis' },
+        { status: 400 }
+      );
+    }
+
+    // Support pour l'ancien format (tagId + preferredDate) et le nouveau format (answers)
+    const isNewFormat = answers && Array.isArray(answers);
+    const isOldFormat = tagId && preferredDate;
+
+    if (!isNewFormat && !isOldFormat) {
+      return NextResponse.json(
+        { message: 'Soit (tagId et preferredDate) soit (answers) sont requis' },
         { status: 400 }
       );
     }
 
     // ✅ Convertir les IDs en BigInt avec validation
     const userIdBigInt = BigInt(userId);
-    const tagIdBigInt = BigInt(tagId);
 
     // ✅ Vérifier que l'événement existe
     const event = await prisma.event.findUnique({
@@ -57,20 +74,59 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // ✅ Vérifier que le tag existe
-    const tag = await prisma.tag.findUnique({
-      where: { id: tagIdBigInt },
-    });
-
-    if (!tag) {
-      return NextResponse.json(
-        { message: 'Tag non trouvé' },
-        { status: 404 }
-      );
-    }
-
     // ✅ Utiliser une transaction explicite pour s'assurer que les données sont bien sauvegardées
     const preference = await prisma.$transaction(async (tx) => {
+      let tagIdBigInt: bigint | undefined;
+      let preferredDateValue: Date | undefined;
+      let googleMapsTags: Record<string, number> | undefined;
+
+      // Gérer l'ancien format
+      if (isOldFormat) {
+        tagIdBigInt = BigInt(tagId);
+        preferredDateValue = new Date(preferredDate);
+        
+        // Vérifier que le tag existe
+        const tag = await tx.tag.findUnique({
+          where: { id: tagIdBigInt },
+        });
+
+        if (!tag) {
+          throw new Error('Tag non trouvé');
+        }
+      }
+
+      // Gérer le nouveau format
+      if (isNewFormat) {
+        // Calculer les tags Google Maps pondérés à partir des réponses
+        try {
+          googleMapsTags = calculateGoogleMapsTagsWeights(answers, activityType || event.activityType || undefined);
+          
+          // 📊 LOG 1: Tags obtenus à la fin de la réponse du formulaire utilisateur
+          console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+          console.log('📝 [FORMULAIRE PRÉFÉRENCES] Tags calculés pour l\'utilisateur');
+          console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+          console.log('Event ID:', eventIdStr);
+          console.log('User ID:', userId);
+          console.log('Activity Type:', activityType || event.activityType);
+          console.log('Réponses reçues:', JSON.stringify(answers, null, 2));
+          console.log('Tags Google Maps avec poids:', JSON.stringify(googleMapsTags, null, 2));
+          console.log('Tags triés par poids:', Object.entries(googleMapsTags)
+            .sort(([, a], [, b]) => b - a)
+            .map(([tag, weight]) => `${tag}: ${weight}`)
+            .join(', '));
+          console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+        } catch (error) {
+          console.error('Erreur lors du calcul des tags Google Maps:', error);
+          throw new Error(`Erreur lors du calcul des tags: ${error instanceof Error ? error.message : String(error)}`);
+        }
+        
+        // Pour le nouveau format, on utilise la date de début de l'événement comme preferredDate
+        preferredDateValue = event.startDate || new Date();
+        
+        // Pour l'ancien système de tags, on peut utiliser le premier tag disponible ou null
+        // (on garde tagId optionnel pour la compatibilité)
+      }
+
       // Vérifier si une préférence existe déjà
       const existingPreference = await tx.eventUserPreference.findUnique({
         where: {
@@ -79,10 +135,38 @@ export async function POST(request: NextRequest) {
             eventId: eventId,
           },
         },
+        include: {
+          answers: true,
+        },
       });
 
       let result;
+      const preferenceData: any = {
+        userId: userIdBigInt,
+        eventId: eventId,
+        preferredDate: preferredDateValue,
+      };
+
+      if (tagIdBigInt) {
+        preferenceData.tagId = tagIdBigInt;
+      }
+
+      if (googleMapsTags) {
+        preferenceData.googleMapsTags = googleMapsTags;
+      }
+
+      // Créer ou mettre à jour la préférence d'abord
       if (existingPreference) {
+        // Supprimer les anciennes réponses si elles existent
+        if (existingPreference.answers.length > 0) {
+          await tx.eventUserPreferenceAnswer.deleteMany({
+            where: {
+              userId: userIdBigInt,
+              eventId: eventId,
+            },
+          });
+        }
+
         result = await tx.eventUserPreference.update({
           where: {
             userId_eventId: {
@@ -90,21 +174,56 @@ export async function POST(request: NextRequest) {
               eventId: eventId,
             },
           },
-          data: {
-            preferredDate: new Date(preferredDate),
-            tagId: tagIdBigInt,
-          },
+          data: preferenceData,
         });
       } else {
         result = await tx.eventUserPreference.create({
-          data: {
-            userId: userIdBigInt,
-            eventId: eventId,
-            tagId: tagIdBigInt,
-            preferredDate: new Date(preferredDate),
-          },
+          data: preferenceData,
         });
       }
+
+      // S'assurer que la préférence est bien créée avant de créer les réponses
+      console.log('Préférence créée/mise à jour:', result);
+
+      // Si nouveau format, créer les réponses aux questions
+      if (isNewFormat && answers && Array.isArray(answers)) {
+        console.log('Création des réponses aux questions:', answers);
+        for (const answer of answers) {
+          if (!answer.questionId || !answer.answerIds || !Array.isArray(answer.answerIds)) {
+            console.error('Format de réponse invalide:', answer);
+            throw new Error(`Format de réponse invalide pour la question ${answer.questionId}`);
+          }
+          
+          try {
+            // Créer la réponse - Prisma établit automatiquement la relation via userId et eventId
+            const answerData = await tx.eventUserPreferenceAnswer.create({
+              data: {
+                userId: userIdBigInt,
+                eventId: eventId,
+                questionId: answer.questionId,
+                answerIds: answer.answerIds,
+              },
+            });
+            console.log(`Réponse créée pour la question ${answer.questionId}:`, answerData);
+          } catch (error) {
+            console.error(`Erreur lors de la création de la réponse pour ${answer.questionId}:`, error);
+            // Afficher plus de détails sur l'erreur
+            if (error instanceof Error) {
+              console.error('Message d\'erreur:', error.message);
+              console.error('Stack:', error.stack);
+            }
+            // Afficher les détails Prisma si disponibles
+            type PrismaError = Error & { code?: string; meta?: unknown };
+            if (typeof error === 'object' && error !== null && 'code' in error) {
+              const prismaError = error as PrismaError;
+              console.error('Code Prisma:', prismaError.code);
+              console.error('Meta Prisma:', JSON.stringify(prismaError.meta, null, 2));
+            }
+            throw error;
+          }
+        }
+      }
+
       return result;
     });
 
@@ -127,6 +246,12 @@ export async function POST(request: NextRequest) {
         tag: {
           select: {
             name: true,
+          },
+        },
+        answers: {
+          select: {
+            questionId: true,
+            answerIds: true,
           },
         },
         event: {
@@ -152,7 +277,7 @@ export async function POST(request: NextRequest) {
       ...preference,
       userId: preference.userId.toString(),
       eventId: preference.eventId.toString(),
-      tagId: preference.tagId.toString(),
+      tagId: preference.tagId ? preference.tagId.toString() : null,
     };
 
     // Créer une notification pour l'organisateur (premier utilisateur)
@@ -220,24 +345,34 @@ export async function POST(request: NextRequest) {
     console.error('Erreur complète lors de la création de la préférence :', error);
     if (error instanceof Error) {
       console.error('Stack trace:', error.stack);
+      console.error('Message:', error.message);
     }
     
     // ✅ Ajouter plus de détails sur l'erreur Prisma
-    type PrismaError = Error & { code?: string; meta?: unknown };
+    type PrismaError = Error & { code?: string; meta?: unknown; clientVersion?: string };
     function isPrismaError(err: unknown): err is PrismaError {
       return typeof err === 'object' && err !== null && 'code' in err;
     }
     if (isPrismaError(error)) {
       console.error('Code d\'erreur Prisma:', error.code);
-      console.error('Méta-données:', error.meta);
+      console.error('Méta-données:', JSON.stringify(error.meta, null, 2));
+      console.error('Client version:', error.clientVersion);
     }
+    
+    // Retourner un message d'erreur plus détaillé en développement
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorCode = isPrismaError(error) ? error.code : 'UNKNOWN';
+    const errorDetails = isPrismaError(error) ? error.meta : undefined;
     
     return NextResponse.json(
       { 
         message: 'Erreur serveur interne',
-        error: error instanceof Error ? error.message : String(error),
-        code: typeof error === 'object' && error !== null && 'code' in error ? (error as PrismaError).code : 'UNKNOWN',
-        details: process.env.NODE_ENV === 'development' && error instanceof Error ? error.stack : undefined
+        error: errorMessage,
+        code: errorCode,
+        details: process.env.NODE_ENV === 'development' ? {
+          stack: error instanceof Error ? error.stack : undefined,
+          prismaMeta: errorDetails,
+        } : undefined
       },
       { status: 500 }
     );

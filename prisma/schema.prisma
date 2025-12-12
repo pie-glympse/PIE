@@ -9,34 +9,35 @@ datasource db {
 }
 
 model User {
-  id                            BigInt                @id @default(autoincrement())
-  email                         String                @unique
+  id                            BigInt                      @id @default(autoincrement())
+  email                         String                      @unique
   password                      String
-  role                          String                @default("STANDARD")
-  photoUrl                      String                @default("")
-  firstName                     String                @default("")
-  lastName                      String                @default("")
+  role                          String                      @default("STANDARD")
+  photoUrl                      String                      @default("")
+  firstName                     String                      @default("")
+  lastName                      String                      @default("")
   companyId                     BigInt?
   teamId                        BigInt?
-  hasSeenOnboarding             Boolean               @default(false)
-  points                        Int                   @default(0)
+  hasSeenOnboarding             Boolean                     @default(false)
+  points                        Int                         @default(0)
   selectedBadgeId               BigInt?
-  bannerUrl                     String                @default("")
+  bannerUrl                     String                      @default("")
   blacklistedPlaces             BlacklistedPlace[]
   companyStats                  CompanyStats?
-  Event_Event_createdByIdToUser Event[]               @relation("Event_createdByIdToUser")
+  Event_Event_createdByIdToUser Event[]                     @relation("Event_createdByIdToUser")
   preferences                   EventUserPreference[]
+  preferenceAnswers             EventUserPreferenceAnswer[]
   photos                        EventsUsersPhoto[]
   feedbacks                     Feedback[]
   notifications                 Notification[]
   PasswordResetToken            PasswordResetToken[]
   PointsHistory                 PointsHistory[]
-  company                       Company?              @relation(fields: [companyId], references: [id])
-  Badge                         Badge?                @relation(fields: [selectedBadgeId], references: [id])
-  team                          Team?                 @relation(fields: [teamId], references: [id])
+  company                       Company?                    @relation(fields: [companyId], references: [id])
+  Badge                         Badge?                      @relation(fields: [selectedBadgeId], references: [id])
+  team                          Team?                       @relation(fields: [teamId], references: [id])
   UserBadge                     UserBadge[]
   votes                         Vote[]
-  events                        Event[]               @relation("EventUsers")
+  events                        Event[]                     @relation("EventUsers")
 }
 
 model Company {
@@ -58,14 +59,14 @@ model Team {
 }
 
 model Event {
-  id                           BigInt                @id @default(autoincrement())
+  id                           BigInt                      @id @default(autoincrement())
   title                        String
   maxPersons                   BigInt?
   costPerPerson                BigInt?
-  state                        String                @default("PENDING")
-  createdAt                    DateTime              @default(now())
+  state                        String                      @default("PENDING")
+  createdAt                    DateTime                    @default(now())
   updatedAt                    DateTime
-  uuid                         String                @unique @default(uuid())
+  uuid                         String                      @unique @default(uuid())
   activityType                 String?
   city                         String?
   endDate                      DateTime?
@@ -75,18 +76,21 @@ model Event {
   startTime                    DateTime?
   createdById                  BigInt?
   duration                     Int?
-  recurring                    Boolean               @default(false)
+  recurring                    Boolean                     @default(false)
   recurringRate                String?
+  // Tags Google Maps les plus votés au passage à "confirmed"
+  confirmedGoogleMapsTags       String[] @default([]) // Array des tags Google Maps les plus votés (vide si pas encore confirmé)
   blacklistedPlaces            BlacklistedPlace[]
-  User_Event_createdByIdToUser User?                 @relation("Event_createdByIdToUser", fields: [createdById], references: [id])
+  User_Event_createdByIdToUser User?                       @relation("Event_createdByIdToUser", fields: [createdById], references: [id])
   location                     EventLocation?
   preferences                  EventUserPreference[]
+  preferenceAnswers            EventUserPreferenceAnswer[]
   photos                       EventsUsersPhoto[]
   feedbacks                    Feedback[]
   notifications                Notification[]
   votes                        Vote[]
-  tags                         Tag[]                 @relation("EventTags")
-  users                        User[]                @relation("EventUsers")
+  tags                         Tag[]                       @relation("EventTags")
+  users                        User[]                      @relation("EventUsers")
 }
 
 model Tag {
@@ -97,15 +101,32 @@ model Tag {
 }
 
 model EventUserPreference {
-  userId        BigInt
-  eventId       BigInt
-  preferredDate DateTime
-  tagId         BigInt
-  event         Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  tag           Tag      @relation(fields: [tagId], references: [id])
-  user          User     @relation(fields: [userId], references: [id])
+  userId         BigInt
+  eventId        BigInt
+  preferredDate  DateTime
+  tagId          BigInt? // Rendre optionnel pour supporter le nouveau format
+  event          Event                       @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  tag            Tag?                        @relation(fields: [tagId], references: [id])
+  user           User                        @relation(fields: [userId], references: [id])
+  // Nouveaux champs pour les préférences avec tags Google Maps
+  googleMapsTags Json? // Stocke les tags Google Maps pondérés: { "restaurant": 2, "cafe": 1, ... }
+  answers        EventUserPreferenceAnswer[]
 
   @@id([userId, eventId])
+}
+
+model EventUserPreferenceAnswer {
+  id         BigInt              @id @default(autoincrement())
+  userId     BigInt
+  eventId    BigInt
+  questionId String
+  answerIds  String[] // Array des IDs de réponses sélectionnées
+  preference EventUserPreference @relation(fields: [userId, eventId], references: [userId, eventId], onDelete: Cascade)
+  user       User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  event      Event               @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, eventId, questionId])
+  @@index([userId, eventId])
 }
 
 model EventsUsersPhoto {

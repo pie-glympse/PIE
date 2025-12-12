@@ -27,6 +27,7 @@ interface NearbyActivitiesProps {
   maxDistance?: number;
   eventId?: string;
   companyId?: string;
+  eventState?: string; // État de l'événement (pending, confirmed, planned)
   onPlacesLoaded?: (places: Place[]) => void;
 }
 
@@ -43,7 +44,7 @@ const getPlaceTypesFromActivityType = (activityType?: string): string[] => {
   return mapping[activityType || ''] || ['tourist_attraction'];
 };
 
-const NearbyActivities = ({ city, activityType, maxDistance = 5, eventId, companyId, onPlacesLoaded }: NearbyActivitiesProps) => {
+const NearbyActivities = ({ city, activityType, maxDistance = 5, eventId, companyId, eventState, onPlacesLoaded }: NearbyActivitiesProps) => {
   const { user } = useUser();
   const [places, setPlaces] = useState<Place[]>([]);
   const [loading, setLoading] = useState(true);
@@ -51,6 +52,7 @@ const NearbyActivities = ({ city, activityType, maxDistance = 5, eventId, compan
   const [showBlacklistModal, setShowBlacklistModal] = useState(false);
   const [selectedPlace, setSelectedPlace] = useState<Place | null>(null);
   const [isBlacklisting, setIsBlacklisting] = useState(false);
+  const [votedGoogleMapsTags, setVotedGoogleMapsTags] = useState<string[]>([]);
   
   // Utiliser useRef pour stocker la dernière valeur de blacklistedPlaceIds
   // pour éviter les re-renders infinis
@@ -61,6 +63,32 @@ const NearbyActivities = ({ city, activityType, maxDistance = 5, eventId, compan
   useEffect(() => {
     onPlacesLoadedRef.current = onPlacesLoaded;
   }, [onPlacesLoaded]);
+
+  // Récupérer les tags Google Maps stockés dans l'événement si confirmé
+  useEffect(() => {
+    const fetchEventData = async () => {
+      if (!eventId || eventState?.toLowerCase() !== 'confirmed') {
+        setVotedGoogleMapsTags([]);
+        return;
+      }
+
+      try {
+        const response = await fetch(`/api/events/${eventId}`);
+        if (response.ok) {
+          const data = await response.json();
+          const event = data.event || data;
+          // Utiliser les tags stockés dans l'événement au moment du passage à "confirmed"
+          if (event.confirmedGoogleMapsTags && Array.isArray(event.confirmedGoogleMapsTags)) {
+            setVotedGoogleMapsTags(event.confirmedGoogleMapsTags);
+          }
+        }
+      } catch (err) {
+        console.error('Erreur lors de la récupération des tags Google Maps:', err);
+      }
+    };
+
+    fetchEventData();
+  }, [eventId, eventState]);
 
   // Récupérer les lieux blacklistés
   useEffect(() => {
@@ -92,15 +120,32 @@ const NearbyActivities = ({ city, activityType, maxDistance = 5, eventId, compan
         return;
       }
 
+      // Ne pas faire de fetch si l'événement n'est pas confirmé
+      if (eventState?.toLowerCase() !== 'confirmed') {
+        setLoading(false);
+        return;
+      }
+
       try {
-        const placeTypes = getPlaceTypesFromActivityType(activityType);
+        // Utiliser les tags Google Maps stockés dans l'événement
+        let placeTypes: string[];
+        
+        if (votedGoogleMapsTags.length > 0) {
+          // Utiliser les tags Google Maps les plus votés stockés au passage à "confirmed"
+          placeTypes = votedGoogleMapsTags;
+        } else {
+          // Fallback sur activityType si pas de tags stockés
+          placeTypes = getPlaceTypesFromActivityType(activityType);
+        }
+
         const response = await fetch('/api/places/nearby', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             city,
             placeTypes,
-            radius: maxDistance * 1000 // Convertir km en mètres
+            radius: maxDistance * 1000, // Convertir km en mètres
+            eventId: eventId // Passer l'eventId pour les logs
           }),
         });
 
@@ -129,7 +174,7 @@ const NearbyActivities = ({ city, activityType, maxDistance = 5, eventId, compan
     fetchPlaces();
     // Ne pas inclure blacklistedPlaceIds et onPlacesLoaded dans les dépendances
     // pour éviter les boucles infinies
-  }, [city, activityType, maxDistance]);
+  }, [city, activityType, maxDistance, eventState, votedGoogleMapsTags]);
 
   // Fonction pour obtenir les étoiles
   const renderStars = (rating?: number) => {
@@ -177,6 +222,22 @@ const NearbyActivities = ({ city, activityType, maxDistance = 5, eventId, compan
   };
 
   if (!city) return null;
+
+  // Afficher un message si l'événement n'est pas confirmé
+  if (eventState?.toLowerCase() !== 'confirmed') {
+    return (
+      <div className="py-8">
+        <h3 className="text-h3 font-urbanist mb-6 text-[var(--color-text)]">
+          Nos recommandations
+        </h3>
+        <div className="flex items-center justify-center py-12">
+          <p className="text-[var(--color-grey-three)] text-center font-poppins">
+            En attente des préférences
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   if (loading) {
     return (

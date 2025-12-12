@@ -277,11 +277,13 @@ export default function SingleEventPage() {
           }
         }
       } else {
-        alert("Erreur lors du changement d'état de l'événement.");
+        const errorData = await response.json().catch(() => ({ message: "Erreur inconnue" }));
+        console.error("Erreur API:", errorData);
+        alert(`Erreur lors du changement d'état: ${errorData.message || errorData.error || "Erreur inconnue"}`);
       }
     } catch (error) {
       console.error("Erreur réseau lors du changement d'état :", error);
-      alert("Erreur réseau lors du changement d'état.");
+      alert(`Erreur réseau lors du changement d'état: ${error instanceof Error ? error.message : "Erreur inconnue"}`);
     }
   };
 
