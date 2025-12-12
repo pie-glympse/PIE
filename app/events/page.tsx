@@ -18,7 +18,8 @@ const TAGS = [
   { id: 2, name: "Afterwork" },
   { id: 3, name: "Team Building" },
   { id: 4, name: "Séminaire" },
-  { id: 5, name: "Autre" },
+  { id: 5, name: "Sport" },
+  { id: 6, name: "Autre" },
 ];
 
 export default function EventForm() {

@@ -116,7 +116,7 @@ const MiniCalendar = ({ eventsData = [] }: MiniCalendarProps) => {
       'Culture': 'bg-[var(--color-secondary)] hover:bg-[#df4f4f]',
       'Nature & Bien-être': 'bg-[var(--color-tertiary)] hover:bg-[#c16bc7]',
       'Divertissement': 'bg-[var(--color-calendar-green)] hover:bg-[var(--color-calendar-green-hover)]',
-      'Shopping': 'bg-orange-500 hover:bg-orange-600',
+      'Sport': 'bg-orange-500 hover:bg-orange-600',
     };
 
     return activityColors[activityType] || 'bg-[var(--color-calendar-grey)] hover:bg-[var(--color-calendar-grey-hover)]';
@@ -429,6 +429,7 @@ const MiniCalendar = ({ eventsData = [] }: MiniCalendarProps) => {
 
     const firstEvent = dayEvents[0];
     
+    // D'abord vérifier activityType
     if (firstEvent.activityType) {
       const color = getColorForActivityType(firstEvent.activityType);
       return color;

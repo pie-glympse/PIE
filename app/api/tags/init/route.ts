@@ -10,7 +10,8 @@ export async function POST() {
       { id: BigInt(2), name: "Afterwork" },
       { id: BigInt(3), name: "Team Building" },
       { id: BigInt(4), name: "Séminaire" },
-      { id: BigInt(5), name: "Autre" },
+      { id: BigInt(5), name: "Sport" },
+      { id: BigInt(6), name: "Autre" },
     ];
 
     // Utiliser upsert pour créer ou mettre à jour les tags
