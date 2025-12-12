@@ -66,20 +66,25 @@ const NearbyActivities = ({ city, activityType, maxDistance = 5, eventId, compan
 
   // Récupérer les tags Google Maps stockés dans l'événement si confirmé
   useEffect(() => {
-    const fetchEventData = async () => {
-      if (!eventId || eventState?.toLowerCase() !== 'confirmed') {
-        setVotedGoogleMapsTags([]);
-        return;
-      }
+    // ✅ Ne récupérer les tags QUE si l'événement est confirmé
+    if (!eventId || eventState?.toLowerCase() !== 'confirmed') {
+      setVotedGoogleMapsTags([]);
+      return;
+    }
 
+    const fetchEventData = async () => {
       try {
+        console.log('📥 [NearbyActivities] Récupération des tags stockés pour event:', eventId);
         const response = await fetch(`/api/events/${eventId}`);
         if (response.ok) {
           const data = await response.json();
           const event = data.event || data;
           // Utiliser les tags stockés dans l'événement au moment du passage à "confirmed"
           if (event.confirmedGoogleMapsTags && Array.isArray(event.confirmedGoogleMapsTags)) {
+            console.log('  ✓ Tags récupérés:', event.confirmedGoogleMapsTags);
             setVotedGoogleMapsTags(event.confirmedGoogleMapsTags);
+          } else {
+            console.log('  ⚠ Aucun tag stocké dans l\'événement');
           }
         }
       } catch (err) {
@@ -112,20 +117,21 @@ const NearbyActivities = ({ city, activityType, maxDistance = 5, eventId, compan
     fetchBlacklistedPlaces();
   }, [companyId, eventId]);
 
-  // Récupérer les lieux recommandés
+  // Récupérer les lieux recommandés - UNIQUEMENT si l'événement est confirmé
   useEffect(() => {
+    // ✅ Vérification stricte : ne rien faire si l'événement n'est pas confirmé
+    if (!city || eventState?.toLowerCase() !== 'confirmed') {
+      console.log('🚫 [NearbyActivities] Fetch bloqué - Event non confirmé:', {
+        hasCity: !!city,
+        eventState: eventState,
+        eventId: eventId
+      });
+      setLoading(false);
+      setPlaces([]); // S'assurer qu'il n'y a pas de lieux affichés
+      return;
+    }
+
     const fetchPlaces = async () => {
-      if (!city) {
-        setLoading(false);
-        return;
-      }
-
-      // Ne pas faire de fetch si l'événement n'est pas confirmé
-      if (eventState?.toLowerCase() !== 'confirmed') {
-        setLoading(false);
-        return;
-      }
-
       try {
         // Utiliser les tags Google Maps stockés dans l'événement
         let placeTypes: string[];
@@ -137,6 +143,11 @@ const NearbyActivities = ({ city, activityType, maxDistance = 5, eventId, compan
           // Fallback sur activityType si pas de tags stockés
           placeTypes = getPlaceTypesFromActivityType(activityType);
         }
+
+        console.log('🔍 [NearbyActivities] Déclenchement du fetch Google Maps');
+        console.log('  - Event ID:', eventId);
+        console.log('  - Event State:', eventState);
+        console.log('  - Tags utilisés:', placeTypes);
 
         const response = await fetch('/api/places/nearby', {
           method: 'POST',
@@ -174,7 +185,7 @@ const NearbyActivities = ({ city, activityType, maxDistance = 5, eventId, compan
     fetchPlaces();
     // Ne pas inclure blacklistedPlaceIds et onPlacesLoaded dans les dépendances
     // pour éviter les boucles infinies
-  }, [city, activityType, maxDistance, eventState, votedGoogleMapsTags]);
+  }, [city, activityType, maxDistance, eventState, votedGoogleMapsTags, eventId]);
 
   // Fonction pour obtenir les étoiles
   const renderStars = (rating?: number) => {
