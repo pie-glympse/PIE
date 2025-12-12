@@ -22,9 +22,9 @@ export const EmptyState = ({
           alt="Mascotte triste"
           width={240}
           height={240}
-          className="mx-auto object-contain opacity-80 w-60 h-60"
+          className="mx-auto object-contain w-60 h-60"
         />
-        <div className="space-y-4">
+        <div className="space-y-3">
           <h3 className="text-2xl font-semibold text-gray-800 font-urbanist">
             {title}
           </h3>

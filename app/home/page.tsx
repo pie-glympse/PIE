@@ -158,7 +158,7 @@ export default function HomePage() {
 
   return (
     <>
-      <main className="overflow-y-auto md:overflow-hidden pt-24 p-6 flex flex-col gap-8">
+      <main className="overflow-y-auto md:overflow-hidden pt-24 p-10 flex flex-col gap-8">
         
         {/* Section Bienvenue */}
         <section className="mt-10">
@@ -167,7 +167,12 @@ export default function HomePage() {
           </div>
           <div className="flex items-center gap-3">
             <p className="text-3xl font-semibold text-gray-800">
-              {user?.firstName || "invité"}
+              {user ? (
+                <>
+                  <span className="capitalize">{user.lastName}</span>{" "}
+                  <span className="capitalize">{user.firstName}</span>
+                </>
+              ) : "invité"}
             </p>
             <Image
                 src="/images/icones/pastille.svg"
@@ -209,10 +214,12 @@ export default function HomePage() {
 
         {/* Évènements à venir */}
         <section className="flex flex-col">
-          <h2 className="text-xl font-bold text-gray-800 mb-4">Évènements à venir</h2>
+          <h2 className="text-xl font-bold text-gray-800 mb-4">
+            {events.length > 0 ? "Évènements à venir" : "Pas d'évènement à venir"}
+          </h2>
           
           {fetchError && (
-            <p className="text-red-600 font-semibold mb-4">Erreur: {fetchError}</p>
+            <p className="text-red-600 font-semibold mb-4">{fetchError}</p>
           )}
           
           {/* Container responsive pour les cartes */}
@@ -247,16 +254,34 @@ export default function HomePage() {
             <Link
               href="/create-event"
               aria-label="Ajouter un évènement"
-              className="w-full md:w-20 h-60 md:flex-shrink-0 flex items-center justify-center border border-gray-300 rounded-xl hover:bg-gray-100 transition text-3xl text-gray-500"
+              className="w-full md:w-20 h-60 md:flex-shrink-0 flex items-center justify-center relative bg-white hover:bg-gray-50 transition group rounded-xl"
             >
-              +
+              <svg
+                className="absolute inset-0 w-full h-full"
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 100 240"
+                preserveAspectRatio="none"
+              >
+                <rect
+                  x="2"
+                  y="2"
+                  width="96"
+                  height="236"
+                  rx="12"
+                  fill="none"
+                  stroke="#FCC638"
+                  strokeWidth="2"
+                  strokeDasharray="12 8"
+                />
+              </svg>
+              <span className="relative z-10 text-6xl text-yellow-400 font-light">+</span>
             </Link>
           </div>
           
-          {/* Lien "voir plus" */}
+          {/* Lien "Tout voir" */}
           <div className="flex justify-end mt-4">
-            <Link href="/events" className="text-gray-500">
-              voir plus
+            <Link href="/events" className="text-body-large font-poppins text-black underline">
+              Tout voir →
             </Link>
           </div>
         </section>

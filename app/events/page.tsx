@@ -150,7 +150,7 @@ export default function EventForm() {
   const filteredEvents = filterEventsByStatus(userEvents, statusFilter);
 
   return (
-    <section className="overflow-y-auto md:overflow-hidden pt-24 p-6 flex flex-col gap-8">
+    <section className="overflow-y-auto md:overflow-hidden pt-24 p-10 flex flex-col gap-8">
       <div className="h-full w-full flex flex-col gap-6 items-start p-4 md:p-10">
         <BackArrow onClick={() => router.back()} className="!mb-0" />
 
@@ -159,9 +159,9 @@ export default function EventForm() {
             <h1 className="text-h1 font-urbanist text-[var(--color-text)] mb-2">
               Tous vos événements
             </h1>
-            <button className="">
+            {/* <button className="">
               <Image src="/icons/filterIcon.svg" alt="Filtrer" width={24} height={24} className="" />
-            </button>
+            </button> */}
           </div>
           <ViewModeToggle currentMode={viewMode} onModeChange={setViewMode} />
         </div>

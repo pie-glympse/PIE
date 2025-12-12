@@ -2,12 +2,14 @@
 
 import { useState, useEffect } from "react";
 import { useUser } from "@/context/UserContext";
+import Image from "next/image";
 
 type User = {
   id: string;
   firstName?: string;
   lastName?: string;
   email?: string;
+  photoUrl?: string;
 };
 
 type Team = {
@@ -41,34 +43,34 @@ export const UserSelectionStep = ({
   const [isCompanySelected, setIsCompanySelected] = useState(false);
   const [selectedTeams, setSelectedTeams] = useState<Set<string>>(new Set());
 
-  // Charger les utilisateurs de la company
+  // Charger les utilisateurs de l'entreprise
   useEffect(() => {
     const fetchUsers = async () => {
       if (!user?.companyId) {
-        setError("Vous n'êtes pas associé à une company");
+        setError("Vous n'êtes pas associé à une entreprise");
         setLoading(false);
         return;
       }
 
       try {
         setLoading(true);
-        
-        // Récupérer le nom de la company
+
+        // Récupérer le nom de l'entreprise
         const companyRes = await fetch(`/api/company?userId=${user.id}`);
         if (companyRes.ok) {
           const companyData = await companyRes.json();
           setCompanyName(companyData.companyName);
         }
 
-        // Récupérer les utilisateurs de la company
+        // Récupérer les utilisateurs de l'entreprise
         const usersRes = await fetch(`/api/users?companyId=${user.companyId}`);
         if (!usersRes.ok) {
-          throw new Error("Impossible de récupérer les utilisateurs de la company");
+          throw new Error("Impossible de récupérer les utilisateurs de l'entreprise");
         }
         const usersData = await usersRes.json();
         setUsers(usersData);
 
-        // Récupérer les teams de la company
+        // Récupérer les équipes de l'entreprise
         const teamsRes = await fetch(`/api/teams?companyId=${user.companyId}`);
         if (teamsRes.ok) {
           const teamsData = await teamsRes.json();
@@ -107,62 +109,62 @@ export const UserSelectionStep = ({
     alert("Fonctionnalité d'import à venir");
   };
 
-  // Gérer la sélection/désélection de toute la company
+  // Gérer la sélection/désélection de toute l'entreprise
   const handleCompanyToggle = () => {
     if (isCompanySelected) {
-      // Désélectionner tous les utilisateurs de la company
+      // Désélectionner tous les utilisateurs de l'entreprise
       filteredUsers.forEach(user => {
         if (selectedUserIds.includes(user.id)) {
           onUserToggle(user.id);
         }
       });
-      // Désélectionner toutes les teams
+      // Désélectionner toutes les équipes
       setSelectedTeams(new Set());
     } else {
-      // Sélectionner tous les utilisateurs de la company
+      // Sélectionner tous les utilisateurs de l'entreprise
       filteredUsers.forEach(user => {
         if (!selectedUserIds.includes(user.id)) {
           onUserToggle(user.id);
         }
       });
-      // Sélectionner toutes les teams
+      // Sélectionner toutes les équipes
       const allTeamIds = new Set(teams.map(team => team.id));
       setSelectedTeams(allTeamIds);
     }
     setIsCompanySelected(!isCompanySelected);
   };
 
-  // Gérer la sélection/désélection d'une team
+  // Gérer la sélection/désélection d'une équipe
   const handleTeamToggle = (teamId: string) => {
     const newSelectedTeams = new Set(selectedTeams);
     const team = teams.find(t => t.id === teamId);
-    
+
     if (!team) return;
 
     if (newSelectedTeams.has(teamId)) {
-      // Désélectionner la team
+      // Désélectionner l'équipe
       newSelectedTeams.delete(teamId);
-      // Désélectionner tous les utilisateurs de cette team
+      // Désélectionner tous les utilisateurs de cette équipe
       team.users.forEach(user => {
         if (selectedUserIds.includes(user.id)) {
           onUserToggle(user.id);
         }
       });
     } else {
-      // Sélectionner la team
+      // Sélectionner l'équipe
       newSelectedTeams.add(teamId);
-      // Sélectionner tous les utilisateurs de cette team
+      // Sélectionner tous les utilisateurs de cette équipe
       team.users.forEach(user => {
         if (!selectedUserIds.includes(user.id)) {
           onUserToggle(user.id);
         }
       });
     }
-    
+
     setSelectedTeams(newSelectedTeams);
   };
 
-  // Vérifier si tous les utilisateurs de la company sont sélectionnés
+  // Vérifier si tous les utilisateurs de l'entreprise sont sélectionnés
   useEffect(() => {
     if (filteredUsers.length > 0) {
       const allSelected = filteredUsers.every(user => selectedUserIds.includes(user.id));
@@ -170,14 +172,14 @@ export const UserSelectionStep = ({
     }
   }, [selectedUserIds, filteredUsers]);
 
-  // Vérifier si toutes les teams sont sélectionnées
+  // Vérifier si toutes les équipes sont sélectionnées
   useEffect(() => {
     if (teams.length > 0) {
       const allTeamsSelected = teams.every(team => {
         const teamUserIds = team.users.map(user => user.id);
         return teamUserIds.every(id => selectedUserIds.includes(id));
       });
-      
+
       if (allTeamsSelected) {
         const allTeamIds = new Set(teams.map(team => team.id));
         setSelectedTeams(allTeamIds);
@@ -198,7 +200,7 @@ export const UserSelectionStep = ({
     return (
       <div className="w-full">
         <h1 className="text-h1 mb-4 text-left w-full font-urbanist">{title}</h1>
-        <p className="text-red-500">Erreur: {error}</p>
+        <p className="text-red-500">{error}</p>
       </div>
     );
   }
@@ -241,11 +243,11 @@ export const UserSelectionStep = ({
 
       {/* L'ancienne section entreprise est remplacée par le switch dans l'entête */}
 
-      {/* Section des teams */}
+      {/* Section des équipes */}
       {teams.length > 0 && (
         <div className="my-6">
           <h3 className="text-lg font-semibold font-poppins text-[var(--color-text)] mb-3">
-            Teams
+            Équipes
           </h3>
           <div className="flex flex-wrap gap-3">
             {teams.map((team) => (
@@ -321,13 +323,26 @@ export const UserSelectionStep = ({
                   className="flex justify-between items-center p-4 border-2 border-[var(--color-grey-two)] rounded-lg hover:border-[var(--color-main)] transition-all cursor-pointer"
                   onClick={() => onUserToggle(user.id)}
                 >
-                  <div className="flex-1">
-                    <p className="font-medium font-poppins text-[var(--color-text)]">
-                      {`${user.firstName} ${user.lastName}` || "Nom inconnu"}
-                    </p>
-                    <p className="text-sm text-[var(--color-grey-three)] font-poppins">
-                      {user.email || "Email inconnu"}
-                    </p>
+                  <div className="flex items-center gap-3 flex-1">
+                    <div className="w-12 h-12 rounded-full overflow-hidden bg-gray-300 flex-shrink-0">
+                      {user.photoUrl && user.photoUrl.trim() !== '' ? (
+                        <Image
+                          src={user.photoUrl}
+                          alt=""
+                          width={48}
+                          height={48}
+                          className="object-cover w-full h-full"
+                        />
+                      ) : null}
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-medium font-poppins text-[var(--color-text)]">
+                        {`${user.firstName} ${user.lastName}` || "Nom inconnu"}
+                      </p>
+                      <p className="text-sm text-[var(--color-grey-three)] font-poppins">
+                        {user.email || "Email inconnu"}
+                      </p>
+                    </div>
                   </div>
                   
                   {/* Checkbox stylisée */}

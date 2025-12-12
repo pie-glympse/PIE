@@ -1,4 +1,4 @@
-// app/profile/page.tsx (si tu es en app directory avec Next.js 13+)
+// app/profile/page.tsx
 "use client";
 
 import { useState, useEffect } from "react";
@@ -26,7 +26,10 @@ export default function ProfilePage() {
     email: '',
     password: '',
     role: '',
-    companyId: ''
+    companyId: '',
+    teamName: '',
+    photoUrl: '',
+    bannerUrl: ''
   });
 
   // Données temporaires pour l'édition
@@ -36,7 +39,10 @@ export default function ProfilePage() {
     email: '',
     password: '',
     role: '',
-    companyId: ''
+    companyId: '',
+    teamName: '',
+    photoUrl: '',
+    bannerUrl: ''
   });
 
   // Redirect if not logged in
@@ -54,12 +60,15 @@ export default function ProfilePage() {
       try {
         setLoading(true);
         const response = await fetch(`/api/users/${user.id}`);
-        
+
         if (!response.ok) {
-          throw new Error("Erreur lors de la récupération des données utilisateur");
+          const errorData = await response.json();
+          console.error("Erreur API:", errorData);
+          throw new Error(errorData.error || "Erreur lors de la récupération des données utilisateur");
         }
-        
+
         const userData = await response.json();
+        console.log("User data received:", userData);
         
         const userDataFormatted = {
           firstName: userData.firstName || '',
@@ -67,11 +76,22 @@ export default function ProfilePage() {
           email: userData.email || '',
           password: '', // Never show actual password
           role: userData.role || '',
-          companyId: userData.companyId || ''
+          companyId: userData.companyId || '',
+          teamName: userData.team?.name || '',
+          photoUrl: userData.photoUrl || '',
+          bannerUrl: userData.bannerUrl || ''
         };
-        
+
         setSavedUserInfo(userDataFormatted);
         setUserInfo(userDataFormatted);
+
+        // Set banner and avatar from saved URLs
+        if (userData.bannerUrl) {
+          setBanner(userData.bannerUrl);
+        }
+        if (userData.photoUrl) {
+          setAvatar(userData.photoUrl);
+        }
         
       } catch (error) {
         console.error("Erreur fetch user data:", error);
@@ -84,14 +104,82 @@ export default function ProfilePage() {
     fetchUserData();
   }, [user]);
 
-  const handleBannerChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleBannerChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) setBanner(URL.createObjectURL(file));
+    if (file) {
+      setBanner(URL.createObjectURL(file));
+
+      // Upload to server
+      try {
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const response = await fetch('/api/upload', {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (!response.ok) throw new Error('Upload failed');
+
+        const { url } = await response.json();
+
+        // Save to user profile
+        if (user) {
+          await fetch(`/api/users/${user.id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              ...savedUserInfo,
+              bannerUrl: url
+            }),
+          });
+
+          setSavedUserInfo(prev => ({ ...prev, bannerUrl: url }));
+        }
+      } catch (error) {
+        console.error('Error uploading banner:', error);
+        alert('Erreur lors de l\'upload de la bannière');
+      }
+    }
   };
 
-  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) setAvatar(URL.createObjectURL(file));
+    if (file) {
+      setAvatar(URL.createObjectURL(file));
+
+      // Upload to server
+      try {
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const response = await fetch('/api/upload', {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (!response.ok) throw new Error('Upload failed');
+
+        const { url } = await response.json();
+
+        // Save to user profile
+        if (user) {
+          await fetch(`/api/users/${user.id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              ...savedUserInfo,
+              photoUrl: url
+            }),
+          });
+
+          setSavedUserInfo(prev => ({ ...prev, photoUrl: url }));
+        }
+      } catch (error) {
+        console.error('Error uploading avatar:', error);
+        alert('Erreur lors de l\'upload de la photo de profil');
+      }
+    }
   };
 
   const handleInputChange = (field: string, value: string) => {
@@ -109,17 +197,19 @@ export default function ProfilePage() {
 
   const handleSave = async () => {
     if (!user) return;
-    
+
     try {
       setLoading(true);
-      
+
       const updateData = {
         firstName: userInfo.firstName,
         lastName: userInfo.lastName,
         email: userInfo.email,
+        photoUrl: savedUserInfo.photoUrl,
+        bannerUrl: savedUserInfo.bannerUrl,
         ...(userInfo.password && { password: userInfo.password })
       };
-      
+
       const response = await fetch(`/api/users/${user.id}`, {
         method: "PUT",
         headers: {
@@ -127,17 +217,17 @@ export default function ProfilePage() {
         },
         body: JSON.stringify(updateData)
       });
-      
+
       if (!response.ok) {
         throw new Error("Erreur lors de la sauvegarde");
       }
-      
+
       const updatedUser = await response.json();
-      
+
       // Sauvegarder les modifications
-      setSavedUserInfo({ ...userInfo });
+      setSavedUserInfo({ ...userInfo, photoUrl: savedUserInfo.photoUrl, bannerUrl: savedUserInfo.bannerUrl });
       setIsEditing(false);
-      
+
       // Update user context
       setUser({
         ...user,
@@ -145,7 +235,7 @@ export default function ProfilePage() {
         lastName: updatedUser.lastName,
         email: updatedUser.email
       });
-      
+
       // Update localStorage
       localStorage.setItem("user", JSON.stringify({
         ...user,
@@ -153,7 +243,7 @@ export default function ProfilePage() {
         lastName: updatedUser.lastName,
         email: updatedUser.email
       }));
-      
+
     } catch (error) {
       console.error("Erreur lors de la sauvegarde:", error);
       alert("Erreur lors de la sauvegarde des données");
@@ -189,9 +279,9 @@ export default function ProfilePage() {
   };
 
   return (
-    <div className="mt-24 p-6 max-w-7xl mx-auto">
+    <div className="mt-24 p-10 max-w-7xl mx-auto">
       {/* Bannière */}
-      <div className="relative h-48 rounded-lg bg-gray-200 group cursor-pointer">
+      <div className="relative h-48 rounded-lg bg-gray-200 group/banner cursor-pointer">
         {banner && (
           <Image
             src={banner}
@@ -201,7 +291,7 @@ export default function ProfilePage() {
           />
         )}
         {/* Overlay avec icône caméra - visible seulement au hover */}
-        <div className="absolute inset-0 rounded-lg bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
+        <div className="absolute inset-0 rounded-lg bg-black/30 opacity-0 group-hover/banner:opacity-100 transition-opacity duration-200 flex items-center justify-center">
           <label className="cursor-pointer p-3 bg-white/20 rounded-full hover:bg-white/30 transition-colors">
             <Camera size={24} className="text-white" />
             <input type="file" className="hidden" onChange={handleBannerChange} accept="image/*" />
@@ -210,14 +300,14 @@ export default function ProfilePage() {
 
         {/* Avatar */}
         <div className="absolute -bottom-12 left-6 bg-amber-400 rounded-full">
-          <div className="relative w-24 h-24 rounded-full border-4 border-white overflow-hidden group cursor-pointer">
+          <div className="relative w-24 h-24 rounded-full border-4 border-white overflow-hidden group/avatar cursor-pointer">
             {avatar ? (
               <Image src={avatar} alt="Avatar" fill className="object-cover" />
             ) : (
               <div className="w-full h-full bg-gray-300" />
             )}
             {/* Overlay avec icône caméra pour l'avatar */}
-            <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center rounded-full">
+            <div className="absolute inset-0 bg-black/30 opacity-0 group-hover/avatar:opacity-100 transition-opacity duration-200 flex items-center justify-center rounded-full">
               <label className="cursor-pointer p-2 bg-white/20 rounded-full hover:bg-white/30 transition-colors">
                 <Camera size={16} className="text-white" />
                 <input type="file" className="hidden" onChange={handleAvatarChange} accept="image/*" />
@@ -230,7 +320,9 @@ export default function ProfilePage() {
       {/* Infos utilisateur */}
       <div className="mt-16 ml-6">
         <h2 className="text-xl font-semibold font-poppins">{savedUserInfo.firstName} {savedUserInfo.lastName}</h2>
-        <p className="font-poppins font-medium">Équipe Front-End Dev Jedi</p>
+        <p className="font-poppins font-medium">
+          {savedUserInfo.teamName ? `Équipe ${savedUserInfo.teamName}` : 'Pas d\'équipe définie'}
+        </p>
 
         {/* Boutons */}
         <div className="mt-4 flex space-x-4">
@@ -241,9 +333,6 @@ export default function ProfilePage() {
                 className="px-4 py-2 bg-[var(--color-grey-one)] hover:bg-white text-h3 font-poppins text-[var(--color-grey-three)] rounded-lg hover: transition cursor-pointer"
               >
                 Editer le profil
-              </button>
-              <button className="px-4 py-2 bg-white text-h3 font-poppins text-[var(--color-grey-three)] border-2 border-[var(--color-grey-three)] rounded-lg hover: transition cursor-pointer">
-                Parametres
               </button>
             </>
           ) : (
@@ -328,7 +417,7 @@ export default function ProfilePage() {
                   type={showPassword ? "text" : "password"}
                   value={userInfo.password}
                   onChange={(e) => handleInputChange('password', e.target.value)}
-                  placeholder="Laissez vide pour ne pas changer"
+                  placeholder="Laissez vide pour conserver le mot de passe actuel"
                   disabled={!isEditing}
                   className={`w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all ${
                     !isEditing ? 'bg-gray-100 cursor-not-allowed text-[var(--color-grey-three)]' : 'bg-white'
@@ -349,10 +438,10 @@ export default function ProfilePage() {
             </div>
           </div>
           <button
-                    onClick={handleLogout}
-                    className="mt-2 text-red-600 rounded hover:text-red-700 transition text-sm">
-                    Se déconnecter
-                </button>
+              onClick={handleLogout}
+              className="mt-4 px-6 py-3 bg-[var(--color-secondary)] text-white font-poppins rounded-lg hover:bg-red-600 transition cursor-pointer">
+              Se déconnecter
+          </button>
         </div>
       </div>
     </div>

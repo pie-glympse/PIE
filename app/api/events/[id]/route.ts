@@ -44,17 +44,15 @@ export async function GET(
             lastName: true,
             email: true,
             companyId: true,
+            photoUrl: true,
           },
         },
-        // Prisma relation field for the event creator is named `User_Event_createdByIdToUser` in schema
-        User_Event_createdByIdToUser: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            email: true,
-          },
-        },
+        location: true,
+        preferences: true,
+        photos: true,
+        feedbacks: true,
+        votes: true,
+        notifications: true
       },
     });
 
@@ -62,14 +60,8 @@ export async function GET(
       return NextResponse.json({ error: "Événement non trouvé" }, { status: 404 });
     }
 
-    // Map long Prisma relation field to `createdBy` for API consumers
-    const eventObj: any = { ...event };
-    if (eventObj.User_Event_createdByIdToUser) {
-      eventObj.createdBy = eventObj.User_Event_createdByIdToUser;
-      delete eventObj.User_Event_createdByIdToUser;
-    } else {
-      eventObj.createdBy = null;
-    }
+    // Map Prisma relation field to `createdBy` for API consumers
+    const eventObj: any = { ...event, createdBy: null };
 
     return NextResponse.json(
       { event: safeJson(eventObj) },
@@ -157,6 +149,7 @@ export async function PUT(
             firstName: true,
             lastName: true,
             email: true,
+            photoUrl: true,
           },
         },
       },

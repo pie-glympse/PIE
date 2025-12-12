@@ -14,10 +14,15 @@ model User {
   password                      String
   role                          String                @default("STANDARD")
   photoUrl                      String                @default("")
+  bannerUrl                     String                @default("")
   firstName                     String                @default("")
   lastName                      String                @default("")
   companyId                     BigInt?
   teamId                        BigInt?
+  hasSeenOnboarding             Boolean               @default(false)
+  points                        Int                   @default(0)
+  selectedBadgeId               BigInt?
+  blacklistedPlaces             BlacklistedPlace[]
   companyStats                  CompanyStats?
   Event_Event_createdByIdToUser Event[]               @relation("Event_createdByIdToUser")
   preferences                   EventUserPreference[]
@@ -25,19 +30,21 @@ model User {
   feedbacks                     Feedback[]
   notifications                 Notification[]
   PasswordResetToken            PasswordResetToken[]
+  PointsHistory                 PointsHistory[]
   company                       Company?              @relation(fields: [companyId], references: [id])
+  Badge                         Badge?                @relation(fields: [selectedBadgeId], references: [id])
   team                          Team?                 @relation(fields: [teamId], references: [id])
+  UserBadge                     UserBadge[]
   votes                         Vote[]
   events                        Event[]               @relation("EventUsers")
-  blacklistedPlaces             BlacklistedPlace[]
 }
 
 model Company {
   id                BigInt             @id @default(autoincrement())
   name              String
+  blacklistedPlaces BlacklistedPlace[]
   teams             Team[]
   users             User[]
-  blacklistedPlaces BlacklistedPlace[]
 }
 
 model Team {
@@ -70,6 +77,7 @@ model Event {
   duration                     Int?
   recurring                    Boolean               @default(false)
   recurringRate                String?
+  blacklistedPlaces            BlacklistedPlace[]
   User_Event_createdByIdToUser User?                 @relation("Event_createdByIdToUser", fields: [createdById], references: [id])
   location                     EventLocation?
   preferences                  EventUserPreference[]
@@ -79,7 +87,6 @@ model Event {
   votes                        Vote[]
   tags                         Tag[]                 @relation("EventTags")
   users                        User[]                @relation("EventUsers")
-  blacklistedPlaces            BlacklistedPlace[]
 }
 
 model Tag {
@@ -117,8 +124,8 @@ model Feedback {
   eventId      BigInt
   rating       BigInt?
   message      String?
-  participated Boolean?
   createdAt    DateTime @default(now())
+  participated Boolean?
   event        Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -166,15 +173,15 @@ model PasswordResetToken {
 
 model BlacklistedPlace {
   id          BigInt   @id @default(autoincrement())
-  placeId     String // ID Google Places
-  companyId   BigInt // Blacklist au niveau entreprise
-  eventId     BigInt? // Optionnel : blacklist pour un événement spécifique (null = tous les événements)
+  placeId     String
+  companyId   BigInt
+  eventId     BigInt?
   createdById BigInt
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   company     Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  event       Event?   @relation(fields: [eventId], references: [id], onDelete: Cascade)
   createdBy   User     @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  event       Event?   @relation(fields: [eventId], references: [id], onDelete: Cascade)
 
   @@index([companyId, placeId])
   @@index([eventId, placeId])
@@ -193,4 +200,42 @@ model Notification {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, read])
+}
+
+model Badge {
+  id             BigInt      @id @default(autoincrement())
+  name           String      @unique
+  description    String
+  icon           String
+  pointsRequired Int
+  order          Int
+  createdAt      DateTime    @default(now())
+  User           User[]
+  UserBadge      UserBadge[]
+
+  @@index([pointsRequired])
+}
+
+model PointsHistory {
+  id          BigInt   @id @default(autoincrement())
+  userId      BigInt
+  points      Int
+  action      String
+  description String?
+  eventId     BigInt?
+  createdAt   DateTime @default(now())
+  User        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+}
+
+model UserBadge {
+  userId     BigInt
+  badgeId    BigInt
+  unlockedAt DateTime @default(now())
+  Badge      Badge    @relation(fields: [badgeId], references: [id], onDelete: Cascade)
+  User       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, badgeId])
+  @@index([userId])
 }

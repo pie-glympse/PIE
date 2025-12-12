@@ -25,7 +25,7 @@ const EventDocuments: React.FC = () => {
             
             {/* Texte principal */}
             <p className="text-body-large font-poppins text-[var(--color-grey-three)] mb-2 text-center">
-                Choisis tes pièces jointes ou glisse les ici
+                Choisissez vos pièces jointes ou glissez-les ici
                 <br />
                  Max 20 MB
             </p>

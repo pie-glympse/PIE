@@ -1,6 +1,7 @@
 "use client"
-import { useState, FormEvent } from 'react';
+import { useState, FormEvent, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useUser } from '@/context/UserContext';
 import MainButton from '../../components/ui/MainButton';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -8,16 +9,24 @@ import BackArrow from '../../components/ui/BackArrow';
 
 const ForgotPasswordPage = () => {
     const router = useRouter();
+    const { user, isLoading: isUserLoading } = useUser();
     const [email, setEmail] = useState('');
     const [message, setMessage] = useState('');
     const [errorMsg, setErrorMsg] = useState('');
-    const [isLoading, setIsLoading] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    // Rediriger vers /home si l'utilisateur est déjà connecté
+    useEffect(() => {
+        if (!isUserLoading && user) {
+            router.push('/home');
+        }
+    }, [user, isUserLoading, router]);
 
     const handleSubmit = async (e: FormEvent) => {
         e.preventDefault();
         setErrorMsg('');
         setMessage('');
-        setIsLoading(true);
+        setIsSubmitting(true);
         
         try {
             const res = await fetch("/api/forgot-password", {
@@ -62,7 +71,7 @@ const ForgotPasswordPage = () => {
             console.error("Erreur lors de l'envoi:", err);
             setErrorMsg("Erreur de connexion au serveur");
         } finally {
-            setIsLoading(false);
+            setIsSubmitting(false);
         }
     };
 
@@ -74,6 +83,16 @@ const ForgotPasswordPage = () => {
     const handleFirstConnectionClick = () => {
         router.push('/first-connection'); // ou la route appropriée
     };
+
+    // Afficher un loader pendant la vérification
+    if (isUserLoading) {
+        return <div className="flex items-center justify-center h-screen">Chargement...</div>;
+    }
+
+    // Ne rien afficher si l'utilisateur est connecté (pendant la redirection)
+    if (user) {
+        return null;
+    }
 
     return (
         <section className="flex flex-row h-screen items-center gap-10 p-10">
@@ -107,7 +126,7 @@ const ForgotPasswordPage = () => {
                                 onChange={e => setEmail(e.target.value)}
                                 required
                                 placeholder="ex : nomprenom@societe.com"
-                                className="w-full px-5 py-2 text-base border-2 border-[var(--color-grey-two)] rounded placeholder:text-body-large placeholder:font-poppins placeholder:text-[#EAEAEF]"
+                                className="w-full px-5 py-2 text-base bg-white border-2 border-[var(--color-grey-two)] rounded placeholder:text-body-large placeholder:font-poppins placeholder:text-[#EAEAEF]"
                             />
                         </div>
                         

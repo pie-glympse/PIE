@@ -10,6 +10,7 @@ export default function Header() {
   const [isMenuHovered, setIsMenuHovered] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [companyName, setCompanyName] = useState<string>("");
+  const [userPhotoUrl, setUserPhotoUrl] = useState<string>("/images/mascotte/joy.png");
 
   // Charger le nombre de notifications non lues depuis l'API
   useEffect(() => {
@@ -61,8 +62,28 @@ export default function Header() {
     fetchCompanyName();
   }, [user]);
 
+  // Charger la photo de profil de l'utilisateur
+  useEffect(() => {
+    const fetchUserPhoto = async () => {
+      if (user?.id) {
+        try {
+          const response = await fetch(`/api/users/${user.id}`);
+          if (response.ok) {
+            const userData = await response.json();
+            if (userData.photoUrl) {
+              setUserPhotoUrl(userData.photoUrl);
+            }
+          }
+        } catch (error) {
+          console.error("Erreur récupération photo utilisateur:", error);
+        }
+      }
+    };
+    fetchUserPhoto();
+  }, [user]);
+
   return (
-    <header className="fixed top-0 left-0 right-0 w-full p-6 bg-white z-50 border-b border-gray-100">
+    <header className="fixed top-0 left-0 right-0 w-full px-6 py-4 bg-white z-50 border-b border-gray-100">
       <div className="mx-auto flex items-center justify-between">
         <div className="flex items-center relative">
           {/* Menu button */}
@@ -106,25 +127,6 @@ export default function Header() {
               onMouseLeave={() => setIsMenuHovered(false)}
             >
               <Link
-                href="/profile"
-                className="flex items-center px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-secondary transition-colors duration-200 group"
-              >
-                <svg
-                  className="w-5 h-5 mr-3 text-gray-500 group-hover:text-secondary transition-colors duration-200"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                  />
-                </svg>
-                <span className="font-medium">Profil</span>
-              </Link>
-              <Link
                 href="/home"
                 className="flex items-center px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-secondary transition-colors duration-200 group"
               >
@@ -163,6 +165,7 @@ export default function Header() {
                 </svg>
                 <span className="font-medium">Événements</span>
               </Link>
+
               <Link
                 href="/create-groups"
                 className="flex items-center px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-secondary transition-colors duration-200 group"
@@ -173,6 +176,46 @@ export default function Header() {
 
                 <span className="font-medium">Entreprise</span>
               </Link>
+
+              <Link
+                href="/settings"
+                className="flex items-center px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-secondary transition-colors duration-200 group"
+              >
+                <svg
+                  className="w-5 h-5 mr-3 text-gray-500 group-hover:text-secondary transition-colors duration-200"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8c-.519-.598-1.489-1-2.599-1m0 0C8.014 7 6 8.343 6 10c0 .656.164 1.28.451 1.818M10.5 21h3m-3 0a4.5 4.5 0 01-4.5-4.5v-3m7.5 7.5a4.5 4.5 0 004.5-4.5v-3m-7.5 7.5h3"
+                  />
+                </svg>
+                <span className="font-medium">Paramètres</span>
+              </Link>
+
+              <Link
+                href="/profile"
+                className="flex items-center px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-secondary transition-colors duration-200 group"
+              >
+                <svg
+                  className="w-5 h-5 mr-3 text-gray-500 group-hover:text-secondary transition-colors duration-200"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                  />
+                </svg>
+                <span className="font-medium">Profil</span>
+              </Link>
             </div>
           </div>
 
@@ -182,8 +225,8 @@ export default function Header() {
               <Image
                 src="/images/logo/Logotype.svg"
                 alt="Logo Glymps"
-                width={150}
-                height={150}
+                width={125}
+                height={125}
                 priority
               />
             </Link>
@@ -196,27 +239,27 @@ export default function Header() {
         </div>
 
         {/* Right: Avatars */}
-        <div className="flex items-center gap-8">
-          <Link href="/notifications" className="w-10 h-10 relative cursor-pointer hover:opacity-80 transition">
-            <Image
-              src="/images/icones/notification.svg"
-              alt="notification"
-              width={48}
-              height={48}
-              className="w-full h-full object-cover rounded-sm"
-            />
+        <div className="flex items-center gap-6 pr-2">
+          <Link href="/notifications" className="relative cursor-pointer hover:opacity-80 transition w-[48px] h-[48px]">
+            <div className="w-full h-full flex items-center justify-center bg-[var(--color-grey-one)] rounded-lg relative">
+              <Image
+                src="/images/icones/alert.svg"
+                alt="notification"
+                width={26}
+                height={26}
+                className="object-contain"
+              />
+            </div>
             {unreadCount > 0 && (
-              <span className="absolute top-0 right-0 bg-[var(--color-tertiary)] text-white text-xs font-medium px-1 rounded-full">
-                {unreadCount}
-              </span>
+              <span className="absolute top-2 right-2 w-[11px] h-[11px] bg-[var(--color-validate)] rounded-full"></span>
             )}
           </Link>
           <Link
             href="/profile"
-            className="w-12 h-12 rounded-full transition ease-in-out bg-gray-200 hover:bg-gray-300 border border-white"
+            className="w-12 h-12 rounded-full transition ease-in-out bg-gray-200 hover:bg-gray-300 border border-white overflow-hidden"
           >
             <Image
-              src="/images/mascotte/joy.png"
+              src={userPhotoUrl}
               alt="Avatar utilisateur"
               width={48}
               height={48}

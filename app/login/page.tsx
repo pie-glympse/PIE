@@ -4,9 +4,18 @@ import LoginForm from '@/components/forms/LoginForm';
 import Link from "next/link";
 import Image from 'next/image';
 import { useEffect } from 'react';
+import { useUser } from '@/context/UserContext';
 
 export default function LoginPage() {
     const router = useRouter();
+    const { user, isLoading } = useUser();
+
+    // Rediriger vers /home si l'utilisateur est déjà connecté
+    useEffect(() => {
+        if (!isLoading && user) {
+            router.push('/home');
+        }
+    }, [user, isLoading, router]);
 
     // Désactiver le scroll uniquement sur cette page
     useEffect(() => {
@@ -28,6 +37,16 @@ export default function LoginPage() {
     const handleFirstConnectionClick = () => {
         router.push('/first-connection'); // ou la route appropriée
     };
+
+    // Afficher un loader pendant la vérification
+    if (isLoading) {
+        return <div className="flex items-center justify-center h-screen">Chargement...</div>;
+    }
+
+    // Ne rien afficher si l'utilisateur est connecté (pendant la redirection)
+    if (user) {
+        return null;
+    }
 
     return (
         <section className="flex flex-row h-screen items-center gap-10 p-10 overflow-hidden">
@@ -85,7 +104,7 @@ export default function LoginPage() {
                     </div>
                 </div>
             </div>
-            <div className="hidden md:block md:w-1/2  absolute right-10 aspect-[738/1049]">
+            <div className="hidden md:block md:w-[45%]  absolute right-10 aspect-[738/1049]">
                 <Image
                     src="/images/mascotte/login-light.png"
                     alt="Image de connexion"

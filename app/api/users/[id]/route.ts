@@ -28,6 +28,14 @@ export async function GET(
         email: true,
         role: true,
         companyId: true,
+        photoUrl: true,
+        bannerUrl: true,
+        team: {
+          select: {
+            id: true,
+            name: true,
+          }
+        }
       }
     });
 
@@ -49,23 +57,34 @@ export async function PUT(
   try {
     const { id: userId } = await params;
     const body = await request.json();
-    const { firstName, lastName, email, password } = body;
+    const { firstName, lastName, email, password, photoUrl, bannerUrl } = body;
 
     const updateData: {
       firstName: string;
       lastName: string;
       email: string;
       password?: string;
+      photoUrl?: string;
+      bannerUrl?: string;
     } = {
       firstName,
       lastName,
       email,
-      password
     };
 
     // Hash password if provided
     if (password && password.trim() !== '') {
       updateData.password = await bcrypt.hash(password, 10);
+    }
+
+    // Update photoUrl if provided
+    if (photoUrl !== undefined) {
+      updateData.photoUrl = photoUrl;
+    }
+
+    // Update bannerUrl if provided
+    if (bannerUrl !== undefined) {
+      updateData.bannerUrl = bannerUrl;
     }
 
     const updatedUser = await prisma.user.update({
@@ -77,6 +96,8 @@ export async function PUT(
         lastName: true,
         email: true,
         role: true,
+        photoUrl: true,
+        bannerUrl: true,
       }
     });
 

@@ -6,6 +6,7 @@ interface Participant {
     firstName: string;
     lastName: string;
     email: string;
+    photoUrl?: string;
 }
 
 interface EventParticipantsProps {
@@ -38,14 +39,16 @@ const EventParticipants: React.FC<EventParticipantsProps> = ({ participants = []
                             {/* Section gauche - Avatar + Infos */}
                             <div className="flex items-center gap-4">
                                 {/* Avatar rond */}
-                                <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
-                                <Image
-                                    src="/icons/round.png"  
-                                        alt={`Avatar de ${participant.firstName} ${participant.lastName}`}
+                                <div className="w-12 h-12 rounded-full bg-gray-300 flex items-center justify-center overflow-hidden">
+                                {participant.photoUrl && participant.photoUrl.trim() !== '' ? (
+                                    <Image
+                                        src={participant.photoUrl}
+                                        alt=""
                                         width={48}
                                         height={48}
-                                        className="rounded-full object-cover"
+                                        className="rounded-full object-cover w-full h-full"
                                     />
+                                ) : null}
                                 </div>
                                 
                                 {/* Nom et email */}

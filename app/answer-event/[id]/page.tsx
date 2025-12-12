@@ -224,7 +224,7 @@ const AnswerEventPage = () => {
 
     return (
         <>
-            <section className="h-screen overflow-y-auto md:overflow-hidden pt-24 p-6 flex flex-col gap-8">
+            <section className="h-screen overflow-y-auto md:overflow-hidden pt-24 p-10 flex flex-col gap-8">
                 <div className="h-full w-full flex flex-col gap-6 items-start p-10">
                     <BackArrow onClick={handleBack} className="" />
                     
