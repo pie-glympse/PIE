@@ -114,6 +114,14 @@ export default function EventPreferencesPage() {
     }
   }, [eventData, eventId, router]);
 
+  // Si pas de questions configurées, rediriger vers la home
+  useEffect(() => {
+    if (questions.length === 0 && !loadingEvent && eventData) {
+      console.log('Aucune question configurée, redirection vers la home');
+      router.push('/home');
+    }
+  }, [questions.length, loadingEvent, eventData, router]);
+
   const handleAnswerChange = (questionId: string, selectedAnswerIds: string[]) => {
     setAnswers(prev => ({
       ...prev,
@@ -204,20 +212,17 @@ export default function EventPreferencesPage() {
 
   if (!user || !eventId || !eventData) return null;
 
-  // Si pas de questions configurées, afficher un message
-  if (questions.length === 0) {
+  // Afficher un message de chargement pendant la redirection si pas de questions
+  if (questions.length === 0 && !loadingEvent) {
     return (
       <div className="flex items-center justify-center h-screen">
         <div className="text-center">
           <p className="text-lg mb-4">
             Aucune question de préférences configurée pour ce type d'événement.
           </p>
-          <button 
-            onClick={() => router.push(`/events/${eventId}`)} 
-            className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
-          >
-            Retour à l'événement
-          </button>
+          <p className="text-sm text-gray-500">
+            Redirection en cours...
+          </p>
         </div>
       </div>
     );
