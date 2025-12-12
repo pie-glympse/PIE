@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import { useUser } from "../../context/UserContext";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
 import BackArrow from "@/components/ui/BackArrow";
 import { ShareEventModal } from "@/components/layout/ShareEventModal";
 import { StatusFilterButtons } from "@/components/ui/StatusFilterButtons";
@@ -12,6 +11,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { EventList } from "@/components/event/EventList";
 import { useEvents, filterEventsByStatus, type EventType } from "@/hooks/useEvents";
 import { useEventPreferences } from "@/hooks/useEventPreferences";
+import ConfirmationModal from "@/components/ui/ConfirmationModal";
 
 const TAGS = [
   { id: 1, name: "Restauration" },
@@ -35,8 +35,8 @@ export default function EventForm() {
   const [selectedEvent, setSelectedEvent] = useState<EventType | null>(null);
   const [showPreferenceForm, setShowPreferenceForm] = useState(false);
   const [dropdownEvent, setDropdownEvent] = useState<string | null>(null);
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'past' | 'upcoming' | 'preparation'>('all');
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [statusFilter, setStatusFilter] = useState<"all" | "past" | "upcoming" | "preparation">("all");
 
   const [shareModal, setShareModal] = useState<{
     isOpen: boolean;
@@ -47,6 +47,13 @@ export default function EventForm() {
     eventId: "",
     eventTitle: "",
   });
+
+  const [leaveModal, setLeaveModal] = useState<{
+    isOpen: boolean;
+    eventId: string;
+    eventTitle: string;
+  } | null>(null);
+  const [leaveError, setLeaveError] = useState<string | null>(null);
 
   // Redirection si pas connecté
   useEffect(() => {
@@ -70,12 +77,15 @@ export default function EventForm() {
                 const participantsData = await participantsRes.json();
                 return {
                   ...event,
-                  users: participantsData.users || participantsData.userIds?.map((id: string) => ({
-                    id,
-                    firstName: "User",
-                    lastName: id,
-                    email: `user${id}@example.com`
-                  })) || []
+                  users:
+                    participantsData.users ||
+                    participantsData.userIds?.map((id: string) => ({
+                      id,
+                      firstName: "User",
+                      lastName: id,
+                      email: `user${id}@example.com`,
+                    })) ||
+                    [],
                 };
               }
               return { ...event, users: [] };
@@ -117,12 +127,18 @@ export default function EventForm() {
     if (!confirm("Voulez-vous vraiment supprimer cet événement ?")) return;
 
     try {
-      const res = await fetch(`/api/events/${eventId}`, { method: "DELETE" });
+      const res = await fetch(`/api/events/${eventId}`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ userId: user.id }),
+      });
       if (res.ok) {
         setEvents((prev) => prev.filter((event) => event.id !== eventId));
-        alert("Événement supprimé avec succès !");
       } else {
-        alert("Erreur lors de la suppression de l'événement.");
+        const errorData = await res.json();
+        alert(errorData.error || "Erreur lors de la suppression de l'événement.");
       }
     } catch (error) {
       console.error("Erreur réseau lors de la suppression :", error);
@@ -132,6 +148,45 @@ export default function EventForm() {
 
   const handleEditEvent = (eventId: string) => {
     router.push(`/edit-event/${eventId}`);
+  };
+
+  const openLeaveModal = (event: EventType) => {
+    setLeaveError(null);
+    setLeaveModal({
+      isOpen: true,
+      eventId: event.id,
+      eventTitle: event.title,
+    });
+  };
+
+  const closeLeaveModal = () => {
+    setLeaveModal(null);
+    setLeaveError(null);
+  };
+
+  const handleLeaveEvent = async () => {
+    if (!leaveModal || !user) return;
+
+    try {
+      const response = await fetch(`/api/events/${leaveModal.eventId}/leave`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ userId: user.id }),
+      });
+
+      if (response.ok) {
+        setEvents((prev) => prev.filter((event) => event.id !== leaveModal.eventId));
+        closeLeaveModal();
+      } else {
+        const errorData = await response.json();
+        setLeaveError(errorData.error || "Erreur lors du départ de l'événement.");
+      }
+    } catch (error) {
+      console.error("Erreur réseau lors du départ de l'événement :", error);
+      setLeaveError("Erreur réseau lors du départ de l'événement.");
+    }
   };
 
   const handleFillPreferences = (event: EventType) => {
@@ -156,9 +211,7 @@ export default function EventForm() {
 
         <div className="flex flex-col md:flex-row md:justify-between md:items-start w-full gap-4">
           <div className="flex flex-row items-center gap-4">
-            <h1 className="text-h1 font-urbanist text-[var(--color-text)] mb-2">
-              Tous vos événements
-            </h1>
+            <h1 className="text-h1 font-urbanist text-[var(--color-text)] mb-2">Tous vos événements</h1>
             {/* <button className="">
               <Image src="/icons/filterIcon.svg" alt="Filtrer" width={24} height={24} className="" />
             </button> */}
@@ -173,7 +226,7 @@ export default function EventForm() {
             {fetchError && <p className="text-red-600 font-semibold">Erreur: {fetchError}</p>}
 
             {filteredEvents.length === 0 ? (
-              <EmptyState onButtonClick={() => router.push('/create-event')} />
+              <EmptyState onButtonClick={() => router.push("/create-event")} />
             ) : (
               <EventList
                 events={filteredEvents}
@@ -191,8 +244,9 @@ export default function EventForm() {
                 onDelete={handleDeleteEvent}
                 onEdit={handleEditEvent}
                 currentUserId={user.id}
-                onShowAddEvent={() => router.push('/create-event')}
+                onShowAddEvent={() => router.push("/create-event")}
                 showAddButton={true}
+                onLeaveEvent={openLeaveModal}
               />
             )}
           </section>
@@ -208,9 +262,7 @@ export default function EventForm() {
 
           {showPreferenceForm && selectedEvent && (
             <div className="fixed top-0 left-0 w-full h-full bg-white z-50 p-8 overflow-auto">
-              <h2 className="text-2xl font-bold mb-6">
-                Préférences pour : {selectedEvent.title}
-              </h2>
+              <h2 className="text-2xl font-bold mb-6">Préférences pour : {selectedEvent.title}</h2>
 
               {step === 1 && (
                 <>
@@ -221,9 +273,7 @@ export default function EventForm() {
                         key={tag.id}
                         onClick={() => setSelectedTagId(tag.id)}
                         className={`p-3 rounded border ${
-                          selectedTagId === tag.id
-                            ? "bg-blue-500 text-white"
-                            : "bg-gray-100"
+                          selectedTagId === tag.id ? "bg-blue-500 text-white" : "bg-gray-100"
                         }`}
                       >
                         {tag.name}
@@ -250,10 +300,7 @@ export default function EventForm() {
                     className="p-2 border rounded"
                   />
                   <div className="mt-6 flex gap-4">
-                    <button
-                      className="px-4 py-2 bg-gray-300 rounded"
-                      onClick={() => setStep(1)}
-                    >
+                    <button className="px-4 py-2 bg-gray-300 rounded" onClick={() => setStep(1)}>
                       Retour
                     </button>
                     <button
@@ -267,6 +314,19 @@ export default function EventForm() {
                 </>
               )}
             </div>
+          )}
+
+          {leaveModal && (
+            <ConfirmationModal
+              isOpen={leaveModal.isOpen}
+              onClose={closeLeaveModal}
+              onConfirm={handleLeaveEvent}
+              title={`Quitter l'événement "${leaveModal.eventTitle}"`}
+              message="Êtes-vous sûr de vouloir quitter cet événement ? Cette action est irréversible."
+              confirmButtonText="Oui, quitter"
+              cancelButtonText="Annuler"
+              error={leaveError}
+            />
           )}
         </div>
       </div>

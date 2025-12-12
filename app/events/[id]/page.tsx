@@ -9,6 +9,7 @@ import EventInformations from "@/components/event/EventInformations";
 import EventParticipants from "@/components/event/EventParticipants";
 import EventDocuments from "@/components/event/EventDocuments";
 import { useUser } from "@/context/UserContext";
+import ConfirmationModal from "@/components/ui/ConfirmationModal";
 
 type EventDetails = {
   id: string;
@@ -60,6 +61,10 @@ export default function SingleEventPage() {
   
   // État pour gérer l'accordéon
   const [isStateDropdownOpen, setIsStateDropdownOpen] = useState(false);
+
+  // État pour la modal de quitter l'événement
+  const [isLeaveModalOpen, setIsLeaveModalOpen] = useState(false);
+  const [leaveError, setLeaveError] = useState<string | null>(null);
 
   const tabs = [
     {
@@ -144,6 +149,41 @@ export default function SingleEventPage() {
   const handleUploadDocument = () => {
     console.log("Upload document");
     // TODO: Implémenter la logique d'upload de document
+  };
+
+  const openLeaveModal = () => {
+    setIsLeaveModalOpen(true);
+    setLeaveError(null);
+  };
+
+  const closeLeaveModal = () => {
+    setIsLeaveModalOpen(false);
+    setLeaveError(null);
+  };
+
+  const handleLeaveEvent = async () => {
+    if (!event || !user) return;
+
+    try {
+      const response = await fetch(`/api/events/${event.id}/leave`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ userId: user.id }),
+      });
+
+      if (response.ok) {
+        closeLeaveModal();
+        router.push("/events"); // Rediriger vers la liste des événements
+      } else {
+        const errorData = await response.json();
+        setLeaveError(errorData.error || "Erreur lors du départ de l'événement.");
+      }
+    } catch (error) {
+      console.error("Erreur réseau lors du départ de l'événement :", error);
+      setLeaveError("Erreur réseau lors du départ de l'événement.");
+    }
   };
 
   // Fonction pour changer l'état de l'événement (Admin seulement)
@@ -272,8 +312,10 @@ export default function SingleEventPage() {
     
     const isAuthorized = user && ["ADMIN", "SUPER_ADMIN"].includes(user.role);
 
-
   const organizer = event.createdBy || event.users?.[0];
+  const isCreator = user && event.createdBy?.id === user.id;
+  const isParticipant = user && event.users?.some(p => p.id === user.id);
+  const canLeaveEvent = !isCreator && isParticipant;
 
   return (
     <section className="min-h-screen pt-24 p-10 flex flex-col gap-8">
@@ -385,6 +427,15 @@ export default function SingleEventPage() {
                   style={{borderRadius: '4px' }}
                 >
                   Upload
+                </button>
+              )}
+
+              {canLeaveEvent && (
+                <button
+                  onClick={openLeaveModal}
+                  className="px-4 py-2 bg-white text-red-600 text-body-large font-poppins hover:bg-red-50 hover:text-red-700 transition-colors border-2 border-red-300 rounded-lg cursor-pointer"
+                >
+                  Quitter l'événement
                 </button>
               )}
               
@@ -511,6 +562,20 @@ export default function SingleEventPage() {
               </div>
             </div>
           </div>
+        )}
+
+        {/* Modal de confirmation pour quitter l'événement */}
+        {isLeaveModalOpen && event && (
+          <ConfirmationModal
+            isOpen={isLeaveModalOpen}
+            onClose={closeLeaveModal}
+            onConfirm={handleLeaveEvent}
+            title={`Quitter l'événement "${event.title}"`}
+            message="Êtes-vous sûr de vouloir quitter cet événement ? Cette action est irréversible."
+            confirmButtonText="Oui, quitter"
+            cancelButtonText="Annuler"
+            error={leaveError}
+          />
         )}
       </div>
     </section>
