@@ -6,6 +6,7 @@ import { useUser } from "../../context/UserContext";
 import Image from "next/image";
 import BackArrow from "@/components/ui/BackArrow";
 import FeedbackModal from "@/components/FeedbackModal";
+import InvitationModal from "@/components/InvitationModal";
 import MainButton from "@/components/ui/MainButton";
 
 type Notification = {
@@ -27,6 +28,12 @@ export default function NotificationsPage() {
     eventTitle: string;
     notificationId: string;
   } | null>(null);
+  const [selectedInvitation, setSelectedInvitation] = useState<{
+    eventId: string;
+    eventTitle: string;
+    creatorName: string;
+    notificationId: string;
+  } | null>(null);
 
   // Récupérer les notifications depuis l'API
   useEffect(() => {
@@ -38,6 +45,59 @@ export default function NotificationsPage() {
             const data = await response.json();
             console.log("[Notifications] Data received:", data);
             setNotifications(data);
+            
+            // Vérifier s'il y a une notification d'invitation non lue à afficher automatiquement
+            const unreadInvitation = data.find(
+              (n: Notification) =>
+                !n.read &&
+                n.type === "EVENT_INVITATION" &&
+                n.eventId
+            );
+            
+            if (unreadInvitation && !selectedInvitation) {
+              // Afficher automatiquement la modale d'invitation
+              // Récupérer les détails de l'événement
+              try {
+                const eventResponse = await fetch(`/api/events/${unreadInvitation.eventId}`);
+                if (eventResponse.ok) {
+                  const eventData = await eventResponse.json();
+                  const event = eventData.event || eventData;
+                  
+                  // Extraire le nom du créateur depuis le message de notification
+                  const messageMatch = unreadInvitation.message.match(/@([^ ]+ [^ ]+) vous a invité/);
+                  const creatorName = messageMatch
+                    ? messageMatch[1]
+                    : event.createdBy
+                    ? `${event.createdBy.firstName} ${event.createdBy.lastName}`
+                    : "Quelqu'un";
+
+                  setSelectedInvitation({
+                    eventId: unreadInvitation.eventId!,
+                    eventTitle: event.title || "Événement",
+                    creatorName,
+                    notificationId: unreadInvitation.id,
+                  });
+                } else {
+                  // Si on ne peut pas récupérer l'événement, utiliser quand même la notification
+                  const messageMatch = unreadInvitation.message.match(/@([^ ]+ [^ ]+) vous a invité/);
+                  setSelectedInvitation({
+                    eventId: unreadInvitation.eventId,
+                    eventTitle: "Événement",
+                    creatorName: messageMatch ? messageMatch[1] : "Quelqu'un",
+                    notificationId: unreadInvitation.id,
+                  });
+                }
+              } catch (error) {
+                console.error("Erreur lors de la récupération de l'événement:", error);
+                const messageMatch = unreadInvitation.message.match(/@([^ ]+ [^ ]+) vous a invité/);
+                setSelectedInvitation({
+                  eventId: unreadInvitation.eventId!,
+                  eventTitle: "Événement",
+                  creatorName: messageMatch ? messageMatch[1] : "Quelqu'un",
+                  notificationId: unreadInvitation.id,
+                });
+              }
+            }
           } else {
             console.error("Erreur récupération notifications");
           }
@@ -50,7 +110,7 @@ export default function NotificationsPage() {
     };
 
     fetchNotifications();
-  }, [isLoading, user]);
+  }, [isLoading, user, selectedInvitation]);
 
   const handleMarkAsRead = async (id: string) => {
     try {
@@ -99,6 +159,53 @@ export default function NotificationsPage() {
       setSelectedFeedback({
         eventId: notification.eventId,
         eventTitle: "Événement",
+        notificationId: notification.id,
+      });
+    }
+  };
+
+  const handleInvitationClick = async (notification: Notification) => {
+    if (!notification.eventId) return;
+
+    try {
+      // Récupérer les détails de l'événement
+      const eventResponse = await fetch(`/api/events/${notification.eventId}`);
+      if (eventResponse.ok) {
+        const eventData = await eventResponse.json();
+        const event = eventData.event || eventData;
+        
+        // Extraire le nom du créateur depuis le message de notification
+        // Format: "@FirstName LastName vous a invité à son événement "Title""
+        const messageMatch = notification.message.match(/@([^ ]+ [^ ]+) vous a invité/);
+        const creatorName = messageMatch
+          ? messageMatch[1]
+          : event.createdBy
+          ? `${event.createdBy.firstName} ${event.createdBy.lastName}`
+          : "Quelqu'un";
+
+        setSelectedInvitation({
+          eventId: notification.eventId!,
+          eventTitle: event.title || "Événement",
+          creatorName,
+          notificationId: notification.id,
+        });
+      } else {
+        // Si on ne peut pas récupérer l'événement, utiliser quand même la notification
+        const messageMatch = notification.message.match(/@([^ ]+ [^ ]+) vous a invité/);
+        setSelectedInvitation({
+          eventId: notification.eventId,
+          eventTitle: "Événement",
+          creatorName: messageMatch ? messageMatch[1] : "Quelqu'un",
+          notificationId: notification.id,
+        });
+      }
+    } catch (error) {
+      console.error("Erreur lors de la récupération de l'événement:", error);
+      const messageMatch = notification.message.match(/@([^ ]+ [^ ]+) vous a invité/);
+      setSelectedInvitation({
+        eventId: notification.eventId!,
+        eventTitle: "Événement",
+        creatorName: messageMatch ? messageMatch[1] : "Quelqu'un",
         notificationId: notification.id,
       });
     }
@@ -166,13 +273,16 @@ export default function NotificationsPage() {
                 <div key={notification.id} className="flex items-center gap-3">
                   <div
                     className={`flex items-center justify-between gap-4 p-3 bg-[#F4F4F4] rounded-lg flex-1 ${
-                      notification.type === "FEEDBACK_REQUEST"
+                      notification.type === "FEEDBACK_REQUEST" ||
+                      notification.type === "EVENT_INVITATION"
                         ? "cursor-pointer hover:bg-gray-200 transition"
                         : ""
                     }`}
                     onClick={() => {
                       if (notification.type === "FEEDBACK_REQUEST") {
                         handleFeedbackClick(notification);
+                      } else if (notification.type === "EVENT_INVITATION") {
+                        handleInvitationClick(notification);
                       }
                     }}
                   >
@@ -302,6 +412,43 @@ export default function NotificationsPage() {
           eventTitle={selectedFeedback.eventTitle}
           userId={user.id}
           notificationId={selectedFeedback.notificationId}
+        />
+      )}
+
+      {/* Modal d'invitation */}
+      {selectedInvitation && user && (
+        <InvitationModal
+          isOpen={true}
+          onClose={() => {
+            setSelectedInvitation(null);
+            // Recharger les notifications pour mettre à jour l'état
+            const fetchNotifications = async () => {
+              try {
+                const response = await fetch(
+                  `/api/notifications?userId=${user.id}`
+                );
+                if (response.ok) {
+                  const data = await response.json();
+                  setNotifications(data);
+                }
+              } catch (error) {
+                console.error("Erreur:", error);
+              }
+            };
+            fetchNotifications();
+          }}
+          eventId={selectedInvitation.eventId}
+          eventTitle={selectedInvitation.eventTitle}
+          creatorName={selectedInvitation.creatorName}
+          userId={user.id}
+          notificationId={selectedInvitation.notificationId}
+          onResponse={(accepted) => {
+            // Optionnel: rediriger vers l'événement si accepté
+            if (accepted) {
+              // Vous pouvez ajouter une redirection ici si nécessaire
+              console.log("Invitation acceptée");
+            }
+          }}
         />
       )}
     </main>
