@@ -31,7 +31,7 @@ export async function createUser({ email, password, firstName, lastName, role = 
       firstName: firstName ?? "Utilisateur_" + Math.floor(Math.random() * 10000),
       lastName: lastName ?? "Utilisateur_" + Math.floor(Math.random() * 10000),
       role,
-      photoUrl: "https://via.placeholder.com/150",
+      photoUrl: "",
     },
   });
 
