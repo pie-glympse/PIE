@@ -22,6 +22,7 @@ model User {
   hasSeenOnboarding             Boolean               @default(false)
   points                        Int                   @default(0)
   selectedBadgeId               BigInt?
+  bannerUrl                     String                @default("")
   blacklistedPlaces             BlacklistedPlace[]
   companyStats                  CompanyStats?
   Event_Event_createdByIdToUser Event[]               @relation("Event_createdByIdToUser")
