@@ -22,6 +22,12 @@ export type EventType = {
     lastName: string;
     email: string;
   }[];
+  createdBy?: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+  };
 };
 
 export const useEvents = (userId?: string) => {

@@ -175,14 +175,45 @@ export async function DELETE(req: Request) {
   }
 
   try {
+    // Récupérer le userId depuis le body de la requête
+    const body = await req.json().catch(() => ({}));
+    const { userId } = body;
+
+    if (!userId) {
+      return NextResponse.json({ error: "userId est requis" }, { status: 400 });
+    }
+
+    // Vérifier que l'événement existe et récupérer le créateur
+    const event = await prisma.event.findUnique({
+      where: { id: BigInt(eventId) },
+      select: {
+        createdById: true,
+      },
+    });
+
+    if (!event) {
+      return NextResponse.json({ error: "Événement non trouvé" }, { status: 404 });
+    }
+
+    // Vérifier que l'utilisateur est le créateur
+    if (event.createdById?.toString() !== userId) {
+      return NextResponse.json(
+        { error: "Seul le créateur de l'événement peut le supprimer" },
+        { status: 403 }
+      );
+    }
+
+    // Supprimer l'événement
     await prisma.event.delete({
-      where: { id: eventId },
+      where: { id: BigInt(eventId) },
     });
 
     return NextResponse.json("Event deleted", { status: 200 });
   } catch (error) {
-    return new Response("Event not found or could not be deleted", {
-      status: 404,
-    });
+    console.error("Erreur lors de la suppression de l'événement:", error);
+    return NextResponse.json(
+      { error: "Erreur lors de la suppression de l'événement" },
+      { status: 500 }
+    );
   }
 }

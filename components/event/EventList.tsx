@@ -3,7 +3,7 @@ import type { EventType } from "@/hooks/useEvents";
 
 interface EventListProps {
   events: EventType[];
-  viewMode: 'grid' | 'list';
+  viewMode: "grid" | "list";
   dropdownEvent: string | null;
   onDropdownToggle: (eventId: string) => void;
   isAuthorized: boolean;
@@ -15,17 +15,15 @@ interface EventListProps {
   onEdit?: (eventId: string) => void;
   onShowAddEvent?: () => void;
   showAddButton?: boolean;
+  onLeaveEvent?: (event: EventType) => void;
   currentUserId?: string;
 }
 
 const adaptEventForGcard = (event: EventType) => {
   const getBackgroundUrl = (tags: { id: string; name: string }[]) => {
-    if (tags.some((tag) => tag.name === "Restauration"))
-      return "/images/illustration/palm.svg";
-    if (tags.some((tag) => tag.name === "Afterwork"))
-      return "/images/illustration/stack.svg";
-    if (tags.some((tag) => tag.name === "Team Building"))
-      return "/images/illustration/roundstar.svg";
+    if (tags.some((tag) => tag.name === "Restauration")) return "/images/illustration/palm.svg";
+    if (tags.some((tag) => tag.name === "Afterwork")) return "/images/illustration/stack.svg";
+    if (tags.some((tag) => tag.name === "Team Building")) return "/images/illustration/roundstar.svg";
     return "/images/illustration/roundstar.svg";
   };
 
@@ -52,37 +50,40 @@ export const EventList = ({
   onEdit,
   onShowAddEvent,
   showAddButton = true,
+  onLeaveEvent,
   currentUserId,
 }: EventListProps) => {
-  if (viewMode === 'grid') {
+  if (viewMode === "grid") {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {events.map((event) => (
-          <div
-            key={event.id}
-            onClick={() => onEventClick(event.id)}
-            className="cursor-pointer"
-          >
-            <Gcard
-              eventId={event.id}
-              {...adaptEventForGcard(event)}
-              className="w-full h-60"
-              dropdownOpen={dropdownEvent === event.id}
-              onDropdownToggle={() => onDropdownToggle(event.id)}
-              isAuthorized={isAuthorized}
-              onShare={() => onShare(event.id, event.title)}
-              onPreferences={() => onPreferences(event)}
-              onDelete={() => onDelete(event.id)}
-              onEdit={onEdit ? () => onEdit(event.id) : undefined}
-              createdById={event.createdById}
-              currentUserId={currentUserId}
-              showPreferencesButton={
-                !userEventPreferences.has(event.id) && 
-                event.state?.toLowerCase() !== 'confirmed'
-              }
-            />
-          </div>
-        ))}
+        {events.map((event) => {
+          const isCreator = event.createdBy?.id === currentUserId;
+          const isParticipant = event.users?.some((user) => user.id === currentUserId) || false;
+          const canLeave = !isCreator && isParticipant;
+
+          return (
+            <div key={event.id} onClick={() => onEventClick(event.id)} className="cursor-pointer">
+              <Gcard
+                eventId={event.id}
+                {...adaptEventForGcard(event)}
+                className="w-full h-60"
+                dropdownOpen={dropdownEvent === event.id}
+                onDropdownToggle={() => onDropdownToggle(event.id)}
+                isAuthorized={isAuthorized}
+                onShare={() => onShare(event.id, event.title)}
+                onPreferences={() => onPreferences(event)}
+                onDelete={() => onDelete(event.id)}
+                onEdit={onEdit && isCreator ? () => onEdit(event.id) : undefined}
+                canLeave={canLeave}
+                onLeave={canLeave && onLeaveEvent ? () => onLeaveEvent(event) : undefined}
+                isCreator={isCreator}
+                showPreferencesButton={
+                  !userEventPreferences.has(event.id) && event.state?.toLowerCase() !== "confirmed"
+                }
+              />
+            </div>
+          );
+        })}
         {showAddButton && onShowAddEvent && (
           <button
             onClick={onShowAddEvent}
@@ -116,32 +117,32 @@ export const EventList = ({
 
   return (
     <div className="space-y-4">
-      {events.map((event) => (
-        <div
-          key={event.id}
-          onClick={() => onEventClick(event.id)}
-          className="cursor-pointer"
-        >
-          <Gcard
-            eventId={event.id}
-            {...adaptEventForGcard(event)}
-            className="w-full ha-auto"
-            dropdownOpen={dropdownEvent === event.id}
-            onDropdownToggle={() => onDropdownToggle(event.id)}
-            isAuthorized={isAuthorized}
-            onShare={() => onShare(event.id, event.title)}
-            onPreferences={() => onPreferences(event)}
-            onDelete={() => onDelete(event.id)}
-            onEdit={onEdit ? () => onEdit(event.id) : undefined}
-            createdById={event.createdById}
-            currentUserId={currentUserId}
-            showPreferencesButton={
-              !userEventPreferences.has(event.id) && 
-              event.state?.toLowerCase() !== 'confirmed'
-            }
-          />
-        </div>
-      ))}
+      {events.map((event) => {
+        const isCreator = event.createdBy?.id === currentUserId;
+        const isParticipant = event.users?.some((user) => user.id === currentUserId) || false;
+        const canLeave = !isCreator && isParticipant;
+
+        return (
+          <div key={event.id} onClick={() => onEventClick(event.id)} className="cursor-pointer">
+            <Gcard
+              eventId={event.id}
+              {...adaptEventForGcard(event)}
+              className="w-full ha-auto"
+              dropdownOpen={dropdownEvent === event.id}
+              onDropdownToggle={() => onDropdownToggle(event.id)}
+              isAuthorized={isAuthorized}
+              onShare={() => onShare(event.id, event.title)}
+              onPreferences={() => onPreferences(event)}
+              onDelete={() => onDelete(event.id)}
+              onEdit={onEdit && isCreator ? () => onEdit(event.id) : undefined}
+              canLeave={canLeave}
+              onLeave={canLeave && onLeaveEvent ? () => onLeaveEvent(event) : undefined}
+              isCreator={isCreator}
+              showPreferencesButton={!userEventPreferences.has(event.id) && event.state?.toLowerCase() !== "confirmed"}
+            />
+          </div>
+        );
+      })}
       {showAddButton && onShowAddEvent && (
         <button
           onClick={onShowAddEvent}
@@ -154,4 +155,3 @@ export const EventList = ({
     </div>
   );
 };
-
