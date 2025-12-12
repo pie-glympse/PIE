@@ -4,7 +4,9 @@ import { usePathname } from "next/navigation";
 import Header from "@/components/Header";
 import { UserProvider, useUser } from "../context/UserContext";
 import FeedbackModal from "@/components/FeedbackModal";
+import InvitationModal from "@/components/InvitationModal";
 import { useFeedbackNotification } from "@/hooks/useFeedbackNotification";
+import { useInvitationNotification } from "@/hooks/useInvitationNotification";
 import { useOnboarding } from "@/hooks/useOnboarding";
 import Modal from "@/components/layout/Modal";
 
@@ -107,6 +109,34 @@ function FeedbackProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
+function InvitationProvider({ children }: { children: React.ReactNode }) {
+  const { user } = useUser();
+  const { pendingInvitation, clearPendingInvitation } = useInvitationNotification();
+
+  return (
+    <>
+      {children}
+      {pendingInvitation && user && (
+        <InvitationModal
+          isOpen={true}
+          onClose={clearPendingInvitation}
+          eventId={pendingInvitation.eventId}
+          eventTitle={pendingInvitation.eventTitle}
+          creatorName={pendingInvitation.creatorName}
+          userId={user.id}
+          notificationId={pendingInvitation.id}
+          onResponse={(accepted) => {
+            if (accepted) {
+              console.log("Invitation acceptée");
+            }
+            clearPendingInvitation();
+          }}
+        />
+      )}
+    </>
+  );
+}
+
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [is404, setIs404] = useState(false);
@@ -130,7 +160,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     <UserProvider>
       {showHeader && <Header />}
       <OnboardingProvider>
-        <FeedbackProvider>{children}</FeedbackProvider>
+        <FeedbackProvider>
+          <InvitationProvider>{children}</InvitationProvider>
+        </FeedbackProvider>
       </OnboardingProvider>
     </UserProvider>
   );

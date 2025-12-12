@@ -117,11 +117,9 @@ export async function POST(request: Request) {
         createdById: BigInt(userId), // ✅ Enregistrer le créateur
         users: {
           connect: [
-            { id: BigInt(userId) }, // Le créateur de l'événement
-            ...(invitedUsers && Array.isArray(invitedUsers)
-              ? invitedUsers.map((id: number) => ({ id: BigInt(id) }))
-              : []
-            )
+            { id: BigInt(userId) }, // Seulement le créateur de l'événement
+            // Les utilisateurs invités ne sont pas automatiquement connectés
+            // Ils doivent accepter l'invitation via la modale
           ],
         },
         ...(tags && Array.isArray(tags)
@@ -181,7 +179,7 @@ export async function POST(request: Request) {
           await prisma.notification.createMany({
             data: usersToNotify.map((invitedUserId: number) => ({
               userId: BigInt(invitedUserId),
-              message: `@${creator.firstName}${creator.lastName} vous a invité à son événement "${title}"`,
+              message: `@${creator.firstName} ${creator.lastName} vous a invité à son événement "${title}"`,
               type: 'EVENT_INVITATION',
               eventId: newEvent.id,
             })),
