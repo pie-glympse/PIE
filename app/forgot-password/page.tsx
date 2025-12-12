@@ -144,9 +144,9 @@ const ForgotPasswordPage = () => {
 
                         <MainButton 
                             color="bg-[var(--color-text)] font-poppins text-body-large" 
-                            text={isLoading ? "Envoi en cours..." : "Recevoir le lien"} 
+                            text={isSubmitting ? "Envoi en cours..." : "Recevoir le lien"} 
                             type='submit' 
-                            disabled={isLoading}
+                            disabled={isSubmitting}
                         />
                     </form>
                 </div>

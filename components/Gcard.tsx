@@ -312,6 +312,7 @@ export default function EventCard({
                         width={40}
                         height={40}
                         className="rounded-full object-cover w-full h-full"
+                        unoptimized
                       />
                     ) : null}
                   </div>

@@ -86,11 +86,15 @@ export default function ProfilePage() {
         setUserInfo(userDataFormatted);
 
         // Set banner and avatar from saved URLs
-        if (userData.bannerUrl) {
+        if (userData.bannerUrl && userData.bannerUrl.trim() !== '') {
           setBanner(userData.bannerUrl);
+        } else {
+          setBanner(null);
         }
-        if (userData.photoUrl) {
+        if (userData.photoUrl && userData.photoUrl.trim() !== '') {
           setAvatar(userData.photoUrl);
+        } else {
+          setAvatar(null);
         }
         
       } catch (error) {
@@ -107,38 +111,58 @@ export default function ProfilePage() {
   const handleBannerChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      setBanner(URL.createObjectURL(file));
+      // Afficher l'image temporairement pendant l'upload
+      const tempUrl = URL.createObjectURL(file);
+      setBanner(tempUrl);
 
       // Upload to server
       try {
         const formData = new FormData();
         formData.append('file', file);
+        formData.append('type', 'banner'); // Spécifier le type
 
         const response = await fetch('/api/upload', {
           method: 'POST',
           body: formData,
         });
 
-        if (!response.ok) throw new Error('Upload failed');
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Upload failed');
+        }
 
         const { url } = await response.json();
 
-        // Save to user profile
+        // Sauvegarder immédiatement dans la base de données
         if (user) {
-          await fetch(`/api/users/${user.id}`, {
+          const updateResponse = await fetch(`/api/users/${user.id}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              ...savedUserInfo,
-              bannerUrl: url
+              firstName: savedUserInfo.firstName,
+              lastName: savedUserInfo.lastName,
+              email: savedUserInfo.email,
+              bannerUrl: url,
+              photoUrl: savedUserInfo.photoUrl,
             }),
           });
 
+          if (!updateResponse.ok) {
+            throw new Error('Erreur lors de la sauvegarde');
+          }
+
+          // Mettre à jour les états avec l'URL Supabase
+          setBanner(url);
           setSavedUserInfo(prev => ({ ...prev, bannerUrl: url }));
+          
+          // Libérer l'URL temporaire
+          URL.revokeObjectURL(tempUrl);
         }
       } catch (error) {
         console.error('Error uploading banner:', error);
-        alert('Erreur lors de l\'upload de la bannière');
+        alert(error instanceof Error ? error.message : 'Erreur lors de l\'upload de la bannière');
+        // En cas d'erreur, remettre l'ancienne bannière
+        setBanner(savedUserInfo.bannerUrl || null);
       }
     }
   };
@@ -146,38 +170,58 @@ export default function ProfilePage() {
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      setAvatar(URL.createObjectURL(file));
+      // Afficher l'image temporairement pendant l'upload
+      const tempUrl = URL.createObjectURL(file);
+      setAvatar(tempUrl);
 
       // Upload to server
       try {
         const formData = new FormData();
         formData.append('file', file);
+        formData.append('type', 'avatar'); // Spécifier le type
 
         const response = await fetch('/api/upload', {
           method: 'POST',
           body: formData,
         });
 
-        if (!response.ok) throw new Error('Upload failed');
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Upload failed');
+        }
 
         const { url } = await response.json();
 
-        // Save to user profile
+        // Sauvegarder immédiatement dans la base de données
         if (user) {
-          await fetch(`/api/users/${user.id}`, {
+          const updateResponse = await fetch(`/api/users/${user.id}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              ...savedUserInfo,
-              photoUrl: url
+              firstName: savedUserInfo.firstName,
+              lastName: savedUserInfo.lastName,
+              email: savedUserInfo.email,
+              photoUrl: url,
+              bannerUrl: savedUserInfo.bannerUrl,
             }),
           });
 
+          if (!updateResponse.ok) {
+            throw new Error('Erreur lors de la sauvegarde');
+          }
+
+          // Mettre à jour les états avec l'URL Supabase
+          setAvatar(url);
           setSavedUserInfo(prev => ({ ...prev, photoUrl: url }));
+          
+          // Libérer l'URL temporaire
+          URL.revokeObjectURL(tempUrl);
         }
       } catch (error) {
         console.error('Error uploading avatar:', error);
-        alert('Erreur lors de l\'upload de la photo de profil');
+        alert(error instanceof Error ? error.message : 'Erreur lors de l\'upload de la photo de profil');
+        // En cas d'erreur, remettre l'ancien avatar
+        setAvatar(savedUserInfo.photoUrl || null);
       }
     }
   };
