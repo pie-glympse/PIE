@@ -35,7 +35,7 @@ export default function EventForm() {
   const [selectedEvent, setSelectedEvent] = useState<EventType | null>(null);
   const [showPreferenceForm, setShowPreferenceForm] = useState(false);
   const [dropdownEvent, setDropdownEvent] = useState<string | null>(null);
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [viewMode, setViewMode] = useState<'grid' | 'list' | 'calendar'>('grid');
   const [statusFilter, setStatusFilter] = useState<'all' | 'past' | 'upcoming' | 'preparation'>('all');
 
   const [shareModal, setShareModal] = useState<{
@@ -157,7 +157,7 @@ export default function EventForm() {
         <div className="flex flex-col md:flex-row md:justify-between md:items-start w-full gap-4">
           <div className="flex flex-row items-center gap-4">
             <h1 className="text-h1 font-urbanist text-[var(--color-text)] mb-2">
-              Tous vos événements
+              Tous vos événements 
             </h1>
             <button className="">
               <Image src="/icons/filterIcon.svg" alt="Filtrer" width={24} height={24} className="" />
@@ -166,7 +166,9 @@ export default function EventForm() {
           <ViewModeToggle currentMode={viewMode} onModeChange={setViewMode} />
         </div>
 
-        <StatusFilterButtons currentFilter={statusFilter} onFilterChange={setStatusFilter} />
+        {viewMode !== 'calendar' && (
+          <StatusFilterButtons currentFilter={statusFilter} onFilterChange={setStatusFilter} />
+        )}
 
         <div className="w-full flex-1 overflow-auto">
           <section>
