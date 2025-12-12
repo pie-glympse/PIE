@@ -195,9 +195,9 @@ const ResetPasswordForm = () => {
 
                         <MainButton 
                             color="bg-[var(--color-text)] font-poppins text-body-large" 
-                            text={isLoading ? "Envoi en cours..." : "Valider"} 
+                            text={isSubmitting ? "Envoi en cours..." : "Valider"} 
                             type='submit' 
-                            disabled={isLoading}
+                            disabled={isSubmitting}
                         />
                     </form>
                 </div>
