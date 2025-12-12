@@ -64,11 +64,10 @@ export default function NotificationsPage() {
                   const event = eventData.event || eventData;
                   
                   // Extraire le nom du créateur depuis le message de notification
-                  const messageMatch = unreadInvitation.message.match(/@([^ ]+ [^ ]+) vous a invité/);
+                  // Format: "@FirstName LastName vous a invité à son événement "Title""
+                  const messageMatch = unreadInvitation.message.match(/@([^@]+?) vous a invité/);
                   const creatorName = messageMatch
-                    ? messageMatch[1]
-                    : event.createdBy
-                    ? `${event.createdBy.firstName} ${event.createdBy.lastName}`
+                    ? messageMatch[1].trim()
                     : "Quelqu'un";
 
                   setSelectedInvitation({
@@ -79,21 +78,21 @@ export default function NotificationsPage() {
                   });
                 } else {
                   // Si on ne peut pas récupérer l'événement, utiliser quand même la notification
-                  const messageMatch = unreadInvitation.message.match(/@([^ ]+ [^ ]+) vous a invité/);
+                  const messageMatch = unreadInvitation.message.match(/@([^@]+?) vous a invité/);
                   setSelectedInvitation({
                     eventId: unreadInvitation.eventId,
                     eventTitle: "Événement",
-                    creatorName: messageMatch ? messageMatch[1] : "Quelqu'un",
+                    creatorName: messageMatch ? messageMatch[1].trim() : "Quelqu'un",
                     notificationId: unreadInvitation.id,
                   });
                 }
               } catch (error) {
                 console.error("Erreur lors de la récupération de l'événement:", error);
-                const messageMatch = unreadInvitation.message.match(/@([^ ]+ [^ ]+) vous a invité/);
+                const messageMatch = unreadInvitation.message.match(/@([^@]+?) vous a invité/);
                 setSelectedInvitation({
                   eventId: unreadInvitation.eventId!,
                   eventTitle: "Événement",
-                  creatorName: messageMatch ? messageMatch[1] : "Quelqu'un",
+                  creatorName: messageMatch ? messageMatch[1].trim() : "Quelqu'un",
                   notificationId: unreadInvitation.id,
                 });
               }
@@ -176,11 +175,9 @@ export default function NotificationsPage() {
         
         // Extraire le nom du créateur depuis le message de notification
         // Format: "@FirstName LastName vous a invité à son événement "Title""
-        const messageMatch = notification.message.match(/@([^ ]+ [^ ]+) vous a invité/);
+        const messageMatch = notification.message.match(/@([^@]+?) vous a invité/);
         const creatorName = messageMatch
-          ? messageMatch[1]
-          : event.createdBy
-          ? `${event.createdBy.firstName} ${event.createdBy.lastName}`
+          ? messageMatch[1].trim()
           : "Quelqu'un";
 
         setSelectedInvitation({
@@ -191,21 +188,21 @@ export default function NotificationsPage() {
         });
       } else {
         // Si on ne peut pas récupérer l'événement, utiliser quand même la notification
-        const messageMatch = notification.message.match(/@([^ ]+ [^ ]+) vous a invité/);
+        const messageMatch = notification.message.match(/@([^@]+?) vous a invité/);
         setSelectedInvitation({
           eventId: notification.eventId,
           eventTitle: "Événement",
-          creatorName: messageMatch ? messageMatch[1] : "Quelqu'un",
+          creatorName: messageMatch ? messageMatch[1].trim() : "Quelqu'un",
           notificationId: notification.id,
         });
       }
     } catch (error) {
       console.error("Erreur lors de la récupération de l'événement:", error);
-      const messageMatch = notification.message.match(/@([^ ]+ [^ ]+) vous a invité/);
+      const messageMatch = notification.message.match(/@([^@]+?) vous a invité/);
       setSelectedInvitation({
         eventId: notification.eventId!,
         eventTitle: "Événement",
-        creatorName: messageMatch ? messageMatch[1] : "Quelqu'un",
+        creatorName: messageMatch ? messageMatch[1].trim() : "Quelqu'un",
         notificationId: notification.id,
       });
     }

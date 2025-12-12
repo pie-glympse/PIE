@@ -78,8 +78,7 @@ model Event {
   duration                     Int?
   recurring                    Boolean                     @default(false)
   recurringRate                String?
-  // Tags Google Maps les plus votés au passage à "confirmed"
-  confirmedGoogleMapsTags       String[] @default([]) // Array des tags Google Maps les plus votés (vide si pas encore confirmé)
+  confirmedGoogleMapsTags      String[]                    @default([])
   blacklistedPlaces            BlacklistedPlace[]
   User_Event_createdByIdToUser User?                       @relation("Event_createdByIdToUser", fields: [createdById], references: [id])
   location                     EventLocation?
@@ -104,12 +103,11 @@ model EventUserPreference {
   userId         BigInt
   eventId        BigInt
   preferredDate  DateTime
-  tagId          BigInt? // Rendre optionnel pour supporter le nouveau format
+  tagId          BigInt?
+  googleMapsTags Json?
   event          Event                       @relation(fields: [eventId], references: [id], onDelete: Cascade)
   tag            Tag?                        @relation(fields: [tagId], references: [id])
   user           User                        @relation(fields: [userId], references: [id])
-  // Nouveaux champs pour les préférences avec tags Google Maps
-  googleMapsTags Json? // Stocke les tags Google Maps pondérés: { "restaurant": 2, "cafe": 1, ... }
   answers        EventUserPreferenceAnswer[]
 
   @@id([userId, eventId])
@@ -120,10 +118,10 @@ model EventUserPreferenceAnswer {
   userId     BigInt
   eventId    BigInt
   questionId String
-  answerIds  String[] // Array des IDs de réponses sélectionnées
+  answerIds  String[]
+  event      Event               @relation(fields: [eventId], references: [id], onDelete: Cascade)
   preference EventUserPreference @relation(fields: [userId, eventId], references: [userId, eventId], onDelete: Cascade)
   user       User                @relation(fields: [userId], references: [id], onDelete: Cascade)
-  event      Event               @relation(fields: [eventId], references: [id], onDelete: Cascade)
 
   @@unique([userId, eventId, questionId])
   @@index([userId, eventId])

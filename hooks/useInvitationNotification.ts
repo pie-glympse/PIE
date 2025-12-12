@@ -43,13 +43,12 @@ export function useInvitationNotification() {
                 const event = eventData.event || eventData;
 
                 // Extraire le nom du créateur depuis le message
+                // Format: "@FirstName LastName vous a invité à son événement "Title""
                 const messageMatch = unreadInvitation.message.match(
-                  /@([^ ]+ [^ ]+) vous a invité/
+                  /@([^@]+?) vous a invité/
                 );
                 const creatorName = messageMatch
-                  ? messageMatch[1]
-                  : event.createdBy
-                  ? `${event.createdBy.firstName} ${event.createdBy.lastName}`
+                  ? messageMatch[1].trim()
                   : "Quelqu'un";
 
                 setPendingInvitation({
@@ -61,13 +60,13 @@ export function useInvitationNotification() {
               } else {
                 // Si on ne peut pas récupérer l'événement, utiliser quand même la notification
                 const messageMatch = unreadInvitation.message.match(
-                  /@([^ ]+ [^ ]+) vous a invité/
+                  /@([^@]+?) vous a invité/
                 );
                 setPendingInvitation({
                   id: unreadInvitation.id,
                   eventId: unreadInvitation.eventId,
                   eventTitle: "Événement",
-                  creatorName: messageMatch ? messageMatch[1] : "Quelqu'un",
+                  creatorName: messageMatch ? messageMatch[1].trim() : "Quelqu'un",
                 });
               }
             } catch (error) {
