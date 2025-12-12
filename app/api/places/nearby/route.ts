@@ -25,7 +25,17 @@ interface GooglePlace {
 
 export async function POST(request: Request) {
   try {
-    const { city, placeTypes, radius = 5000 } = await request.json();
+    const { city, placeTypes, radius = 5000, eventId } = await request.json();
+
+    // 📊 LOG 3: Requête Google Maps
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    console.log('🗺️  [REQUÊTE GOOGLE MAPS] Recherche de lieux');
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    console.log('Event ID:', eventId || 'N/A');
+    console.log('Ville:', city);
+    console.log('Tags Google Maps utilisés:', placeTypes);
+    console.log('Rayon (mètres):', radius);
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 
     if (!city) {
       return NextResponse.json({ error: "Ville manquante" }, { status: 400 });
@@ -63,16 +73,21 @@ export async function POST(request: Request) {
     const allPlaces: GooglePlace[] = [];
     const seenPlaceIds = new Set<string>();
 
+    console.log(`🔍 Recherche de lieux pour ${placeTypes.length} type(s): ${placeTypes.join(', ')}`);
+
     for (const type of placeTypes) {
-      const placesResponse = await fetch(
-        `https://maps.googleapis.com/maps/api/place/nearbysearch/json?` +
-        `location=${lat},${lng}&radius=${radius}&type=${type}&key=${apiKey}`
-      );
+      const url = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?` +
+        `location=${lat},${lng}&radius=${radius}&type=${type}&key=${apiKey}`;
+      
+      console.log(`  → Requête pour type "${type}": ${url.replace(apiKey, '***API_KEY***')}`);
+      
+      const placesResponse = await fetch(url);
 
       if (placesResponse.ok) {
         const placesData = await placesResponse.json();
         
         if (placesData.status === 'OK' && placesData.results) {
+          console.log(`  ✓ ${placesData.results.length} lieu(x) trouvé(s) pour "${type}"`);
           // Ajouter les résultats avec le type, en évitant les doublons
           for (const place of placesData.results) {
             if (!seenPlaceIds.has(place.place_id)) {
@@ -83,7 +98,11 @@ export async function POST(request: Request) {
               });
             }
           }
+        } else {
+          console.log(`  ✗ Aucun résultat pour "${type}" (status: ${placesData.status})`);
         }
+      } else {
+        console.error(`  ✗ Erreur HTTP pour "${type}": ${placesResponse.status}`);
       }
     }
 
@@ -91,6 +110,9 @@ export async function POST(request: Request) {
     const sortedPlaces = allPlaces
       .sort((a, b) => (b.user_ratings_total || 0) - (a.user_ratings_total || 0))
       .slice(0, 20);
+
+    console.log(`📊 Total de ${allPlaces.length} lieu(x) unique(s) trouvé(s)`);
+    console.log(`📊 ${sortedPlaces.length} lieu(x) retenu(s) après tri et limitation`);
 
     // Récupérer les détails complets (incluant website) pour chaque lieu
     // Note: Cela nécessite des appels API supplémentaires mais permet d'obtenir le website
@@ -148,6 +170,9 @@ export async function POST(request: Request) {
         website: place.website || undefined
       };
     });
+
+    console.log(`✅ Requête terminée: ${formattedPlaces.length} lieu(x) retourné(s)`);
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 
     return NextResponse.json({
       location: { lat, lng },

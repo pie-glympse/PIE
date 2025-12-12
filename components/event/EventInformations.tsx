@@ -274,6 +274,7 @@ const EventInformations = ({ event }: EventInformationsProps) => {
         maxDistance={event.maxDistance || 5}
         eventId={event.id}
         companyId={event.users?.[0]?.companyId?.toString()}
+        eventState={event.state}
         onPlacesLoaded={handlePlacesLoaded}
       />
     </div>

@@ -53,10 +53,51 @@ export async function PATCH(
 
     // ✅ Si on passe à "confirmed", finaliser l'événement avec les votes
     if (newState.toLowerCase() === 'confirmed') {
-      // Récupérer le tag le plus voté
+      // Récupérer toutes les préférences avec leurs tags Google Maps
+      const preferences = await prisma.eventUserPreference.findMany({
+        where: { eventId: eventId },
+        select: {
+          googleMapsTags: true,
+        },
+      });
+
+      // Agréger les tags Google Maps de tous les utilisateurs
+      const aggregatedTags: Record<string, number> = {};
+      preferences.forEach((pref) => {
+        if (pref.googleMapsTags && typeof pref.googleMapsTags === 'object') {
+          const tags = pref.googleMapsTags as Record<string, number>;
+          Object.entries(tags).forEach(([tag, weight]) => {
+            aggregatedTags[tag] = (aggregatedTags[tag] || 0) + weight;
+          });
+        }
+      });
+
+      // Trier les tags par poids décroissant et prendre les plus importants
+      const sortedTags = Object.entries(aggregatedTags)
+        .sort(([, a], [, b]) => b - a)
+        .map(([tag]) => tag);
+
+      // 📊 LOG 2: Tags choisis pour la requête au passage à "confirmed"
+      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      console.log('✅ [PASSAGE À CONFIRMÉ] Tags choisis pour la requête Google Maps');
+      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      console.log('Event ID:', eventIdStr);
+      console.log('Nombre de préférences:', preferences.length);
+      console.log('Tags agrégés avec poids:', JSON.stringify(aggregatedTags, null, 2));
+      console.log('Tags triés par poids:', Object.entries(aggregatedTags)
+        .sort(([, a], [, b]) => b - a)
+        .map(([tag, weight]) => `${tag}: ${weight}`)
+        .join(', '));
+      console.log('Tags finaux choisis pour la requête:', sortedTags);
+      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+
+      // Récupérer le tag le plus voté (ancien système) - seulement si tagId n'est pas null
       const mostVotedTag = await prisma.eventUserPreference.groupBy({
         by: ['tagId'],
-        where: { eventId: eventId },
+        where: { 
+          eventId: eventId,
+          tagId: { not: null } // Seulement les préférences avec tagId (ancien format)
+        },
         _count: { tagId: true },
         orderBy: { _count: { tagId: 'desc' } },
         take: 1,
@@ -75,6 +116,9 @@ export async function PATCH(
         state: newState,
       };
 
+      // ✅ Stocker les tags Google Maps les plus votés (même si vide, pour indiquer qu'on a traité)
+      updateData.confirmedGoogleMapsTags = sortedTags;
+
       // ✅ Si on a une date gagnante, l'utiliser comme nouvelle date de début
       if (mostVotedDate.length > 0) {
         updateData.startDate = mostVotedDate[0].preferredDate;
@@ -92,11 +136,12 @@ export async function PATCH(
             state: true,
             activityType: true, // Garder l'activityType original
             startDate: true,
+            confirmedGoogleMapsTags: true,
           }
         });
 
-        // ✅ Si on a un tag gagnant, le lier à l'événement
-        if (mostVotedTag.length > 0) {
+        // ✅ Si on a un tag gagnant (ancien système), le lier à l'événement
+        if (mostVotedTag.length > 0 && mostVotedTag[0].tagId) {
           // D'abord, supprimer tous les tags existants pour cet événement
           await tx.event.update({
             where: { id: eventId },
@@ -138,10 +183,23 @@ export async function PATCH(
     }
   } catch (error) {
     console.error('Erreur lors de la mise à jour du state:', error);
+    if (error instanceof Error) {
+      console.error('Stack trace:', error.stack);
+    }
+    
+    // Afficher plus de détails sur l'erreur Prisma
+    type PrismaError = Error & { code?: string; meta?: unknown };
+    if (typeof error === 'object' && error !== null && 'code' in error) {
+      const prismaError = error as PrismaError;
+      console.error('Code Prisma:', prismaError.code);
+      console.error('Meta Prisma:', JSON.stringify(prismaError.meta, null, 2));
+    }
+    
     return NextResponse.json(
       { 
         message: 'Erreur serveur interne',
-        error: error instanceof Error ? error.message : String(error)
+        error: error instanceof Error ? error.message : String(error),
+        details: process.env.NODE_ENV === 'development' && error instanceof Error ? error.stack : undefined
       },
       { status: 500 }
     );

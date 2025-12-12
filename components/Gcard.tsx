@@ -75,7 +75,13 @@ export default function EventCard({
   }, [dropdownOpen, onDropdownToggle]);
 
   const handleCardClick = () => {
-    router.push(`/events/${eventId}`);
+    // Rediriger vers la page de préférences au lieu de la page de détail
+    // Si l'événement est confirmé, rediriger vers la page de détail
+    if (state?.toLowerCase() === 'confirmed') {
+      router.push(`/events/${eventId}`);
+    } else {
+      router.push(`/event-preferences/${eventId}?eventTitle=${encodeURIComponent(title)}`);
+    }
   };
 
   // Fonction pour gérer la redirection vers answer-event
@@ -233,7 +239,7 @@ export default function EventCard({
                           d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
                         />
                       </svg>
-                      Copier l'événement
+                      Copier l&apos;événement
                     </button>
                   )}
 
@@ -254,7 +260,7 @@ export default function EventCard({
                           d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
                         />
                       </svg>
-                      Quitter l'événement
+                      Quitter l&apos;événement
                     </button>
                   )}
 
