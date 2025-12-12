@@ -37,7 +37,7 @@ const getPlaceTypesFromActivityType = (activityType?: string): string[] => {
     'Culture': ['museum', 'art_gallery', 'theater'],
     'Nature & Bien-être': ['park', 'spa', 'gym'],
     'Divertissement': ['tourist_attraction', 'amusement_park', 'movie_theater'],
-    'Shopping': ['shopping_mall', 'store'],
+    'Sport': ['arena', 'athletic_field', 'fishing_charter', 'fishing_pond', 'fitness_center', 'golf_course', 'gym', 'ice_skating_rink', 'playground', 'ski_resort', 'sports_activity_location', 'sports_club', 'sports_coaching', 'sports_complex', 'stadium', 'swimming_pool'],
   };
 
   return mapping[activityType || ''] || ['tourist_attraction'];
