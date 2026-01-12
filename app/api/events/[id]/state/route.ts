@@ -1,7 +1,5 @@
-import { PrismaClient } from '@prisma/client';
 import { NextRequest, NextResponse } from 'next/server';
-
-const prisma = new PrismaClient();
+import { prisma } from '@/lib/prisma';
 
 function safeJson(obj: unknown) {
   return JSON.parse(
@@ -203,7 +201,5 @@ export async function PATCH(
       },
       { status: 500 }
     );
-  } finally {
-    await prisma.$disconnect();
   }
 }

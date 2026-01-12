@@ -1,7 +1,5 @@
 import { NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
-
-const prisma = new PrismaClient();
+import { prisma } from "@/lib/prisma";
 
 function safeJson(obj: unknown) {
   return JSON.parse(
@@ -61,8 +59,6 @@ export async function GET(request: Request) {
       error: "Erreur serveur",
       details: error instanceof Error ? error.message : String(error)
     }, { status: 500 });
-  } finally {
-    await prisma.$disconnect();
   }
 }
 

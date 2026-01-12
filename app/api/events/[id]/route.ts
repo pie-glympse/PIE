@@ -1,7 +1,5 @@
 import { NextResponse, NextRequest } from "next/server";
-import { PrismaClient } from "@prisma/client";
-
-const prisma = new PrismaClient();
+import { prisma } from "@/lib/prisma";
 
 function safeJson(obj: unknown) {
   return JSON.parse(
@@ -70,8 +68,6 @@ export async function GET(
   } catch (error) {
     console.error("Erreur récupération event:", error);
     return NextResponse.json({ error: "Erreur récupération event" }, { status: 500 });
-  } finally {
-    await prisma.$disconnect();
   }
 }
 
@@ -162,8 +158,6 @@ export async function PUT(
       { message: "Erreur lors de la modification de l'événement" },
       { status: 500 }
     );
-  } finally {
-    await prisma.$disconnect();
   }
 }
 

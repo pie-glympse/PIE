@@ -1,7 +1,5 @@
 import { NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
-
-const prisma = new PrismaClient();
+import { prisma } from "@/lib/prisma";
 
 export async function GET(request: Request) {
   // Verify the request is from Vercel Cron (do not forget to set the CRON_SECRET variable in Vercel)
@@ -32,7 +30,5 @@ export async function GET(request: Request) {
       }, 
       { status: 500 }
     );
-  } finally {
-    await prisma.$disconnect();
   }
 }

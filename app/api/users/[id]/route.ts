@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import { supabaseServer } from "@/lib/supabaseServer";
-
-const prisma = new PrismaClient();
 
 function safeJson(obj: unknown) {
   return JSON.parse(JSON.stringify(obj, (_, value) => (typeof value === "bigint" ? value.toString() : value)));
@@ -45,8 +43,6 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       },
       { status: 500 }
     );
-  } finally {
-    await prisma.$disconnect();
   }
 }
 

@@ -1,8 +1,6 @@
 // lib/user/createUser.ts
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
-
-const prisma = new PrismaClient();
 
 interface CreateUserParams {
   email: string;

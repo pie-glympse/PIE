@@ -1,10 +1,9 @@
 // app/api/login/route.ts (Next.js API route)
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "@/lib/prisma";
 import jwt from "jsonwebtoken";
 
-const prisma = new PrismaClient();
 const JWT_SECRET = process.env.JWT_SECRET || "supersecretkey"; // mettre dans .env
 
 export async function POST(req: Request) {

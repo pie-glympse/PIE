@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { Resend } from "resend";
 import { randomBytes } from "node:crypto";
 import { PasswordResetEmailTemplate } from "@/components/password-reset-email-template";
-import { prisma } from "@/lib/prisma-singleton";
+import { prisma } from "@/lib/prisma";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
