@@ -1,7 +1,5 @@
 import { NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
-
-const prisma = new PrismaClient();
+import { prisma } from "@/lib/prisma";
 
 export async function POST() {
   try {
@@ -78,8 +76,6 @@ export async function POST() {
       { error: "Erreur lors de l'envoi des rappels" },
       { status: 500 }
     );
-  } finally {
-    await prisma.$disconnect();
   }
 }
 
@@ -129,7 +125,5 @@ export async function GET() {
       { error: "Erreur lors de la récupération des événements" },
       { status: 500 }
     );
-  } finally {
-    await prisma.$disconnect();
   }
 }

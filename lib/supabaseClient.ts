@@ -1,8 +1,6 @@
-// lib/supabaseClient.ts
-import { createClient } from '@supabase/supabase-js'
 
-// Remplace par tes infos depuis app.supabase.com > Project > API
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+import { PrismaPg } from '@prisma/adapter-pg'
+import { PrismaClient } from '@prisma/client'
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL })
+export const prisma = new PrismaClient({ adapter })

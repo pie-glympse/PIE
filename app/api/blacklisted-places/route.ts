@@ -1,7 +1,5 @@
 import { NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
-
-const prisma = new PrismaClient();
+import { prisma } from "@/lib/prisma";
 
 function safeJson(obj: unknown) {
   return JSON.parse(
@@ -70,8 +68,6 @@ export async function GET(request: Request) {
   } catch (error) {
     console.error("Erreur récupération blacklist:", error);
     return NextResponse.json({ error: "Erreur serveur" }, { status: 500 });
-  } finally {
-    await prisma.$disconnect();
   }
 }
 
@@ -130,8 +126,6 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error("Erreur création blacklist:", error);
     return NextResponse.json({ error: "Erreur serveur" }, { status: 500 });
-  } finally {
-    await prisma.$disconnect();
   }
 }
 
