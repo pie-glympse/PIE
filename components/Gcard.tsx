@@ -75,13 +75,8 @@ export default function EventCard({
   }, [dropdownOpen, onDropdownToggle]);
 
   const handleCardClick = () => {
-    // Rediriger vers la page de préférences au lieu de la page de détail
-    // Si l'événement est confirmé, rediriger vers la page de détail
-    if (state?.toLowerCase() === 'confirmed') {
-      router.push(`/events/${eventId}`);
-    } else {
-      router.push(`/event-preferences/${eventId}?eventTitle=${encodeURIComponent(title)}`);
-    }
+    // Toujours rediriger vers la page de détail de l'événement
+    router.push(`/events/${eventId}`);
   };
 
   // Fonction pour gérer la redirection vers answer-event

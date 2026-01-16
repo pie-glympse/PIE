@@ -36,48 +36,62 @@ export default function GoogleMapComponent({ address, places = [] }: MapProps) {
   const markerRefs = useRef<{ [key: string]: google.maps.Marker | null }>({});
   const infoWindowRef = useRef<google.maps.InfoWindow | null>(null);
 
+  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+  
+  if (!apiKey) {
+    console.error('❌ NEXT_PUBLIC_GOOGLE_MAPS_API_KEY n\'est pas définie dans les variables d\'environnement');
+  }
+
   const { isLoaded, loadError } = useLoadScript({
-    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY!,
+    googleMapsApiKey: apiKey || '',
   });
 
-  // Fonction pour convertir une adresse en coordonnées avec l'API Web
-  const geocodeWithWebAPI = async (address: string) => {
-    if (!address) return;
+  // Fonction pour convertir une adresse en coordonnées avec le Geocoder JavaScript
+  const geocodeWithJavaScriptAPI = (address: string) => {
+    if (!address || !isLoaded || typeof google === 'undefined') return;
 
     setIsGeocoding(true);
-    try {
-      // Utiliser l'API REST Geocoding au lieu de l'API JavaScript
-      const response = await fetch(
-        `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}`
-      );
+    
+    const geocoder = new google.maps.Geocoder();
+    
+    geocoder.geocode({ address: address }, (results, status) => {
+      setIsGeocoding(false);
       
-      const data = await response.json();
-      
-      if (data.status === 'OK' && data.results?.[0]) {
-        const location = data.results[0].geometry.location;
+      if (status === 'OK' && results && results[0]) {
+        const location = results[0].geometry.location;
         setCenter({
-          lat: location.lat,
-          lng: location.lng
+          lat: location.lat(),
+          lng: location.lng()
         });
       } else {
-        console.error('Geocoding failed:', data.status);
+        console.error('Geocoding failed:', status);
         // Garder le centre par défaut en cas d'erreur
       }
-    } catch (error) {
-      console.error('Erreur lors du geocoding:', error);
-    }
-    setIsGeocoding(false);
+    });
   };
 
   // Effect pour géocoder l'adresse quand elle change
   useEffect(() => {
     if (address && isLoaded) {
-      geocodeWithWebAPI(address);
+      geocodeWithJavaScriptAPI(address);
     }
   }, [address, isLoaded]);
 
   if (loadError) {
-    return <div>Erreur de chargement de la carte</div>;
+    console.error('❌ Erreur de chargement Google Maps:', loadError);
+    return (
+      <div className="p-4 bg-red-50 border border-red-200 rounded">
+        <p className="text-red-800 font-semibold">Erreur de chargement de la carte</p>
+        <p className="text-red-600 text-sm mt-2">
+          {loadError.message || 'Vérifiez que NEXT_PUBLIC_GOOGLE_MAPS_API_KEY est correctement configurée'}
+        </p>
+        {!apiKey && (
+          <p className="text-red-600 text-sm mt-1">
+            ⚠️ La clé API n'est pas définie dans les variables d'environnement
+          </p>
+        )}
+      </div>
+    );
   }
 
   if (!isLoaded) {

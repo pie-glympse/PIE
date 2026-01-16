@@ -58,8 +58,24 @@ export async function GET(
       return NextResponse.json({ error: "Événement non trouvé" }, { status: 404 });
     }
 
+    // Récupérer le créateur de l'événement
+    let createdBy = null;
+    if (event.createdById) {
+      const creator = await prisma.user.findUnique({
+        where: { id: event.createdById },
+        select: {
+          id: true,
+          email: true,
+          firstName: true,
+          lastName: true,
+          photoUrl: true,
+        }
+      });
+      createdBy = creator;
+    }
+
     // Map Prisma relation field to `createdBy` for API consumers
-    const eventObj: any = { ...event, createdBy: null };
+    const eventObj: any = { ...event, createdBy };
 
     return NextResponse.json(
       { event: safeJson(eventObj) },

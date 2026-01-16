@@ -61,8 +61,21 @@ export async function POST(request: Request) {
 
     const geocodeData = await geocodeResponse.json();
 
+    // Gérer les erreurs de geocoding
+    if (geocodeData.status === 'REQUEST_DENIED') {
+      console.error('❌ Geocoding API: REQUEST_DENIED');
+      console.error('💡 Vérifiez que la Geocoding API est activée dans Google Cloud Console');
+      return NextResponse.json({ 
+        error: "Geocoding API non autorisée. Vérifiez la configuration de la clé API." 
+      }, { status: 403 });
+    }
+
     if (geocodeData.status !== 'OK' || !geocodeData.results?.[0]) {
-      return NextResponse.json({ error: "Ville introuvable" }, { status: 404 });
+      console.error('Geocoding failed:', geocodeData.status, geocodeData.error_message);
+      return NextResponse.json({ 
+        error: `Ville introuvable: ${geocodeData.status}`,
+        details: geocodeData.error_message 
+      }, { status: 404 });
     }
 
     const location = geocodeData.results[0].geometry.location;
