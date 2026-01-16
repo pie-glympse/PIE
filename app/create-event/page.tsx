@@ -183,7 +183,6 @@ const CreateEventPage = () => {
                     if (placesResponse.ok) {
                         const placesData = await placesResponse.json();
                         setSuggestedActivities(placesData.places || []);
-                        console.log('Activités suggérées:', placesData.places);
                     } else {
                         const errorData = await placesResponse.json().catch(() => ({}));
                         console.error('❌ Erreur lors de la récupération des activités:', {

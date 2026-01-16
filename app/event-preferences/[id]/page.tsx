@@ -117,7 +117,6 @@ export default function EventPreferencesPage() {
   // Si pas de questions configurées, rediriger vers la home
   useEffect(() => {
     if (questions.length === 0 && !loadingEvent && eventData) {
-      console.log('Aucune question configurée, redirection vers la home');
       router.push('/home');
     }
   }, [questions.length, loadingEvent, eventData, router]);

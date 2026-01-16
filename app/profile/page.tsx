@@ -67,7 +67,6 @@ export default function ProfilePage() {
         }
 
         const userData = await response.json();
-        console.log("User data received:", userData);
 
         const userDataFormatted = {
           firstName: userData.firstName || "",

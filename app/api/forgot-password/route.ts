@@ -59,9 +59,6 @@ export async function POST(req: NextRequest) {
     //   }
     // });
 
-    console.log(
-      `Token généré pour ${email}: ${resetToken} (expire: ${expiresAt.toISOString()})`
-    );
 
     // Créer le lien de récupération
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3001";
@@ -97,10 +94,6 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      console.log(
-        `Email de récupération envoyé avec succès pour ${email}`,
-        data
-      );
     } catch (emailError) {
       console.error("Erreur lors de l'envoi de l'email:", emailError);
       return NextResponse.json(

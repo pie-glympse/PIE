@@ -14,8 +14,6 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const companyId = searchParams.get('companyId');
 
-    console.log('[API Users] Request pour companyId:', companyId);
-
     if (!companyId) {
       return NextResponse.json({ error: "Company ID requis" }, { status: 400 });
     }
@@ -37,8 +35,6 @@ export async function GET(request: Request) {
         firstName: 'asc'
       }
     });
-
-    console.log('[API Users] Nombre d\'utilisateurs trouvés:', users.length);
 
     return NextResponse.json(safeJson(users), { status: 200 });
   } catch (error) {

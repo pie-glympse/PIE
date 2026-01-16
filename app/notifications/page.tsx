@@ -43,7 +43,6 @@ export default function NotificationsPage() {
           const response = await fetch(`/api/notifications?userId=${user.id}`);
           if (response.ok) {
             const data = await response.json();
-            console.log("[Notifications] Data received:", data);
             setNotifications(data);
             
             // Vérifier s'il y a une notification d'invitation non lue à afficher automatiquement
@@ -237,10 +236,6 @@ export default function NotificationsPage() {
     return n.read && notifDate < oneDayAgo;
   });
 
-  console.log("[Notifications] Total:", notifications.length);
-  console.log("[Notifications] New:", newNotifications.length);
-  console.log("[Notifications] Recent read:", recentReadNotifications.length);
-  console.log("[Notifications] Old:", oldNotifications.length);
 
   const totalNotifications = notifications.length;
 
@@ -443,7 +438,6 @@ export default function NotificationsPage() {
             // Optionnel: rediriger vers l'événement si accepté
             if (accepted) {
               // Vous pouvez ajouter une redirection ici si nécessaire
-              console.log("Invitation acceptée");
             }
           }}
         />

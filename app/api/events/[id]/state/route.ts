@@ -75,19 +75,6 @@ export async function PATCH(
         .sort(([, a], [, b]) => b - a)
         .map(([tag]) => tag);
 
-      // 📊 LOG 2: Tags choisis pour la requête au passage à "confirmed"
-      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-      console.log('✅ [PASSAGE À CONFIRMÉ] Tags choisis pour la requête Google Maps');
-      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-      console.log('Event ID:', eventIdStr);
-      console.log('Nombre de préférences:', preferences.length);
-      console.log('Tags agrégés avec poids:', JSON.stringify(aggregatedTags, null, 2));
-      console.log('Tags triés par poids:', Object.entries(aggregatedTags)
-        .sort(([, a], [, b]) => b - a)
-        .map(([tag, weight]) => `${tag}: ${weight}`)
-        .join(', '));
-      console.log('Tags finaux choisis pour la requête:', sortedTags);
-      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 
       // Récupérer le tag le plus voté (ancien système) - seulement si tagId n'est pas null
       const mostVotedTag = await prisma.eventUserPreference.groupBy({

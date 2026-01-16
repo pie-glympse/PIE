@@ -14,8 +14,6 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get('userId');
 
-    console.log('[API Company] Request pour userId:', userId);
-
     if (!userId) {
       return NextResponse.json({ error: "User ID requis" }, { status: 400 });
     }
@@ -27,10 +25,6 @@ export async function GET(request: Request) {
         company: true
       }
     });
-
-    console.log('[API Company] User trouvé:', user ? 'Oui' : 'Non');
-    console.log('[API Company] CompanyId:', user?.companyId?.toString());
-    console.log('[API Company] Company:', user?.company ? 'Oui' : 'Non');
 
     if (!user) {
       return NextResponse.json({ error: "Utilisateur non trouvé" }, { status: 404 });

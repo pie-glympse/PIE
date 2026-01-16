@@ -127,7 +127,6 @@ function InvitationProvider({ children }: { children: React.ReactNode }) {
           notificationId={pendingInvitation.id}
           onResponse={(accepted) => {
             if (accepted) {
-              console.log("Invitation acceptée");
             }
             clearPendingInvitation();
           }}
