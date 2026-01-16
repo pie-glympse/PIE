@@ -151,12 +151,10 @@ export default function SingleEventPage() {
 
   // Fonctions pour les boutons d'action
   const handleAddMembers = () => {
-    console.log("Ajouter des membres");
     // TODO: Implémenter la logique d'ajout de membres
   };
 
   const handleUploadDocument = () => {
-    console.log("Upload document");
     // TODO: Implémenter la logique d'upload de document
   };
 

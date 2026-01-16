@@ -15,7 +15,6 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const companyId = searchParams.get('companyId');
 
-    console.log('[API Teams] Request pour companyId:', companyId);
 
     if (!companyId) {
       return NextResponse.json({ error: "Company ID requis" }, { status: 400 });
@@ -44,9 +43,6 @@ export async function GET(request: Request) {
         createdAt: 'desc'
       }
     });
-
-    console.log('[API Teams] Nombre de teams trouvées:', teams.length);
-    console.log('[API Teams] Teams:', teams.map(t => ({ id: t.id.toString(), name: t.name, usersCount: t.users.length })));
 
     return NextResponse.json(safeJson(teams), { status: 200 });
   } catch (error) {

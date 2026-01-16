@@ -108,7 +108,6 @@ export async function POST(req: NextRequest) {
       }),
     ]);
 
-    console.log(`Mot de passe mis à jour avec succès pour ${email}`);
 
     return NextResponse.json(
       { message: "Mot de passe modifié avec succès" },

@@ -4,8 +4,6 @@ import { calculateGoogleMapsTagsWeights } from '@/lib/preferences/questionsConfi
 
 export async function POST(request: NextRequest) {
   try {
-    console.log('=== Début de la requête POST /api/events/[id]/preferences ===');
-    
     // ✅ Récupérer l'eventId depuis l'URL correctement
     const url = new URL(request.url);
     const segments = url.pathname.split('/').filter(Boolean);
@@ -20,10 +18,8 @@ export async function POST(request: NextRequest) {
     }
 
     const eventId = BigInt(eventIdStr);
-    console.log('EventId:', eventIdStr);
 
     const body = await request.json();
-    console.log('Body reçu:', JSON.stringify(body, null, 2));
     const { userId, tagId, preferredDate, answers, activityType } = body;
 
     // Vérifier que userId est présent
@@ -99,20 +95,6 @@ export async function POST(request: NextRequest) {
         try {
           googleMapsTags = calculateGoogleMapsTagsWeights(answers, activityType || event.activityType || undefined);
           
-          // 📊 LOG 1: Tags obtenus à la fin de la réponse du formulaire utilisateur
-          console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-          console.log('📝 [FORMULAIRE PRÉFÉRENCES] Tags calculés pour l\'utilisateur');
-          console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-          console.log('Event ID:', eventIdStr);
-          console.log('User ID:', userId);
-          console.log('Activity Type:', activityType || event.activityType);
-          console.log('Réponses reçues:', JSON.stringify(answers, null, 2));
-          console.log('Tags Google Maps avec poids:', JSON.stringify(googleMapsTags, null, 2));
-          console.log('Tags triés par poids:', Object.entries(googleMapsTags)
-            .sort(([, a], [, b]) => b - a)
-            .map(([tag, weight]) => `${tag}: ${weight}`)
-            .join(', '));
-          console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
         } catch (error) {
           console.error('Erreur lors du calcul des tags Google Maps:', error);
           throw new Error(`Erreur lors du calcul des tags: ${error instanceof Error ? error.message : String(error)}`);
@@ -181,11 +163,9 @@ export async function POST(request: NextRequest) {
       }
 
       // S'assurer que la préférence est bien créée avant de créer les réponses
-      console.log('Préférence créée/mise à jour:', result);
 
       // Si nouveau format, créer les réponses aux questions
       if (isNewFormat && answers && Array.isArray(answers)) {
-        console.log('Création des réponses aux questions:', answers);
         for (const answer of answers) {
           if (!answer.questionId || !answer.answerIds || !Array.isArray(answer.answerIds)) {
             console.error('Format de réponse invalide:', answer);
@@ -202,7 +182,6 @@ export async function POST(request: NextRequest) {
                 answerIds: answer.answerIds,
               },
             });
-            console.log(`Réponse créée pour la question ${answer.questionId}:`, answerData);
           } catch (error) {
             console.error(`Erreur lors de la création de la réponse pour ${answer.questionId}:`, error);
             // Afficher plus de détails sur l'erreur
