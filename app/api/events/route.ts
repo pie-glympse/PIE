@@ -243,9 +243,24 @@ export async function GET(request: Request) {
       }
     });
 
-    const mapped = events.map((ev: any) => {
-      return { ...ev, createdBy: null };
-    });
+    // Récupérer les créateurs pour chaque événement
+    const mapped = await Promise.all(events.map(async (ev: any) => {
+      let createdBy = null;
+      if (ev.createdById) {
+        const creator = await prisma.user.findUnique({
+          where: { id: ev.createdById },
+          select: {
+            id: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+            photoUrl: true,
+          }
+        });
+        createdBy = creator;
+      }
+      return { ...ev, createdBy };
+    }));
 
     return NextResponse.json(
       JSON.parse(

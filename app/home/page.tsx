@@ -304,8 +304,9 @@ export default function HomePage() {
             {events.length === 0 && !fetchError && <p className="text-gray-500">Aucun événement trouvé.</p>}
 
             {events.slice(0, 3).map((event) => {
-              const isCreator = event.createdBy?.id === user?.id;
-              const isParticipant = event.users?.some((u) => u.id === user?.id) || false;
+              // Comparer les IDs en tant que strings pour éviter les problèmes de type
+              const isCreator = user && event.createdBy?.id && String(event.createdBy.id) === String(user.id);
+              const isParticipant = event.users?.some((u) => String(u.id) === String(user?.id)) || false;
               const canLeave = !isCreator && isParticipant;
 
               return (

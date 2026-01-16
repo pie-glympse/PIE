@@ -185,7 +185,12 @@ const CreateEventPage = () => {
                         setSuggestedActivities(placesData.places || []);
                         console.log('Activités suggérées:', placesData.places);
                     } else {
-                        console.error('Erreur lors de la récupération des activités');
+                        const errorData = await placesResponse.json().catch(() => ({}));
+                        console.error('❌ Erreur lors de la récupération des activités:', {
+                            status: placesResponse.status,
+                            statusText: placesResponse.statusText,
+                            error: errorData
+                        });
                     }
                 }
             } catch (error) {

@@ -61,6 +61,7 @@ export default function SimpleAutocomplete({ value, onChange, placeholder }: Pro
     }
 
     // Éviter de charger l'API plusieurs fois
+    // Vérifier si un script Google Maps existe déjà (chargé par useLoadScript ou autre)
     const existingScript = document.querySelector('script[src*="maps.googleapis.com"]');
     if (existingScript) {
       // Un script existe déjà, attendre qu'il se charge
@@ -70,17 +71,42 @@ export default function SimpleAutocomplete({ value, onChange, placeholder }: Pro
           initAutocomplete();
         }
       }, 100);
+      
+      // Timeout après 10 secondes pour éviter une boucle infinie
+      setTimeout(() => {
+        clearInterval(checkLoaded);
+        if (!window.google?.maps?.places) {
+          console.warn('⚠️ Timeout: Google Maps API n\'a pas chargé après 10 secondes');
+        }
+      }, 10000);
+      
       return;
     }
 
     // Marquer qu'on est en train de charger
     window.googleMapsLoaded = true;
 
+    // Vérifier que la clé API est définie
+    const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+    if (!apiKey) {
+      console.error('❌ NEXT_PUBLIC_GOOGLE_MAPS_API_KEY n\'est pas définie dans les variables d\'environnement');
+      return;
+    }
+
     // Charger l'API Google Maps
     const script = document.createElement('script');
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places&callback=initAutocomplete`;
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&callback=initAutocomplete`;
     script.async = true;
     script.defer = true;
+    
+    // Gérer les erreurs de chargement
+    script.onerror = () => {
+      console.error('❌ Erreur lors du chargement de l\'API Google Maps');
+      console.error('Vérifiez que la clé API est valide et que les APIs suivantes sont activées :');
+      console.error('- Maps JavaScript API');
+      console.error('- Places API');
+      window.googleMapsLoaded = false;
+    };
     
     window.initAutocomplete = initAutocomplete;
     document.head.appendChild(script);

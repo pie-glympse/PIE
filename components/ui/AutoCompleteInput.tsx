@@ -50,12 +50,19 @@ export default function AutoCompleteInput({ value, onChange, placeholder }: Prop
       
       // Debounce de 300ms
       timeoutId = setTimeout(async () => {
+        const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+        if (!apiKey) {
+          console.error('❌ NEXT_PUBLIC_GOOGLE_MAPS_API_KEY n\'est pas définie dans les variables d\'environnement');
+          setIsLoading(false);
+          return;
+        }
+
         try {
           const response = await fetch(`https://places.googleapis.com/v1/places:autocomplete`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'X-Goog-Api-Key': process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY!,
+              'X-Goog-Api-Key': apiKey,
             },
             body: JSON.stringify({
               input: inputValue,
@@ -83,7 +90,18 @@ export default function AutoCompleteInput({ value, onChange, placeholder }: Prop
               setShowSuggestions(false);
             }
           } else {
-            console.error('Erreur API Places:', response.status, await response.text());
+            const errorText = await response.text();
+            console.error('❌ Erreur API Places (New):', response.status, errorText);
+            
+            // Vérifier si c'est une erreur d'autorisation
+            if (response.status === 403 || response.status === 400) {
+              console.error('⚠️ La clé API n\'est pas autorisée pour la Places API (New)');
+              console.error('💡 Vérifiez dans Google Cloud Console :');
+              console.error('   1. Que "Places API (New)" est activée');
+              console.error('   2. Que les restrictions de la clé API autorisent cette API');
+              console.error('   3. Que le billing est activé (la nouvelle API peut nécessiter un compte de facturation)');
+            }
+            
             setSuggestions([]);
             setShowSuggestions(false);
           }
