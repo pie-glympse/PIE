@@ -69,21 +69,46 @@ export default function HomePage() {
     router.push(`/answer-event/${event.id}?eventTitle=${encodeURIComponent(event.title)}`);
   };
 
+  // Fonction pour récupérer les événements
+  const fetchEvents = async () => {
+    if (!user) return;
+    
+    try {
+      const res = await fetch(`/api/events?userId=${user.id}`);
+      if (!res.ok) throw new Error("Erreur lors de la récupération des événements");
+      const data = await res.json();
+      setEvents(data);
+      setFetchError(null);
+    } catch (err) {
+      setFetchError(err instanceof Error ? err.message : "Erreur lors de la récupération");
+    }
+  };
+
   // Récupérer les événements depuis l'API
   useEffect(() => {
     if (!isLoading && user) {
-      fetch(`/api/events?userId=${user.id}`)
-        .then((res) => {
-          if (!res.ok) throw new Error("Erreur lors de la récupération des événements");
-          return res.json();
-        })
-        .then((data) => {
-          setEvents(data);
-          setFetchError(null);
-        })
-        .catch((err) => setFetchError(err.message));
+      fetchEvents();
     }
   }, [isLoading, user]);
+
+  // Écouter les mises à jour d'événements (après acceptation d'invitation, etc.)
+  useEffect(() => {
+    const handleEventsUpdate = () => {
+      if (user) {
+        fetchEvents();
+      }
+    };
+
+    // Écouter l'événement de mise à jour des notifications (déclenché après acceptation d'invitation)
+    window.addEventListener("notificationsUpdated", handleEventsUpdate);
+    // Écouter aussi un événement spécifique pour les mises à jour d'événements
+    window.addEventListener("eventsUpdated", handleEventsUpdate);
+
+    return () => {
+      window.removeEventListener("notificationsUpdated", handleEventsUpdate);
+      window.removeEventListener("eventsUpdated", handleEventsUpdate);
+    };
+  }, [user]);
 
   const adaptEventForGcard = (event: EventType) => {
     // Assigner différentes images de fond selon les tags

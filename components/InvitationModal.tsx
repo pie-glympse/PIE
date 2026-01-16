@@ -62,6 +62,11 @@ export default function InvitationModal({
 
       // Déclencher l'événement pour mettre à jour les notifications
       window.dispatchEvent(new Event("notificationsUpdated"));
+      
+      // Si l'invitation est acceptée, déclencher aussi la mise à jour des événements
+      if (accepted) {
+        window.dispatchEvent(new Event("eventsUpdated"));
+      }
 
       // Appeler le callback si fourni
       if (onResponse) {
