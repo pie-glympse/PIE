@@ -32,6 +32,8 @@ const CreateEventPage = () => {
         costPerPerson: string;
         city: string;
         maxDistance: string;
+        placeName?: string;
+        placeAddress?: string;
         recurring: boolean;
         duration: string;
         recurringRate: string;
@@ -103,6 +105,8 @@ const CreateEventPage = () => {
                 costPerPerson: searchParams.get('costPerPerson') || '',
                 city: searchParams.get('city') || '',
                 maxDistance: searchParams.get('maxDistance') || '',
+                placeName: searchParams.get('placeName') || undefined,
+                placeAddress: searchParams.get('placeAddress') || undefined,
                 recurring: searchParams.get('recurring') === 'true',
                 duration: searchParams.get('duration') || '',
                 recurringRate: searchParams.get('recurringRate') || ''
@@ -147,6 +151,8 @@ const CreateEventPage = () => {
         costPerPerson: string;
         city: string;
         maxDistance: string;
+        placeName?: string;
+        placeAddress?: string;
         recurring: boolean;
         duration: string;
         recurringRate: string;
@@ -166,10 +172,10 @@ const CreateEventPage = () => {
                 return;
             }
 
-            // Récupérer les activités suggérées avant de créer l'événement
+            // Récupérer les activités suggérées avant de créer l'événement (uniquement si ce n'est pas "Je sais ce que je veux")
             try {
                 const selectedType = eventTypes.find(type => type.id === selectedEventType);
-                if (selectedType && formData.city) {
+                if (selectedType && formData.city && selectedEventType !== '6') {
                     const placesResponse = await fetch('/api/places/nearby', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -320,8 +326,9 @@ const CreateEventPage = () => {
                     <div className="w-full">
                         <EventForm
                             title="Créez vos évènements personnalisés !"
-                            subtitle="Entrez les informations générales de l’événement"
+                            subtitle="Entrez les informations générales de l'événement"
                             buttonText="Continuer"
+                            eventTypeId={selectedEventType}
                             initialData={formData || undefined}
                             onSubmit={handleFormSubmit}
                         />

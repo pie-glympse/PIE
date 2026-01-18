@@ -141,6 +141,21 @@ const EventInformations = ({ event }: EventInformationsProps) => {
     return "Non définie";
   };
 
+  // Fonction pour obtenir le texte du lieu
+  // Pour les événements "Je sais ce que je veux faire", l'adresse est stockée dans city
+  const getLocationText = () => {
+    // Vérifier si c'est un événement "Je sais ce que je veux faire"
+    const isSpecificPlaceEvent = event.activityType === "Je sais ce que je veux";
+    
+    // Si c'est ce type d'événement et que city contient l'adresse, l'utiliser
+    if (isSpecificPlaceEvent && event.city) {
+      return event.city;
+    }
+    
+    // Sinon, utiliser city par défaut
+    return event.city || "Lieu non défini";
+  };
+
   return (
     <div className="space-y-8">
       {/* Section des 3 cards en haut */}
@@ -215,7 +230,7 @@ const EventInformations = ({ event }: EventInformationsProps) => {
               Lieu
             </p>
             <p style={{ fontSize: '18px' }} className="font-medium text-[var(--color-text)]">
-              {event.city || "Lieu non défini"}
+              {getLocationText()}
             </p>
           </div>
         </div>

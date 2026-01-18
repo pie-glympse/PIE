@@ -15,6 +15,8 @@ export async function POST(request: Request) {
       activityType,
       city,
       maxDistance,
+      placeName,
+      placeAddress,
       recurring,
       duration,
       recurringRate,
@@ -94,6 +96,93 @@ export async function POST(request: Request) {
       return new Date(`1970-01-01T${timeString}:00`);
     };
 
+    // Fonction pour extraire la ville depuis une adresse via Google Geocoding API
+    const extractCityFromAddress = async (address: string): Promise<string | null> => {
+      const apiKey = process.env.GOOGLE_MAPS_API_KEY || process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+      
+      if (!apiKey || !address) {
+        return null;
+      }
+
+      try {
+        const encodedAddress = encodeURIComponent(address);
+        const response = await fetch(
+          `https://maps.googleapis.com/maps/api/geocode/json?address=${encodedAddress}&key=${apiKey}`
+        );
+
+        if (!response.ok) {
+          console.error('Erreur lors de l\'appel à l\'API Google Geocoding');
+          return null;
+        }
+
+        const data = await response.json();
+
+        if (data.status === 'OK' && data.results && data.results.length > 0) {
+          const result = data.results[0];
+          
+          // Chercher le composant "locality" (ville) dans les résultats
+          const localityComponent = result.address_components?.find(
+            (component: any) => component.types.includes('locality')
+          );
+
+          if (localityComponent) {
+            return localityComponent.long_name;
+          }
+
+          // Si pas de "locality", chercher "administrative_area_level_2" (arrondissement/département)
+          const adminAreaLevel2 = result.address_components?.find(
+            (component: any) => component.types.includes('administrative_area_level_2')
+          );
+
+          if (adminAreaLevel2) {
+            return adminAreaLevel2.long_name;
+          }
+
+          // Si toujours rien, chercher "postal_town" (ville postale)
+          const postalTown = result.address_components?.find(
+            (component: any) => component.types.includes('postal_town')
+          );
+
+          if (postalTown) {
+            return postalTown.long_name;
+          }
+        }
+      } catch (error) {
+        console.error('Erreur lors de l\'extraction de la ville:', error);
+      }
+
+      return null;
+    };
+
+    // Déterminer la valeur à stocker dans city
+    let cityValue = city;
+    
+    // Pour les événements "Je sais ce que je veux faire", extraire la ville depuis l'adresse
+    const isSpecificPlaceEvent = activityType === "Je sais ce que je veux";
+    
+    if (isSpecificPlaceEvent && placeAddress) {
+      // Extraire la ville depuis l'adresse
+      const extractedCity = await extractCityFromAddress(placeAddress);
+      
+      if (extractedCity) {
+        cityValue = extractedCity;
+      } else {
+        // Si l'extraction échoue, utiliser l'adresse complète comme fallback
+        if (placeName && placeAddress) {
+          cityValue = `${placeName} - ${placeAddress}`;
+        } else if (placeAddress) {
+          cityValue = placeAddress;
+        }
+      }
+    } else if (placeName && placeAddress) {
+      // Pour les autres types d'événements, garder le comportement actuel
+      cityValue = `${placeName} - ${placeAddress}`;
+    } else if (placeName) {
+      cityValue = placeName;
+    } else if (placeAddress) {
+      cityValue = placeAddress;
+    }
+
     const newEvent = await prisma.event.create({
       data: {
         title,
@@ -105,7 +194,7 @@ export async function POST(request: Request) {
         costPerPerson: costPerPerson ? BigInt(costPerPerson) : null,
         state,
         activityType,
-        city,
+        city: cityValue,
         maxDistance: maxDistance ? Number(maxDistance) : null,
         recurring: recurring || false,
         duration: duration ? Number(duration) : null,
