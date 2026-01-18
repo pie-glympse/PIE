@@ -13,7 +13,7 @@ import {
   addUsersToTeam,
   removeUsersFromTeam,
   fetchTeams,
-  
+
   fetchUsers
 } from "./services/teamsApi";
 
@@ -95,7 +95,7 @@ const CreateGroupsPage = () => {
   };
 
   const handleCreateTeam = async (teamName: string, userIds: string[]) => {
-    if (!isAdmin || !user?.companyId) return;
+    if (!user?.companyId) return;
     
     setIsCreatingTeam(true);
     try {
@@ -164,7 +164,7 @@ const CreateGroupsPage = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="flex h-screen pt-24 p-10">
+      <div className="flex fixed top-22 left-0 right-0 bottom-0">
         <TeamsSidebar
           teams={teams}
           selectedTeam={selectedTeam}
@@ -175,7 +175,7 @@ const CreateGroupsPage = () => {
         />
 
         {/* Zone principale */}
-        <div className="flex-1 flex flex-col">
+        <div className="flex-1 flex flex-col p-10">
           {selectedTeam ? (
             <>
               <TeamHeader

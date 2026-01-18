@@ -49,16 +49,14 @@ export const TeamsSidebar = ({ teams, selectedTeam, onTeamSelect, onCreateTeam, 
       </div>
 
       {/* Bouton créer une team */}
-      {isAdmin && (
-        <div className="p-4 border-t border-gray-200">
-          <button
-            onClick={onCreateTeam}
-            className="w-full bg-[var(--color-secondary)] text-white py-3 px-4 rounded-lg hover:opacity-90 transition font-medium"
-          >
-            + Créer une équipe
-          </button>
-        </div>
-      )}
+      <div className="p-4 border-t border-gray-200">
+        <button
+          onClick={onCreateTeam}
+          className="w-full bg-[var(--color-secondary)] text-white py-3 px-4 rounded-lg hover:opacity-90 transition font-medium"
+        >
+          + Créer une équipe
+        </button>
+      </div>
     </div>
   );
 };
