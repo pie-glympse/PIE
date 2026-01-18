@@ -9,6 +9,7 @@ interface EventFormProps {
     title: React.ReactNode;
     subtitle?: string;
     buttonText: string;
+    eventTypeId?: string;
     initialData?: {
         title?: string;
         startDate?: string;
@@ -19,6 +20,8 @@ interface EventFormProps {
         costPerPerson?: string;
         city?: string;
         maxDistance?: string;
+        placeName?: string;
+        placeAddress?: string;
         recurring?: boolean;
         duration?: string;
         recurringRate?: string;
@@ -33,6 +36,8 @@ interface EventFormProps {
         costPerPerson: string;
         city: string;
         maxDistance: string;
+        placeName?: string;
+        placeAddress?: string;
         recurring: boolean;
         duration: string;
         recurringRate: string;
@@ -43,6 +48,7 @@ const EventForm: React.FC<EventFormProps> = ({
     title,
     subtitle,
     buttonText,
+    eventTypeId,
     initialData,
     onSubmit
 }) => {
@@ -56,6 +62,11 @@ const EventForm: React.FC<EventFormProps> = ({
     const [costPerPerson, setCostPerPerson] = useState(initialData?.costPerPerson || '');
     const [city, setCity] = useState(initialData?.city || '');
     const [maxDistance, setMaxDistance] = useState(initialData?.maxDistance || '');
+    const [placeName, setPlaceName] = useState(initialData?.placeName || '');
+    const [placeAddress, setPlaceAddress] = useState(initialData?.placeAddress || '');
+    
+    // Vérifier si c'est le type "Je sais ce que je veux" (id='6')
+    const isSpecificPlace = eventTypeId === '6';
     const [isRecurring, setIsRecurring] = useState(initialData?.recurring || false);
     const [duration, setDuration] = useState(initialData?.duration || '');
     const [recurringRate, setRecurringRate] = useState(initialData?.recurringRate || '');
@@ -138,10 +149,21 @@ const EventForm: React.FC<EventFormProps> = ({
     const handleSubmit = async (e: FormEvent) => {
         e.preventDefault();
         
-        // Valider que la ville est renseignée
-        if (!city || city.trim() === '') {
-            alert('La ville est obligatoire');
-            return;
+        // Valider les champs selon le type d'événement
+        if (isSpecificPlace) {
+            if (!placeName || placeName.trim() === '') {
+                alert('Le nom du lieu est obligatoire');
+                return;
+            }
+            if (!placeAddress || placeAddress.trim() === '') {
+                alert('L\'adresse du lieu est obligatoire');
+                return;
+            }
+        } else {
+            if (!city || city.trim() === '') {
+                alert('La ville est obligatoire');
+                return;
+            }
         }
         
         // Valider les dates et heures avant soumission
@@ -166,8 +188,10 @@ const EventForm: React.FC<EventFormProps> = ({
                 endTime,
                 maxPersons,
                 costPerPerson,
-                city,
-                maxDistance,
+                city: isSpecificPlace ? '' : city,
+                maxDistance: isSpecificPlace ? '' : maxDistance,
+                placeName: isSpecificPlace ? placeName : undefined,
+                placeAddress: isSpecificPlace ? placeAddress : undefined,
                 recurring: isRecurring,
                 duration: duration || '',
                 recurringRate: recurringRate || ''
@@ -411,32 +435,61 @@ const EventForm: React.FC<EventFormProps> = ({
                 </div>
             </div>
 
-            {/* Ville et Distance max (50-50) */}
-            <div className="flex flex-col md:flex-row gap-4 mb-6">
-                <div className="flex-1">
-                    <label htmlFor="city" className="block mb-1 text-body-large font-poppins text-[var(--color-grey-three)]">
-                        Ville <span className="text-red-500">*</span>
-                    </label>
-                    <SimpleAutocomplete
-                        value={city}
-                        onChange={setCity}
-                        placeholder="Ville ou adresse (obligatoire)"
-                    />
+            {/* Ville et Distance max OU Nom du lieu et Adresse du lieu (50-50) */}
+            {isSpecificPlace ? (
+                <div className="flex flex-col md:flex-row gap-4 mb-6">
+                    <div className="flex-1">
+                        <label htmlFor="placeName" className="block mb-1 text-body-large font-poppins text-[var(--color-grey-three)]">
+                            Nom du lieu <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                            id="placeName"
+                            type="text"
+                            value={placeName}
+                            onChange={e => setPlaceName(e.target.value)}
+                            placeholder="Nom du lieu (obligatoire)"
+                            required
+                            className="w-full px-5 py-2 text-base bg-white border-2 border-[var(--color-grey-two)] rounded placeholder:font-poppins placeholder:text-[#EAEAEF]"
+                        />
+                    </div>
+                    <div className="flex-1">
+                        <label htmlFor="placeAddress" className="block mb-1 text-body-large font-poppins text-[var(--color-grey-three)]">
+                            Adresse du lieu <span className="text-red-500">*</span>
+                        </label>
+                        <SimpleAutocomplete
+                            value={placeAddress}
+                            onChange={setPlaceAddress}
+                            placeholder="Adresse du lieu (obligatoire)"
+                        />
+                    </div>
                 </div>
-                <div className="flex-1">
-                    <label htmlFor="maxDistance" className="block mb-1 text-body-large font-poppins text-[var(--color-grey-three)]">Distance max (km)</label>
-                    <input
-                        id="maxDistance"
-                        type="number"
-                        value={maxDistance}
-                        onChange={e => setMaxDistance(e.target.value)}
-                        placeholder="Ex: 50"
-                        min="0"
-                        step="0.1"
-                        className="w-full px-5 py-2 text-base bg-white border-2 border-[var(--color-grey-two)] rounded placeholder:font-poppins placeholder:text-[#EAEAEF]"
-                    />
+            ) : (
+                <div className="flex flex-col md:flex-row gap-4 mb-6">
+                    <div className="flex-1">
+                        <label htmlFor="city" className="block mb-1 text-body-large font-poppins text-[var(--color-grey-three)]">
+                            Ville <span className="text-red-500">*</span>
+                        </label>
+                        <SimpleAutocomplete
+                            value={city}
+                            onChange={setCity}
+                            placeholder="Ville ou adresse (obligatoire)"
+                        />
+                    </div>
+                    <div className="flex-1">
+                        <label htmlFor="maxDistance" className="block mb-1 text-body-large font-poppins text-[var(--color-grey-three)]">Distance max (km)</label>
+                        <input
+                            id="maxDistance"
+                            type="number"
+                            value={maxDistance}
+                            onChange={e => setMaxDistance(e.target.value)}
+                            placeholder="Ex: 50"
+                            min="0"
+                            step="0.1"
+                            className="w-full px-5 py-2 text-base bg-white border-2 border-[var(--color-grey-two)] rounded placeholder:font-poppins placeholder:text-[#EAEAEF]"
+                        />
+                    </div>
                 </div>
-            </div>
+            )}
 
             <div className='md:w-1/5 w-full mb-8'>
                 {/* Submit button */}
