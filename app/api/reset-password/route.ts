@@ -45,11 +45,48 @@ export async function POST(req: NextRequest) {
     }
 
     // SÉCURITÉ : Vérifier que le token est valide et non expiré
-    const resetTokenRecord = await prisma.passwordResetToken.findUnique({
-      where: { token },
+    // Normaliser le token (supprimer les espaces, etc.)
+    const normalizedToken = token.trim();
+    const normalizedEmail = email.toLowerCase().trim();
+    
+    let resetTokenRecord = await prisma.passwordResetToken.findUnique({
+      where: { token: normalizedToken },
     });
 
+    // Si pas trouvé avec findUnique, essayer avec findFirst (fallback)
     if (!resetTokenRecord) {
+      console.log("Token non trouvé avec findUnique, tentative avec findFirst...", {
+        tokenLength: normalizedToken.length,
+        tokenPreview: normalizedToken.substring(0, 20) + "...",
+        email: normalizedEmail
+      });
+      
+      resetTokenRecord = await prisma.passwordResetToken.findFirst({
+        where: { 
+          email: normalizedEmail,
+          used: false,
+          expiresAt: { gt: new Date() }
+        },
+        orderBy: { createdAt: 'desc' }
+      });
+      
+      // Vérifier si le token correspond
+      if (resetTokenRecord && resetTokenRecord.token !== normalizedToken) {
+        console.error("Token trouvé mais ne correspond pas:", {
+          expected: normalizedToken.substring(0, 20),
+          found: resetTokenRecord.token.substring(0, 20)
+        });
+        resetTokenRecord = null;
+      }
+    }
+
+    if (!resetTokenRecord) {
+      console.error("Token invalide - détails:", {
+        tokenLength: normalizedToken.length,
+        email: normalizedEmail,
+        tokenStart: normalizedToken.substring(0, 10)
+      });
+      
       return NextResponse.json(
         { error: "Token de récupération invalide" },
         { status: 400 }
@@ -73,7 +110,11 @@ export async function POST(req: NextRequest) {
     }
 
     // Vérifier que l'email correspond
-    if (resetTokenRecord.email !== email.toLowerCase().trim()) {
+    if (resetTokenRecord.email !== normalizedEmail) {
+      console.error("Email ne correspond pas:", {
+        tokenEmail: resetTokenRecord.email,
+        providedEmail: normalizedEmail
+      });
       return NextResponse.json(
         { error: "Email ne correspond pas au token" },
         { status: 400 }

@@ -2,7 +2,7 @@
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { useUser } from '@/context/UserContext';
-import RegisterForm from '@/components/forms/RegisterForm';
+import TeamRegisterForm from '@/components/forms/TeamRegisterForm';
 import BackArrow from '@/components/ui/BackArrow';
 
 export default function RegisterPage() {
@@ -26,24 +26,33 @@ export default function RegisterPage() {
         return null;
     }
 
+    const handleLoginClick = () => {
+        router.push('/login');
+    };
+
     return (
         <section className="flex flex-row h-screen items-center gap-10 p-10">
-            <div className="h-full w-full flex flex-col items-start gap-6 p-10">
+            <div className="h-full w-full flex flex-col gap-6 justify-between items-start p-10">
                 <div>
-                    <BackArrow onClick={() => router.back()} className="" />
+                    <BackArrow onClick={() => router.push('/greetings')} className="" />
                 </div>
                 <div className="w-full flex justify-center">
-                    <RegisterForm
+                    <TeamRegisterForm
                         title={
                             <>
-                                Bienvenue sur Glyms,<br />
+                                Inscrivez votre équipe<br />
                                 Créez votre espace Entreprise
                             </>
                         }
-                        buttonText="S'inscrire"
-                        placeholderText="ex : nomprenom@societe.com"
-                        placeholderTextPswrd="ex : MonMotDePasse123"
+                        buttonText="Inscrire mon équipe"
                     />
+                </div>
+                
+                <div className='flex flex-col items-center gap-2 text-center text-body-small font-poppins text-[var(--color-grey-three)] w-full'>
+                    <span>Vous avez déjà un compte ?</span>
+                    <span>
+                        <u className='cursor-pointer' onClick={handleLoginClick}>Connectez-vous</u>
+                    </span>
                 </div>
             </div>
         </section>

@@ -77,7 +77,7 @@ const ForgotPasswordPage = () => {
 
 
     const handleRegisterClick = () => {
-        router.push('/register');
+        router.push('/greetings');
     };
 
     const handleFirstConnectionClick = () => {
@@ -155,7 +155,7 @@ const ForgotPasswordPage = () => {
                 <div className='flex flex-col items-center gap-2 text-center text-body-small font-poppins text-[var(--color-grey-three)] w-full'>
                     <span>Vous n&#39;avez pas encore de compte ?</span>
                     <span>
-                        <u className='cursor-pointer' onClick={handleRegisterClick}>Inscrivez-vous</u> ou <u className='cursor-pointer' onClick={handleFirstConnectionClick}>Première Connexion</u>
+                        <u className='cursor-pointer' onClick={handleRegisterClick}>Inscrivez-vous</u>
                     </span>
                 </div>
             </div>
