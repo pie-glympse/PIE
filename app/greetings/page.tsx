@@ -1,12 +1,12 @@
-"use client" // src/app/login/page.tsx
-import { useRouter } from "next/navigation";
-import LoginForm from '@/components/forms/LoginForm';
-import Link from "next/link";
-import Image from 'next/image';
+"use client"
+import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { useUser } from '@/context/UserContext';
+import MainButton from '@/components/ui/MainButton';
+import Link from 'next/link';
+import Image from 'next/image';
 
-export default function LoginPage() {
+export default function GreetingsPage() {
     const router = useRouter();
     const { user, isLoading } = useUser();
 
@@ -25,17 +25,8 @@ export default function LoginPage() {
         };
     }, []);
 
-    const handleForgotPassword = () => {
-        // Logique pour mot de passe oublié
-        router.push('forgot-password'); 
-    };
-
-    const handleRegisterClick = () => {
-        router.push('/greetings');
-    };
-
-    const handleFirstConnectionClick = () => {
-        router.push('/first-connection'); // ou la route appropriée
+    const handleRegisterTeam = () => {
+        router.push('/register');
     };
 
     // Afficher un loader pendant la vérification
@@ -51,44 +42,46 @@ export default function LoginPage() {
     return (
         <section className="flex flex-row h-screen items-center gap-10 p-10 overflow-hidden">
             <div className="h-full w-full md:w-1/2 flex flex-col gap-6 justify-between items-start p-10">
-                {/* mettre le lien vers la landing page de promotion */}
-                <Link href="/login" aria-label="Retour à l'accueil" >
-                <Image
-                    src="/images/logo/Logotype.svg"
-                    alt="Logo Glymps"
-                    width={150}
-                    height={150}
-                    priority
-                />
+                <Link href="/login" aria-label="Retour à l'accueil">
+                    <Image
+                        src="/images/logo/Logotype.svg"
+                        alt="Logo Glymps"
+                        width={150}
+                        height={150}
+                        priority
+                    />
                 </Link>
                 
-                <div className="w-full flex justify-center">
-                    <LoginForm
-                        title={
-                            <>
-                                Ravie de vous revoir sur Glyms,<br />
-                                Connectez-vous !
-                            </>
-                        }
-                        buttonText="Se connecter"
-                        onForgotPassword={handleForgotPassword}
-                        placeholderText="ex : nomprenom@societe.com"
-                        placeholderTextPswrd="Votre mot de passe"
-                    />
+                <div className="w-full flex flex-col gap-8">
+                    <div className="flex flex-col gap-4">
+                        <h1 className="text-h1 font-urbanist text-left">
+                            Bienvenue sur Glyms
+                        </h1>
+                        <p className="text-body-large font-poppins text-[var(--color-grey-three)]">
+                            Créez votre espace entreprise et inscrivez votre équipe en quelques clics.
+                            Organisez des événements, gérez les préférences de votre équipe et créez des moments mémorables ensemble.
+                        </p>
+                    </div>
+
+                    <div className="md:w-1/3 w-full">
+                        <MainButton 
+                            color="bg-[var(--color-text)] font-poppins text-body-large" 
+                            text="Inscrire mon équipe" 
+                            onClick={handleRegisterTeam}
+                        />
+                    </div>
                 </div>
-                
+
                 <div className='flex flex-col items-center gap-2 text-center text-body-small font-poppins text-[var(--color-grey-three)] w-full'>
-                    <span>Vous n&#39;avez pas encore de compte ?</span>
+                    <span>Vous avez déjà un compte ?</span>
                     <span>
-                        <u className='cursor-pointer' onClick={handleRegisterClick}>Inscrivez-vous</u>
+                        <u className='cursor-pointer' onClick={() => router.push('/login')}>Connectez-vous</u>
                     </span>
                 </div>
             </div>
             
             <div className="bg-[#E9F1FE] hidden md:w-1/2 md:h-full md:flex relative rounded-4xl">
-                
-                {/* Card QR Code par-dessus l'image */}
-                <div className="absolute left-1/2 bottom-8 transform -translate-x-1/2 w-[90%] bg-white flex flex-row gap-10 items-center p-6 rounded-lg z-10">
+                <div className="absolute left-1/2 bottom-8 transform -translate-x-1/2 w-[90%] bg-white flex flex-row gap-10 items-center p-6 rounded-lg">
                     <div>
                         <Image
                             src="/images/Qrcode.svg"
@@ -104,7 +97,7 @@ export default function LoginPage() {
                     </div>
                 </div>
             </div>
-            <div className="hidden md:block md:w-[45%]  absolute right-10 aspect-[738/1049]">
+            <div className="hidden md:block md:w-[45%] absolute right-10 aspect-[738/1049]">
                 <Image
                     src="/images/mascotte/login-light.png"
                     alt="Image de connexion"
