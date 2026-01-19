@@ -8,7 +8,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'supersecretkey';
 const protectedRoutes = ['/events', '/dashboard', '/home', '/create-event', '/profile'];
 
 // Routes publiques (pas besoin d'authentification)
-const publicRoutes = ['/login', '/register', '/forgot-password'];
+const publicRoutes = ['/login', '/register', '/forgot-password', '/reset-password', '/set-password', '/greetings'];
 
 async function verifyToken(token: string): Promise<boolean> {
   try {
