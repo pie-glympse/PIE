@@ -10,7 +10,7 @@ import { useInvitationNotification } from "@/hooks/useInvitationNotification";
 import { useOnboarding } from "@/hooks/useOnboarding";
 import Modal from "@/components/layout/Modal";
 
-const hideHeaderRoutes = ["/login", "/register", "/forgot-password", "/reset-password", "/first-connection"];
+const hideHeaderRoutes = ["/login", "/register", "/forgot-password", "/reset-password", "/set-password", "/first-connection", "/greetings"];
 
 function OnboardingProvider({ children }: { children: React.ReactNode }) {
   const { showOnboarding, isChecking, markOnboardingAsSeen } = useOnboarding();
