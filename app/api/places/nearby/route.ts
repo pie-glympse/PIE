@@ -174,7 +174,7 @@ export async function POST(request: Request) {
     const successCount: Record<string, number> = {};
     
     // ✅ Normaliser et mapper les types de lieux
-    const typesToSearch: Array<{ original: string; searchTypes: string[] }> = placeTypes.map(type => ({
+    const typesToSearch: Array<{ original: string; searchTypes: string[] }> = placeTypes.map((type: string) => ({
       original: type,
       searchTypes: getValidPlaceTypes(type)
     }));
@@ -260,7 +260,7 @@ export async function POST(request: Request) {
         
         if (placesData.status === 'OK' && placesData.results) {
           // Ajouter les résultats avec le type, en évitant les doublons
-          const addedCount = placesData.results.filter(place => !seenPlaceIds.has(place.place_id)).length;
+          const addedCount = placesData.results.filter((place: GooglePlace) => !seenPlaceIds.has(place.place_id)).length;
           for (const place of placesData.results) {
             if (!seenPlaceIds.has(place.place_id)) {
               seenPlaceIds.add(place.place_id);

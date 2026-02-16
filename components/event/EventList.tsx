@@ -58,7 +58,7 @@ export const EventList = ({
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {events.map((event) => {
           // Comparer les IDs en tant que strings pour éviter les problèmes de type
-          const isCreator = event.createdBy?.id && currentUserId && String(event.createdBy.id) === String(currentUserId);
+          const isCreator = !!(event.createdBy?.id && currentUserId && String(event.createdBy.id) === String(currentUserId));
           const isParticipant = event.users?.some((user) => String(user.id) === String(currentUserId)) || false;
           const canLeave = !isCreator && isParticipant;
 
@@ -120,7 +120,7 @@ export const EventList = ({
     <div className="space-y-4">
       {events.map((event) => {
         // Comparer les IDs en tant que strings pour éviter les problèmes de type
-        const isCreator = event.createdBy?.id && currentUserId && String(event.createdBy.id) === String(currentUserId);
+        const isCreator = !!(event.createdBy?.id && currentUserId && String(event.createdBy.id) === String(currentUserId));
         const isParticipant = event.users?.some((user) => String(user.id) === String(currentUserId)) || false;
         const canLeave = !isCreator && isParticipant;
 

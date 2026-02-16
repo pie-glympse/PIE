@@ -11,13 +11,15 @@ interface ChoiceLiProps {
   selectedChoices: string[];
   onSelectionChange: (selectedIds: string[]) => void;
   otherPlaceholder?: string;
+  singleSelection?: boolean;
 }
 
 const ChoiceLi: React.FC<ChoiceLiProps> = ({
   choices,
   selectedChoices,
   onSelectionChange,
-  otherPlaceholder = "Autre préférence"
+  otherPlaceholder = "Autre préférence",
+  singleSelection = false
 }) => {
   const [otherValue, setOtherValue] = useState('');
 
@@ -27,11 +29,21 @@ const leftChoices = choices.slice(0, midPoint);   // 6 éléments (indices 0-5)
 const rightChoices = choices.slice(midPoint);      // 3 éléments (indices 6-8)
 
   const handleChoiceClick = (choiceId: string) => {
-    let newSelected;
-    if (selectedChoices.includes(choiceId)) {
-      newSelected = selectedChoices.filter(id => id !== choiceId);
+    let newSelected: string[];
+    if (singleSelection) {
+      // En mode sélection unique, remplacer la sélection actuelle
+      if (selectedChoices.includes(choiceId)) {
+        newSelected = []; // Désélectionner si déjà sélectionné
+      } else {
+        newSelected = [choiceId]; // Sélectionner uniquement ce choix
+      }
     } else {
-      newSelected = [...selectedChoices, choiceId];
+      // En mode sélection multiple, ajouter/retirer de la liste
+      if (selectedChoices.includes(choiceId)) {
+        newSelected = selectedChoices.filter(id => id !== choiceId);
+      } else {
+        newSelected = [...selectedChoices, choiceId];
+      }
     }
     onSelectionChange(newSelected);
   };
@@ -43,14 +55,23 @@ const rightChoices = choices.slice(midPoint);      // 3 éléments (indices 6-8)
     // Créer un ID unique pour l'option "autre"
     const otherId = `other-${value}`;
     
-    // Supprimer les anciennes valeurs "autre" des sélections
-    const filteredSelected = selectedChoices.filter(id => !id.startsWith('other-'));
-    
-    // Ajouter la nouvelle valeur si elle n'est pas vide
-    if (value.trim()) {
-      onSelectionChange([...filteredSelected, otherId]);
+    if (singleSelection) {
+      // En mode sélection unique, remplacer toute sélection par "autre"
+      if (value.trim()) {
+        onSelectionChange([otherId]);
+      } else {
+        onSelectionChange([]);
+      }
     } else {
-      onSelectionChange(filteredSelected);
+      // En mode sélection multiple, supprimer les anciennes valeurs "autre" et ajouter la nouvelle
+      const filteredSelected = selectedChoices.filter(id => !id.startsWith('other-'));
+      
+      // Ajouter la nouvelle valeur si elle n'est pas vide
+      if (value.trim()) {
+        onSelectionChange([...filteredSelected, otherId]);
+      } else {
+        onSelectionChange(filteredSelected);
+      }
     }
   };
 

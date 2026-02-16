@@ -52,7 +52,7 @@ export async function GET(
       take: 1, // Prendre seulement le plus populaire
     });
 
-    if (tagStats.length === 0) {
+    if (tagStats.length === 0 || tagStats[0].tagId === null) {
       return NextResponse.json({ popularTag: null }, { status: 200 });
     }
 

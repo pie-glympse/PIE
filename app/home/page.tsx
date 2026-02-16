@@ -341,7 +341,7 @@ export default function HomePage() {
 
             {events.slice(0, 3).map((event) => {
               // Comparer les IDs en tant que strings pour éviter les problèmes de type
-              const isCreator = user && event.createdBy?.id && String(event.createdBy.id) === String(user.id);
+              const isCreator = !!(user && event.createdBy?.id && String(event.createdBy.id) === String(user.id));
               const isParticipant = event.users?.some((u) => String(u.id) === String(user?.id)) || false;
               const canLeave = !isCreator && isParticipant;
 

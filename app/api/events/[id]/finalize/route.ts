@@ -61,7 +61,7 @@ export async function POST(
     };
 
     // Si on a un tag gagnant, récupérer son nom et l'ajouter à l'activité
-    if (mostVotedTag.length > 0) {
+    if (mostVotedTag.length > 0 && mostVotedTag[0].tagId !== null) {
       const tagDetails = await prisma.tag.findUnique({
         where: { id: mostVotedTag[0].tagId },
         select: { name: true },
@@ -99,7 +99,7 @@ export async function POST(
         message: 'Événement finalisé avec succès',
         event: safeJson(updatedEvent),
         results: {
-          mostVotedActivity: mostVotedTag.length > 0 ? {
+          mostVotedActivity: mostVotedTag.length > 0 && mostVotedTag[0].tagId !== null ? {
             count: mostVotedTag[0]._count.tagId,
             tagId: mostVotedTag[0].tagId.toString(),
           } : null,
