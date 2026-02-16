@@ -10,6 +10,7 @@ import Modal from '@/components/layout/Modal';
 import ChoiceLi from '@/components/ui/ChoiceLi';
 import { StepperIndicator } from '@/components/forms/StepperIndicator';
 import { generateDateRange } from '@/lib/utils/dateUtils';
+import { getQuestionsForActivityType } from '@/lib/preferences/questionsConfig';
 
 const AnswerEventPage = () => {
     const router = useRouter();
@@ -27,10 +28,13 @@ const AnswerEventPage = () => {
     const [selectedDates, setSelectedDates] = useState<string[]>([]);
     const [selectedPreferences, setSelectedPreferences] = useState<string[]>([]);
     const [availableTags, setAvailableTags] = useState<{id: number, name: string}[]>([]);
+    const [loadingTags, setLoadingTags] = useState(true);
+    const [tagsError, setTagsError] = useState<string | null>(null);
     const [eventData, setEventData] = useState<{
         startDate?: string;
         endDate?: string;
         title?: string;
+        activityType?: string;
     } | null>(null);
     const [loadingEvent, setLoadingEvent] = useState(true);
 
@@ -54,8 +58,24 @@ const AnswerEventPage = () => {
                 setLoadingEvent(true);
                 const response = await fetch(`/api/events/${eventId}`);
                 if (response.ok) {
-                    const event = await response.json();
-                    setEventData(event.event || event);
+                    const data = await response.json();
+                    const event = data.event || data;
+                    setEventData({
+                        startDate: event.startDate,
+                        endDate: event.endDate,
+                        title: event.title,
+                        activityType: event.activityType,
+                    });
+                    
+                    // ✅ Si l'événement a des questions configurées (nouveau système),
+                    // rediriger vers la page event-preferences
+                    if (event.activityType) {
+                        const questions = getQuestionsForActivityType(event.activityType);
+                        if (questions.length > 0) {
+                            router.replace(`/event-preferences/${eventId}?eventTitle=${encodeURIComponent(event.title || eventTitle)}`);
+                            return;
+                        }
+                    }
                 }
             } catch (error) {
                 console.error('Erreur lors du chargement de l\'événement:', error);
@@ -64,18 +84,25 @@ const AnswerEventPage = () => {
             }
         };
         fetchEvent();
-    }, [eventId]);
+    }, [eventId, router, eventTitle]);
 
     useEffect(() => {
         const fetchTags = async () => {
             try {
+                setLoadingTags(true);
+                setTagsError(null);
                 const response = await fetch('/api/tags');
                 if (response.ok) {
                     const tags = await response.json();
-                    setAvailableTags(tags);
+                    setAvailableTags(Array.isArray(tags) ? tags : []);
+                } else {
+                    setTagsError('Impossible de charger les catégories');
                 }
             } catch (error) {
                 console.error('Erreur lors du chargement des tags:', error);
+                setTagsError('Erreur lors du chargement des catégories');
+            } finally {
+                setLoadingTags(false);
             }
         };
         fetchTags();
@@ -241,10 +268,34 @@ const AnswerEventPage = () => {
                                     Sélectionnez une ou plusieurs catégories :
                                 </h3>
                                 <div className="w-full">
-                                    {categories.length === 0 ? (
+                                    {loadingTags ? (
                                         <p className="text-body-large text-gray-500">
                                             Chargement des catégories...
                                         </p>
+                                    ) : tagsError ? (
+                                        <div className="text-center py-8">
+                                            <p className="text-body-large text-red-500 mb-4">
+                                                {tagsError}
+                                            </p>
+                                            <button
+                                                onClick={() => router.back()}
+                                                className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
+                                            >
+                                                Retour
+                                            </button>
+                                        </div>
+                                    ) : categories.length === 0 ? (
+                                        <div className="text-center py-8">
+                                            <p className="text-body-large text-gray-500 mb-4">
+                                                Aucune catégorie disponible.
+                                            </p>
+                                            <button
+                                                onClick={() => router.back()}
+                                                className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
+                                            >
+                                                Retour
+                                            </button>
+                                        </div>
                                     ) : (
                                         <ul className="flex flex-wrap gap-3 mb-6 list-none">
                                             {categories.map((category) => (

@@ -71,8 +71,11 @@ export async function PATCH(
       });
 
       // Trier les tags par poids décroissant et prendre les plus importants
+      // Limiter à 15 tags maximum et filtrer ceux avec un poids trop faible (seuil: 1)
       const sortedTags = Object.entries(aggregatedTags)
+        .filter(([, weight]) => weight >= 1) // Filtrer les tags avec un poids trop faible
         .sort(([, a], [, b]) => b - a)
+        .slice(0, 15) // Limiter à 15 tags maximum pour éviter des requêtes trop larges
         .map(([tag]) => tag);
 
 

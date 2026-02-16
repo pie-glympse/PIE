@@ -360,6 +360,9 @@ export default function SingleEventPage() {
   const isCreator = user && event.createdBy?.id && String(event.createdBy.id) === String(user.id);
   const isParticipant = user && event.users?.some((p) => String(p.id) === String(user.id));
   const canLeaveEvent = !isCreator && isParticipant;
+  
+  // ✅ Le créateur ou les admins peuvent changer l'état de l'événement
+  const canChangeState = isCreator || isAuthorized;
 
   return (
     <section className="min-h-screen pt-24 p-10 flex flex-col gap-8">
@@ -495,9 +498,14 @@ export default function SingleEventPage() {
 
               <ShareButton onClick={handleShare} />
 
-              {isAuthorized && (
+              {/* ✅ Afficher le select d'état pour le créateur ou les admins */}
+              {canChangeState && (
                 <div className="relative">
-                  <button className="p-4" onClick={() => setIsStateDropdownOpen(!isStateDropdownOpen)}>
+                  <button 
+                    className="p-4" 
+                    onClick={() => setIsStateDropdownOpen(!isStateDropdownOpen)}
+                    title="Changer l'état de l'événement"
+                  >
                     <div className="content-center w-fit flex align-center gap-2">
                       <div className={`w-3 h-3 rounded-full ${getStateColor(event.state || "pending")}`}></div>
                       <div className="flex items-center gap-2 rounded-full transition-all">

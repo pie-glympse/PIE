@@ -53,6 +53,7 @@ const NearbyActivities = ({ city, activityType, maxDistance = 5, eventId, compan
   const [selectedPlace, setSelectedPlace] = useState<Place | null>(null);
   const [isBlacklisting, setIsBlacklisting] = useState(false);
   const [votedGoogleMapsTags, setVotedGoogleMapsTags] = useState<string[]>([]);
+  const [tagsLoaded, setTagsLoaded] = useState(false); // État pour savoir si les tags ont été chargés
   
   // Utiliser useRef pour stocker la dernière valeur de blacklistedPlaceIds
   // pour éviter les re-renders infinis
@@ -69,25 +70,46 @@ const NearbyActivities = ({ city, activityType, maxDistance = 5, eventId, compan
     // ✅ Ne récupérer les tags QUE si l'événement est confirmé
     if (!eventId || eventState?.toLowerCase() !== 'confirmed') {
       setVotedGoogleMapsTags([]);
+      setTagsLoaded(false);
       return;
     }
 
     const fetchEventData = async () => {
       try {
+        console.log('🔍 Récupération des tags pour l\'événement:', eventId);
         const response = await fetch(`/api/events/${eventId}`);
         if (response.ok) {
           const data = await response.json();
           const event = data.event || data;
+          console.log('📦 Données de l\'événement:', {
+            id: event.id,
+            state: event.state,
+            confirmedGoogleMapsTags: event.confirmedGoogleMapsTags,
+            activityType: event.activityType
+          });
+          
           // Utiliser les tags stockés dans l'événement au moment du passage à "confirmed"
           if (event.confirmedGoogleMapsTags && Array.isArray(event.confirmedGoogleMapsTags)) {
+            console.log('✅ Tags récupérés:', event.confirmedGoogleMapsTags);
             setVotedGoogleMapsTags(event.confirmedGoogleMapsTags);
+          } else {
+            // Si pas de tags, on met un array vide pour indiquer qu'on a vérifié
+            console.warn('⚠️ Aucun confirmedGoogleMapsTags trouvé dans l\'événement');
+            setVotedGoogleMapsTags([]);
           }
+        } else {
+          console.error('❌ Erreur lors de la récupération de l\'événement:', response.status, response.statusText);
+          setVotedGoogleMapsTags([]);
         }
       } catch (err) {
-        console.error('Erreur lors de la récupération des tags Google Maps:', err);
+        console.error('❌ Erreur lors de la récupération des tags Google Maps:', err);
+        setVotedGoogleMapsTags([]);
+      } finally {
+        setTagsLoaded(true); // Marquer que le chargement est terminé (même en cas d'erreur)
       }
     };
 
+    setTagsLoaded(false); // Réinitialiser avant de charger
     fetchEventData();
   }, [eventId, eventState]);
 
@@ -122,19 +144,39 @@ const NearbyActivities = ({ city, activityType, maxDistance = 5, eventId, compan
       return;
     }
 
+    // ✅ Attendre que les tags soient chargés avant de fetch les places
+    // (sauf si on a déjà déterminé qu'il n'y a pas de tags)
+    if (!tagsLoaded) {
+      return; // Attendre que les tags soient chargés
+    }
+
     const fetchPlaces = async () => {
       try {
+        setLoading(true);
+        setError(null);
+        
         // Utiliser les tags Google Maps stockés dans l'événement
         let placeTypes: string[];
         
         if (votedGoogleMapsTags.length > 0) {
           // Utiliser les tags Google Maps les plus votés stockés au passage à "confirmed"
           placeTypes = votedGoogleMapsTags;
+          console.log('✅ Utilisation des tags votés:', placeTypes);
         } else {
           // Fallback sur activityType si pas de tags stockés
           placeTypes = getPlaceTypesFromActivityType(activityType);
+          console.log('⚠️ Pas de tags votés, utilisation du fallback:', placeTypes, 'pour activityType:', activityType);
         }
 
+        // Vérifier qu'on a bien des placeTypes
+        if (!placeTypes || placeTypes.length === 0) {
+          console.error('❌ Aucun type de lieu disponible');
+          setError('Aucun type de lieu disponible pour cette activité');
+          setLoading(false);
+          return;
+        }
+
+        console.log('🔍 Recherche de lieux avec:', { city, placeTypes, radius: maxDistance * 1000, eventId });
 
         const response = await fetch('/api/places/nearby', {
           method: 'POST',
@@ -149,21 +191,34 @@ const NearbyActivities = ({ city, activityType, maxDistance = 5, eventId, compan
 
         if (response.ok) {
           const data = await response.json();
+          console.log('✅ Lieux récupérés:', data.places?.length || 0, 'lieux');
+          
           // Filtrer les lieux blacklistés en utilisant le ref
           const filteredPlaces = (data.places || []).filter(
             (place: Place) => !blacklistedPlaceIdsRef.current.has(place.id)
           );
+          
+          console.log('✅ Lieux après filtrage blacklist:', filteredPlaces.length, 'lieux');
+          
           setPlaces(filteredPlaces);
           // Notifier le parent que les lieux sont chargés
           if (onPlacesLoadedRef.current) {
             onPlacesLoadedRef.current(filteredPlaces);
           }
         } else {
-          setError('Impossible de charger les recommandations');
+          // ✅ Récupérer le message d'erreur détaillé de l'API
+          const errorData = await response.json().catch(() => ({ error: 'Erreur inconnue' }));
+          const errorMessage = errorData.error || errorData.message || 'Impossible de charger les recommandations';
+          console.error('❌ Erreur API places/nearby:', {
+            status: response.status,
+            statusText: response.statusText,
+            error: errorData
+          });
+          setError(errorMessage);
         }
       } catch (err) {
-        console.error('Erreur lors de la récupération des lieux:', err);
-        setError('Erreur lors du chargement');
+        console.error('❌ Erreur lors de la récupération des lieux:', err);
+        setError(err instanceof Error ? err.message : 'Erreur lors du chargement');
       } finally {
         setLoading(false);
       }
@@ -172,7 +227,7 @@ const NearbyActivities = ({ city, activityType, maxDistance = 5, eventId, compan
     fetchPlaces();
     // Ne pas inclure blacklistedPlaceIds et onPlacesLoaded dans les dépendances
     // pour éviter les boucles infinies
-  }, [city, activityType, maxDistance, eventState, votedGoogleMapsTags, eventId]);
+  }, [city, activityType, maxDistance, eventState, votedGoogleMapsTags, eventId, tagsLoaded]);
 
   // Fonction pour obtenir les étoiles
   const renderStars = (rating?: number) => {
@@ -251,12 +306,35 @@ const NearbyActivities = ({ city, activityType, maxDistance = 5, eventId, compan
   }
 
   if (error) {
+    // Détecter si c'est une erreur de configuration API
+    const isApiConfigError = error.includes('API') || error.includes('clé API') || error.includes('403') || error.includes('Forbidden');
+    
     return (
       <div className="py-8">
         <h3 className="text-h3 font-urbanist mb-6 text-[var(--color-text)]">
           Nos recommandations
         </h3>
-        <p className="text-[var(--color-grey-three)] text-center py-8">{error}</p>
+        <div className="text-center py-8">
+          <div className="max-w-md mx-auto">
+            <p className="text-[var(--color-grey-three)] mb-4 font-poppins">{error}</p>
+            {isApiConfigError && (
+              <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                <p className="text-sm text-yellow-800 font-poppins mb-2">
+                  <strong>Problème de configuration API :</strong>
+                </p>
+                <ul className="text-sm text-yellow-700 font-poppins text-left list-disc list-inside space-y-1">
+                  <li>Vérifiez que la clé API Google Maps est configurée dans les variables d'environnement</li>
+                  <li>Assurez-vous que la <strong>Places API</strong> est activée dans Google Cloud Console</li>
+                  <li>Vérifiez que la <strong>Geocoding API</strong> est activée dans Google Cloud Console</li>
+                  <li>Vérifiez les restrictions de la clé API (domaines, IPs autorisées)</li>
+                </ul>
+              </div>
+            )}
+            <p className="text-xs text-[var(--color-grey-three)] mt-4">
+              Vérifiez la console du navigateur (F12) pour plus de détails.
+            </p>
+          </div>
+        </div>
       </div>
     );
   }

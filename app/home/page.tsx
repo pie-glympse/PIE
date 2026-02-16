@@ -66,6 +66,17 @@ export default function HomePage() {
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const handleFillPreferences = (event: EventType) => {
+    // ✅ Utiliser le nouveau système si l'événement a des questions configurées
+    // Sinon, utiliser l'ancien système
+    if (event.activityType) {
+      const { getQuestionsForActivityType } = require('@/lib/preferences/questionsConfig');
+      const questions = getQuestionsForActivityType(event.activityType);
+      if (questions.length > 0) {
+        router.push(`/event-preferences/${event.id}?eventTitle=${encodeURIComponent(event.title)}`);
+        return;
+      }
+    }
+    // Fallback sur l'ancien système
     router.push(`/answer-event/${event.id}?eventTitle=${encodeURIComponent(event.title)}`);
   };
 
