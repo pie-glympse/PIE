@@ -3,10 +3,6 @@
     {
       "path": "/api/notifications/send-reminders",
       "schedule": "0 10 * * *"
-    },
-    {
-      "path": "/api/events/check-ended",
-      "schedule": "0 * * * *"
     }
   ]
 }
