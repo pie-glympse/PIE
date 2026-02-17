@@ -1,11 +1,6 @@
-@import url('https://fonts.googleapis.com/css2?family=Urbanist:ital,wght@0,100..900;1,100..900&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100..900;1,100..900&display=swap');
 @import "tailwindcss";
 
 @theme {
-  --font-urbanist: var(--font-urbanist, "Urbanist", sans-serif);
-  --font-poppins: var(--font-poppins, "Poppins", sans-serif);
-
   --font-size-h1: 33px;
   --font-size-h2: 24px;
   --font-size-h3: 22px;
@@ -76,12 +71,6 @@
   font-weight: var(--font-weight-body-small);
 }
 
-@theme {
-  --font-urbanist: "Urbanist", sans-serif;
-  --font-poppins: "Poppins", sans-serif; 
-}
-
-
 /* :root {
 @media (prefers-color-scheme: dark) {
   :root {
@@ -93,7 +82,7 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-poppins);
 }
 .custom-scroll {
   scrollbar-width: auto; /* Firefox */

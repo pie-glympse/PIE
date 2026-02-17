@@ -29,7 +29,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <AppShell>
           <div className="relative">
             {children}
-            {/* Composant de décoration qui s'adapte selon la page */}
             <DecorationImage />
           </div>
         </AppShell>
