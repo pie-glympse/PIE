@@ -325,7 +325,7 @@ export default function ProfilePage() {
     <div className="mt-24 p-10 max-w-7xl mx-auto">
       {/* Bannière */}
       <div className="relative h-48 rounded-lg bg-gray-200 group/banner cursor-pointer">
-        {banner && <Image src={banner} alt="Bannière" fill className="object-cover rounded-lg" />}
+        {banner && <Image src={banner} alt="Bannière" fill className="object-cover rounded-lg" sizes="(max-width: 1280px) 100vw, 1280px" />}
         {/* Overlay avec icône caméra - visible seulement au hover */}
         <div className="absolute inset-0 rounded-lg bg-black/30 opacity-0 group-hover/banner:opacity-100 transition-opacity duration-200 flex items-center justify-center">
           <label className="cursor-pointer p-3 bg-white/20 rounded-full hover:bg-white/30 transition-colors">
@@ -338,7 +338,7 @@ export default function ProfilePage() {
         <div className="absolute -bottom-12 left-6 bg-amber-400 rounded-full">
           <div className="relative w-24 h-24 rounded-full border-4 border-white overflow-hidden group/avatar cursor-pointer">
             {avatar ? (
-              <Image src={avatar} alt="Avatar" fill className="object-cover" />
+              <Image src={avatar} alt="Avatar" fill className="object-cover" sizes="96px" />
             ) : (
               <div className="w-full h-full bg-gray-300" />
             )}

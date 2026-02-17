@@ -104,13 +104,16 @@ export default function LoginPage() {
                     </div>
                 </div>
             </div>
-            <div className="hidden md:block md:w-[45%]  absolute right-10 aspect-[738/1049]">
-                <Image
-                    src="/images/mascotte/login-light.png"
-                    alt="Image de connexion"
-                    fill
-                    className="object-cover rounded-4xl"
-                />
+            <div className="hidden md:block md:w-[45%] absolute right-10 aspect-[738/1049]">
+                <div className="relative w-full h-full">
+                    <Image
+                        src="/images/mascotte/login-light.png"
+                        alt="Image de connexion"
+                        fill
+                        className="object-cover rounded-4xl"
+                        sizes="(max-width: 768px) 0vw, 45vw"
+                    />
+                </div>
             </div>
         </section>
     );
