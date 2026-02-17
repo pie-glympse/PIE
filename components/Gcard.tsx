@@ -309,7 +309,7 @@ export default function EventCard({
                     {participant.photoUrl && participant.photoUrl.trim() !== "" ? (
                       <Image
                         src={participant.photoUrl}
-                        alt=""
+                        alt={`Photo de profil de ${participant.firstName} ${participant.lastName}`}
                         width={40}
                         height={40}
                         className="rounded-full object-cover w-full h-full"

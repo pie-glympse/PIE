@@ -368,7 +368,7 @@ export default function ProfilePage() {
             <>
               <button
                 onClick={handleEdit}
-                className="px-4 py-2 bg-transparent border-2 border-[var(--color-main)] text-[var(--color-main)] hover:bg-[var(--color-main)]/10 text-h3 font-poppins rounded-lg transition cursor-pointer"
+                className="px-4 py-2 bg-transparent border-2 border-[var(--color-main)] text-[var(--color-main-text)] hover:bg-[var(--color-main)]/10 text-h3 font-poppins rounded-lg transition cursor-pointer"
               >
                 Editer le profil
               </button>

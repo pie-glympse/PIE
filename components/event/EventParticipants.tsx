@@ -43,7 +43,7 @@ const EventParticipants: React.FC<EventParticipantsProps> = ({ participants = []
                                 {participant.photoUrl && participant.photoUrl.trim() !== '' ? (
                                     <Image
                                         src={participant.photoUrl}
-                                        alt=""
+                                        alt={`Photo de profil de ${participant.firstName} ${participant.lastName}`}
                                         width={48}
                                         height={48}
                                         className="rounded-full object-cover w-full h-full"

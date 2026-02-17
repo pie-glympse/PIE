@@ -20,13 +20,14 @@
   --font-weight-body-small: 500;
 
   --color-main: #FCC638;
+  --color-main-text: #B8941F;
   --color-secondary: #FF5B5B;
   --color-tertiary: #F78AFF;
   --color-validate: #2B983F;
   --color-grey-one: #F4F4F4;
   --color-grey-two: #EAEAEF;
-  --color-grey-three: #9B9B9B; 
-  --color-grey-four: #9B9B9D; 
+  --color-grey-three: #707070; 
+  --color-grey-four: #707070; 
   --color-text: #191919;
   
   --color-calendar-green: #57B454;

@@ -328,7 +328,7 @@ export const UserSelectionStep = ({
                       {user.photoUrl && user.photoUrl.trim() !== '' ? (
                         <Image
                           src={user.photoUrl}
-                          alt=""
+                          alt={`Photo de profil de ${user.firstName} ${user.lastName}`}
                           width={48}
                           height={48}
                           className="object-cover w-full h-full"

@@ -604,7 +604,7 @@ const NearbyActivities = ({ city, activityType, maxDistance = 5, eventId, compan
                   e.stopPropagation(); // Empêcher l'ouverture de Google Maps
                   trackBookingClick(place.id, eventId || undefined, companyId || undefined);
                 }}
-                className="block mt-2 text-sm text-[var(--color-main)] hover:text-[var(--color-main)]/80 underline font-poppins"
+                className="block mt-2 text-sm text-[var(--color-main-text)] hover:text-[var(--color-main-text)]/80 underline font-poppins"
               >
                 Voir le site
               </a>
