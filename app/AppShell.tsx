@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
+import type { ReactNode } from "react";
 import dynamic from "next/dynamic";
 import { usePathname } from "next/navigation";
 import Header from "@/components/Header";
@@ -22,7 +23,7 @@ const Modal = dynamic(() => import("@/components/layout/Modal"), {
 
 const hideHeaderRoutes = ["/login", "/register", "/forgot-password", "/reset-password", "/set-password", "/first-connection", "/greetings"];
 
-function OnboardingProvider({ children }: { children: React.ReactNode }) {
+function OnboardingProvider({ children }: { children: ReactNode }) {
   const { showOnboarding, isChecking, markOnboardingAsSeen } = useOnboarding();
   const [currentStep, setCurrentStep] = useState(1);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -98,7 +99,7 @@ function OnboardingProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
-function FeedbackProvider({ children }: { children: React.ReactNode }) {
+function FeedbackProvider({ children }: { children: ReactNode }) {
   const { user } = useUser();
   const { pendingFeedback, clearPendingFeedback } = useFeedbackNotification();
 
@@ -119,7 +120,7 @@ function FeedbackProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
-function InvitationProvider({ children }: { children: React.ReactNode }) {
+function InvitationProvider({ children }: { children: ReactNode }) {
   const { user } = useUser();
   const { pendingInvitation, clearPendingInvitation } = useInvitationNotification();
 
@@ -146,7 +147,7 @@ function InvitationProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
-export default function AppShell({ children }: { children: React.ReactNode }) {
+export default function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const [is404, setIs404] = useState(false);
 

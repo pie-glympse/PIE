@@ -1,4 +1,5 @@
 import Image from "next/image";
+import type { FC } from "react";
 
             interface BackArrowProps {
                 onClick?: () => void;
@@ -10,7 +11,7 @@ import Image from "next/image";
                 iconHeight?: number;
             }
 
-            const BackArrow: React.FC<BackArrowProps> = ({
+            const BackArrow: FC<BackArrowProps> = ({
                 onClick = () => (window.location.href = "/"),
                 className = "",
                 ariaLabel = "Back",
@@ -31,6 +32,7 @@ import Image from "next/image";
                         width={iconWidth}
                         height={iconHeight}
                         className="mx-auto"
+                        sizes={`${iconWidth}px`}
                     />
                 </button>
             );

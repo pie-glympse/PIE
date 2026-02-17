@@ -1,10 +1,11 @@
 "use client"
 import { useState, FormEvent, useRef } from 'react';
+import type { FC, ReactNode, ChangeEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import MainButton from '@/components/ui/MainButton';
 
 interface TeamRegisterFormProps {
-    title: React.ReactNode;
+    title: ReactNode;
     buttonText: string;
 }
 
@@ -14,7 +15,7 @@ interface CSVRow {
     lastName: string;
 }
 
-const TeamRegisterForm: React.FC<TeamRegisterFormProps> = ({
+const TeamRegisterForm: FC<TeamRegisterFormProps> = ({
     title,
     buttonText
 }) => {
@@ -54,7 +55,7 @@ const TeamRegisterForm: React.FC<TeamRegisterFormProps> = ({
         }).filter(row => row.email && row.email.includes('@')); // Filtrer les lignes invalides
     };
 
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
 

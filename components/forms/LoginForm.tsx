@@ -1,11 +1,12 @@
 "use client"
 import { useState, FormEvent } from 'react';
+import type { FC, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUser } from '../../context/UserContext';
 import MainButton from '../ui/MainButton';
 
 interface LoginFormProps {
-    title: React.ReactNode;
+    title: ReactNode;
     buttonText: string;
     onSubmit?: (email: string, password: string) => void;
     onForgotPassword?: () => void;
@@ -14,7 +15,7 @@ interface LoginFormProps {
     placeholderTextPswrd?: string;
 }
 
-const LoginForm: React.FC<LoginFormProps> = ({
+const LoginForm: FC<LoginFormProps> = ({
     title,
     buttonText,
     onSubmit,

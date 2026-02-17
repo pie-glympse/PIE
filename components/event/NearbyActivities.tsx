@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import type { MouseEvent } from 'react';
 import Image from 'next/image';
 import { useUser } from '@/context/UserContext';
 
@@ -365,7 +366,7 @@ const NearbyActivities = ({ city, activityType, maxDistance = 5, eventId, compan
   };
 
   // Gérer l'ouverture de la modal de blacklist
-  const handleBlacklistClick = (e: React.MouseEvent, place: Place) => {
+  const handleBlacklistClick = (e: MouseEvent, place: Place) => {
     e.stopPropagation(); // Empêcher le clic sur la card
     setSelectedPlace(place);
     setShowBlacklistModal(true);
@@ -618,6 +619,8 @@ const NearbyActivities = ({ city, activityType, maxDistance = 5, eventId, compan
               className="absolute right-[-25px] bottom-[-25px] pointer-events-none opacity-30"
               width={120}
               height={120}
+              sizes="(max-width: 640px) 80px, 120px"
+              loading="lazy"
               style={{
                 objectFit: "contain",
                 zIndex: 1,

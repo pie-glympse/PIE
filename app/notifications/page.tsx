@@ -357,6 +357,9 @@ export default function NotificationsPage() {
                 width={1000}
                 height={1000}
                 className="mx-auto object-contain w-48 h-48"
+                sizes="(max-width: 640px) 150px, 192px"
+                quality={85}
+                loading="lazy"
               />
               <div className="space-y-3">
                 <h3 className="text-2xl font-semibold text-gray-800 font-urbanist">

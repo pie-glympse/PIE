@@ -247,6 +247,7 @@ export default function Header() {
                 alt="Logo Glymps"
                 width={125}
                 height={125}
+                sizes="(max-width: 768px) 100px, 125px"
                 priority
               />
             </Link>
@@ -268,6 +269,7 @@ export default function Header() {
                 width={26}
                 height={26}
                 className="object-contain"
+                sizes="26px"
               />
             </div>
             {unreadCount > 0 && (
@@ -284,6 +286,8 @@ export default function Header() {
               width={48}
               height={48}
               className="w-full h-full object-cover rounded-full"
+              sizes="48px"
+              quality={75}
             />
           </Link>
         </div>

@@ -179,6 +179,7 @@ const EventInformations = ({ event }: EventInformationsProps) => {
             alt="Calendrier"
             width={32}
             height={32}
+            sizes="32px"
           />
           <div>
             <p style={{ fontSize: '15px' }} className="text-[var(--color-text)]">
@@ -206,6 +207,7 @@ const EventInformations = ({ event }: EventInformationsProps) => {
             alt="Horloge"
             width={32}
             height={32}
+            sizes="32px"
           />
           <div>
             <p style={{ fontSize: '15px' }} className="text-[var(--color-text)]">
@@ -233,6 +235,7 @@ const EventInformations = ({ event }: EventInformationsProps) => {
             alt="Localisation"
             width={32}
             height={32}
+            sizes="32px"
           />
           <div>
             <p style={{ fontSize: '15px' }} className="text-[var(--color-text)]">

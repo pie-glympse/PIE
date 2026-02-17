@@ -1,4 +1,5 @@
 import Image from 'next/image';
+import type { FC } from 'react';
 
 interface EventTypeCardProps {
     text: string;
@@ -9,7 +10,7 @@ interface EventTypeCardProps {
     image?: string;
 }
 
-const EventTypeCard: React.FC<EventTypeCardProps> = ({
+const EventTypeCard: FC<EventTypeCardProps> = ({
     text,
     isSelected = false,
     onClick,
@@ -46,6 +47,9 @@ const EventTypeCard: React.FC<EventTypeCardProps> = ({
                     width={200}
                     height={200}
                     className="object-contain w-full h-full"
+                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                    quality={85}
+                    loading="lazy"
                 />
             </div>
 
@@ -63,7 +67,8 @@ const EventTypeCard: React.FC<EventTypeCardProps> = ({
                     alt="Selected"
                     width={56}
                     height={56}
-                    className=""
+                    sizes="56px"
+                    loading="lazy"
                 />
             </div>
         )}
@@ -83,7 +88,7 @@ interface EventTypeCardsProps {
     selectedIcon?: string;
 }
 
-export const EventTypeCards: React.FC<EventTypeCardsProps> = ({
+export const EventTypeCards: FC<EventTypeCardsProps> = ({
     cards,
     selectedId,
     onCardSelect,

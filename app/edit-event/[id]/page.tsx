@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, FormEvent } from "react";
+import type { ChangeEvent } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { useUser } from "@/context/UserContext";
 import BackArrow from "@/components/ui/BackArrow";
@@ -94,22 +95,22 @@ export default function EditEventPage() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleStartDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleStartDateChange = (e: ChangeEvent<HTMLInputElement>) => {
     setStartDate(e.target.value);
     setErrors(prev => ({ ...prev, startDate: '', endDate: '' }));
   };
 
-  const handleEndDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleEndDateChange = (e: ChangeEvent<HTMLInputElement>) => {
     setEndDate(e.target.value);
     setErrors(prev => ({ ...prev, endDate: '' }));
   };
 
-  const handleStartTimeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+  const handleStartTimeChange = (e: ChangeEvent<HTMLSelectElement>) => {
     setStartTime(e.target.value);
     setErrors(prev => ({ ...prev, startTime: '', endTime: '' }));
   };
 
-  const handleEndTimeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+  const handleEndTimeChange = (e: ChangeEvent<HTMLSelectElement>) => {
     setEndTime(e.target.value);
     setErrors(prev => ({ ...prev, endTime: '' }));
   };

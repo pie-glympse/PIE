@@ -111,7 +111,8 @@ export default function DecorationImage() {
         width={config.size.width}
         height={config.size.height}
         className="object-contain"
-        priority={false}
+        sizes="(max-width: 768px) 300px, 500px"
+        loading="lazy"
       />
     </div>
   );

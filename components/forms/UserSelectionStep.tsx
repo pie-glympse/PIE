@@ -332,6 +332,8 @@ export const UserSelectionStep = ({
                           width={48}
                           height={48}
                           className="object-cover w-full h-full"
+                          sizes="48px"
+                          quality={75}
                         />
                       ) : null}
                     </div>

@@ -95,7 +95,8 @@ export default function LoginPage() {
                             alt="Logo Glyms"
                             width={100}
                             height={100}
-                            className=""
+                            sizes="100px"
+                            loading="lazy"
                         />
                     </div>
                     <div>

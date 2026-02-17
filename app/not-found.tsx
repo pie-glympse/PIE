@@ -23,6 +23,8 @@ export default function NotFound() {
                             width={120}
                             height={40}
                             className="h-10 w-auto"
+                            sizes="120px"
+                            priority
                         />
                     </Link>
                 </div>
@@ -38,6 +40,8 @@ export default function NotFound() {
                             width={700}
                             height={700}
                             className="w-full max-w-[200px] md:max-w-[700px] h-auto"
+                            sizes="(max-width: 768px) 200px, 700px"
+                            loading="lazy"
                         />
                     </div>
                     <div className="flex-1 text-center md:text-left md:order-1">

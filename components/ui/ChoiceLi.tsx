@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import type { FC, ChangeEvent } from 'react';
 import Image from 'next/image';
 
 interface Choice {
@@ -14,7 +15,7 @@ interface ChoiceLiProps {
   singleSelection?: boolean;
 }
 
-const ChoiceLi: React.FC<ChoiceLiProps> = ({
+const ChoiceLi: FC<ChoiceLiProps> = ({
   choices,
   selectedChoices,
   onSelectionChange,
@@ -48,7 +49,7 @@ const rightChoices = choices.slice(midPoint);      // 3 éléments (indices 6-8)
     onSelectionChange(newSelected);
   };
 
-  const handleOtherChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleOtherChange = (e: ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setOtherValue(value);
     
@@ -92,6 +93,7 @@ const rightChoices = choices.slice(midPoint);      // 3 éléments (indices 6-8)
                 alt={selectedChoices.includes(choice.id) ? "Sélectionné" : "Non sélectionné"}
                 width={32}
                 height={32}
+                sizes="32px"
               />
               <span className="font-poppins text-base">{choice.text}</span>
             </li>
@@ -126,6 +128,7 @@ const rightChoices = choices.slice(midPoint);      // 3 éléments (indices 6-8)
                 alt={selectedChoices.includes(choice.id) ? "Sélectionné" : "Non sélectionné"}
                 width={32}
                 height={32}
+                sizes="32px"
               />
               <span className="font-poppins text-base">{choice.text}</span>
             </li>

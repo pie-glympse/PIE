@@ -1,4 +1,5 @@
 import { useState, FormEvent } from 'react';
+import type { FC } from 'react';
 import MainButton from '../ui/MainButton';
 
 interface FirstLogFormProps {
@@ -11,7 +12,7 @@ interface FirstLogFormProps {
     placeholderTextPswrd?: string;
 }
 
-const FirstLogForm: React.FC<FirstLogFormProps> = ({
+const FirstLogForm: FC<FirstLogFormProps> = ({
     title,
     buttonText,
     onSubmit,

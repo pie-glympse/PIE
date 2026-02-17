@@ -1,6 +1,7 @@
 import Image from 'next/image';
+import type { FC } from 'react';
 
-const EventDocuments: React.FC = () => {
+const EventDocuments: FC = () => {
     return (
         <div 
             className="w-full h-full flex flex-col items-center justify-center rounded-lg border-dashed bg-transparent"
@@ -18,6 +19,7 @@ const EventDocuments: React.FC = () => {
                     width={32}
                     height={32}
                     className="text-greyThree"
+                    sizes="32px"
                 />
                 Upload
             </button>

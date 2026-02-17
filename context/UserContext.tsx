@@ -1,6 +1,7 @@
 'use client';
 
 import { createContext, useState, useEffect, useContext } from 'react';
+import type { ReactNode } from 'react';
 
 type User = { id: string; email: string; firstName: string; lastName: string; role: string; companyId?: string } | null;
 
@@ -17,7 +18,7 @@ type UserContextType = {
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
 
-export function UserProvider({ children }: { children: React.ReactNode }) {
+export function UserProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User>(null);
   const [token, setToken] = useState<string | null>(null);
 

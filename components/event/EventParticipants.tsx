@@ -12,7 +12,7 @@ interface EventParticipantsProps {
     participants?: Participant[];
 }
 
-const EventParticipants: React.FC<EventParticipantsProps> = ({ participants = [] }) => {
+const EventParticipants: FC<EventParticipantsProps> = ({ participants = [] }) => {
 
     const mockParticipants: Participant[] = [
         { id: 1, firstName: 'Olivia', lastName: 'Rhye', email: 'oliviarhye@gmail.com' },
@@ -46,6 +46,8 @@ const EventParticipants: React.FC<EventParticipantsProps> = ({ participants = []
                                         width={48}
                                         height={48}
                                         className="rounded-full object-cover w-full h-full"
+                                        sizes="48px"
+                                        quality={75}
                                     />
                                 ) : null}
                                 </div>

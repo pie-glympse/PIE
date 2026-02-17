@@ -118,6 +118,8 @@ export default function InvitationModal({
             width={200}
             height={200}
             className="object-contain"
+            sizes="(max-width: 640px) 150px, 200px"
+            loading="lazy"
           />
         </div>
 

@@ -1,10 +1,11 @@
 "use client"
 import { useState, FormEvent } from 'react';
+import type { FC, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import MainButton from '@/components/ui/MainButton';
 
 interface ContactFormProps {
-    title: React.ReactNode;
+    title: ReactNode;
     buttonText: string;
     onSubmit?: (formData: {
         objet: string;
@@ -17,7 +18,7 @@ interface ContactFormProps {
     placeholderMessage?: string;
 }
 
-const ContactForm: React.FC<ContactFormProps> = ({
+const ContactForm: FC<ContactFormProps> = ({
     title,
     buttonText,
     onSubmit,

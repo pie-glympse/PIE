@@ -1,5 +1,6 @@
 import MainButton from '../ui/MainButton';
 import Image from 'next/image';
+import type { FC } from 'react';
 
 interface StepContent {
     title: string;
@@ -26,7 +27,7 @@ interface ModalProps {
     lastStepButtonText?: string;
 }
 
-const Modal: React.FC<ModalProps> = ({
+const Modal: FC<ModalProps> = ({
     isOpen,
     onClose,
     onButtonClick,
@@ -84,6 +85,9 @@ const Modal: React.FC<ModalProps> = ({
                             width={266}
                             height={279}
                             className="object-contain"
+                            sizes="(max-width: 640px) 200px, 266px"
+                            quality={85}
+                            loading="lazy"
                         />
                     ) : (
                         <div className="text-gray-400 text-lg">

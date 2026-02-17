@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import type { ReactNode } from "react";
 import { Urbanist, Poppins } from 'next/font/google';
 import "./globals.css";
 import AppShell from "@/app/AppShell";
@@ -22,7 +23,7 @@ export const metadata: Metadata = {
   description: "Glyms facilite la création et gestion d'événements d'entreprise comme les team buildings. Avec Glyms, les collaborateurs sont au cœur du jeu ! Service proposant une solution en fonction des envies et des disponibilités de chacun des collaborateurs d'une entreprise. L'objectif est de personnaliser les activités du CE d'entreprise en fonction des employés.",
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="fr">
       <body className={`${poppins.variable} ${urbanist.variable} antialiased bg-red-500`}>

@@ -1,4 +1,5 @@
 import { useState, FormEvent } from 'react';
+import type { FC } from 'react';
 import MainButton from '../ui/MainButton';
 import BackArrow from '../ui/BackArrow';
 
@@ -9,7 +10,7 @@ interface ForgottenPswrdProps {
     placeholderText?: string;
 }
 
-const ForgottenPswrd: React.FC<ForgottenPswrdProps> = ({
+const ForgottenPswrd: FC<ForgottenPswrdProps> = ({
     title,
     buttonText,
     onSubmit,

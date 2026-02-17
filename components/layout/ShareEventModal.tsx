@@ -1,5 +1,7 @@
 "use client";
 
+import { useState, useEffect, useMemo } from "react";
+
 type User = {
   id: string;
   firstName?: string;
@@ -24,12 +26,12 @@ export const ShareEventModal = ({
   currentUserId,
   users,
 }: ShareEventModalProps) => {
-  const [loading, setLoading] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
-  const [linkedUserIds, setLinkedUserIds] = React.useState<string[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [linkedUserIds, setLinkedUserIds] = useState<string[]>([]);
 
   // Charger les utilisateurs déjà liés quand le modal s'ouvre
-  React.useEffect(() => {
+  useEffect(() => {
     if (!isOpen) return;
 
     const fetchLinkedUsers = async () => {
@@ -50,7 +52,7 @@ export const ShareEventModal = ({
   }, [isOpen, eventId]);
 
   // Filtrer les utilisateurs pour ne pas afficher l'utilisateur courant
-  const filteredUsers = React.useMemo(
+  const filteredUsers = useMemo(
     () => users.filter((user) => user.id !== currentUserId),
     [users, currentUserId]
   );

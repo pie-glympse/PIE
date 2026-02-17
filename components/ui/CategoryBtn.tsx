@@ -1,4 +1,5 @@
 import Image from 'next/image';
+import type { FC } from 'react';
 
 interface CategoryBtnProps {
     text: string;
@@ -9,7 +10,7 @@ interface CategoryBtnProps {
     isDate?: boolean; // Nouveau prop pour plus de padding
 }
 
-const CategoryBtn: React.FC<CategoryBtnProps> = ({
+const CategoryBtn: FC<CategoryBtnProps> = ({
     text,
     isSelected = false,
     onClick,
@@ -51,7 +52,8 @@ const CategoryBtn: React.FC<CategoryBtnProps> = ({
                     alt="Selected"
                     width={32}
                     height={32}
-                    className=""
+                    sizes="32px"
+                    loading="lazy"
                 />
             </div>
         )}

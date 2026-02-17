@@ -48,6 +48,7 @@ export default function GreetingsPage() {
                         alt="Logo Glymps"
                         width={150}
                         height={150}
+                        sizes="(max-width: 768px) 120px, 150px"
                         priority
                     />
                 </Link>
@@ -88,7 +89,8 @@ export default function GreetingsPage() {
                             alt="Logo Glyms"
                             width={100}
                             height={100}
-                            className=""
+                            sizes="100px"
+                            loading="lazy"
                         />
                     </div>
                     <div>
@@ -98,12 +100,16 @@ export default function GreetingsPage() {
                 </div>
             </div>
             <div className="hidden md:block md:w-[45%] absolute right-10 aspect-[738/1049]">
-                <Image
-                    src="/images/mascotte/login-light.png"
-                    alt="Image de connexion"
-                    fill
-                    className="object-cover rounded-4xl"
-                />
+                <div className="relative w-full h-full">
+                    <Image
+                        src="/images/mascotte/login-light.png"
+                        alt="Image de connexion"
+                        fill
+                        className="object-cover rounded-4xl"
+                        sizes="(max-width: 768px) 0vw, 45vw"
+                        loading="lazy"
+                    />
+                </div>
             </div>
         </section>
     );

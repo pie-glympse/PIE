@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import type { ReactNode, MouseEvent, ReactElement } from "react";
 import { useUser } from "../context/UserContext";
 import { useRouter } from "next/navigation";
 
@@ -135,7 +136,7 @@ const MiniCalendar = ({ eventsData = [] }: MiniCalendarProps) => {
   }, []);
 
   // Fonction pour générer tous les jours entre deux dates
-  const generateDateRange = React.useCallback((startDate: string, endDate: string): string[] => {
+  const generateDateRange = useCallback((startDate: string, endDate: string): string[] => {
     const dates: string[] = [];
     const start = new Date(startDate);
     const end = new Date(endDate);
@@ -150,7 +151,7 @@ const MiniCalendar = ({ eventsData = [] }: MiniCalendarProps) => {
   }, []);
 
   // Fonction pour générer les occurrences récurrentes
-  const generateRecurringDates = React.useCallback((
+  const generateRecurringDates = useCallback((
     startDate: Date,
     recurringRate: string,
     duration: number,
@@ -206,7 +207,7 @@ const MiniCalendar = ({ eventsData = [] }: MiniCalendarProps) => {
   }, []);
 
   // Fonction pour convertir les événements de l'API au format du calendrier
-  const convertAPIEventToCalendarEvent = React.useCallback((apiEvent: APIEvent): Event[] => {
+  const convertAPIEventToCalendarEvent = useCallback((apiEvent: APIEvent): Event[] => {
     const getTimeFromDate = (dateString?: string): string => {
       if (!dateString) return '00:00';
       const date = new Date(dateString);
@@ -318,7 +319,7 @@ const MiniCalendar = ({ eventsData = [] }: MiniCalendarProps) => {
   }, [eventsData]);
 
   // Vérifier l'état du scroll pour afficher/masquer les boutons (seulement pour desktop)
-  const checkScrollPosition = React.useCallback(() => {
+  const checkScrollPosition = useCallback(() => {
     if (scrollContainerRef.current && !isMobile) {
       const container = scrollContainerRef.current;
       const { scrollLeft, scrollWidth, clientWidth } = container;
@@ -385,7 +386,7 @@ const MiniCalendar = ({ eventsData = [] }: MiniCalendarProps) => {
   }, [calendarMonths.length, isMobile, checkScrollPosition]);
 
   // Navigation avec les boutons flèches (seulement pour desktop)
-  const scrollToDirection = React.useCallback((direction: 'left' | 'right') => {
+  const scrollToDirection = useCallback((direction: 'left' | 'right') => {
     if (scrollContainerRef.current && !isMobile) {
       const container = scrollContainerRef.current;
       const scrollAmount = 264; // Largeur d'un mois + gap
@@ -453,7 +454,7 @@ const MiniCalendar = ({ eventsData = [] }: MiniCalendarProps) => {
     day: number,
     month: number,
     year: number,
-    event: React.MouseEvent<HTMLDivElement>
+    event: MouseEvent<HTMLDivElement>
   ) => {
     setHoveredDayNumber({ day, month });
     const dayEvents = getDayEvents(day, month, year);
@@ -463,7 +464,7 @@ const MiniCalendar = ({ eventsData = [] }: MiniCalendarProps) => {
     }
   };
 
-  const handleMouseMove = (event: React.MouseEvent<HTMLDivElement>) => {
+  const handleMouseMove = (event: MouseEvent<HTMLDivElement>) => {
     if (hoveredDay) {
       setMousePosition({ x: event.clientX, y: event.clientY });
     }
@@ -474,10 +475,10 @@ const MiniCalendar = ({ eventsData = [] }: MiniCalendarProps) => {
     setHoveredDay(null);
   };
 
-  const generateMonthDays = (month: number, year: number): React.ReactElement[] => {
+  const generateMonthDays = (month: number, year: number): ReactElement[] => {
     const daysInMonth = getDaysInMonth(month, year);
     const firstDay = getFirstDayOfMonth(month, year);
-    const days: React.ReactElement[] = [];
+    const days: ReactElement[] = [];
 
     // Ajouter les jours vides au début
     for (let i = 0; i < firstDay; i++) {

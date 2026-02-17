@@ -1,12 +1,13 @@
 "use client"
 import { useState, FormEvent } from 'react';
+import type { FC, ReactNode, ChangeEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import MainButton from '@/components/ui/MainButton';
 import SimpleAutocomplete from '@/components/ui/SimpleAutocomplete';
 
 
 interface EventFormProps {
-    title: React.ReactNode;
+    title: ReactNode;
     subtitle?: string;
     buttonText: string;
     eventTypeId?: string;
@@ -44,7 +45,7 @@ interface EventFormProps {
     }) => void;
 }
 
-const EventForm: React.FC<EventFormProps> = ({
+const EventForm: FC<EventFormProps> = ({
     title,
     subtitle,
     buttonText,
@@ -126,22 +127,22 @@ const EventForm: React.FC<EventFormProps> = ({
     };
 
 
-    const handleStartDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleStartDateChange = (e: ChangeEvent<HTMLInputElement>) => {
         setStartDate(e.target.value);
         setErrors(prev => ({ ...prev, startDate: '' }));
     };
 
-    const handleEndDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleEndDateChange = (e: ChangeEvent<HTMLInputElement>) => {
         setEndDate(e.target.value);
         setErrors(prev => ({ ...prev, endDate: '' }));
     };
 
-    const handleStartTimeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const handleStartTimeChange = (e: ChangeEvent<HTMLSelectElement>) => {
         setStartTime(e.target.value);
         setErrors(prev => ({ ...prev, startTime: '', endTime: '' }));
     };
 
-    const handleEndTimeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const handleEndTimeChange = (e: ChangeEvent<HTMLSelectElement>) => {
         setEndTime(e.target.value);
         setErrors(prev => ({ ...prev, endTime: '' }));
     };

@@ -1,3 +1,4 @@
+import type { FC } from 'react';
 
 interface MainButtonProps {
     color: string;
@@ -7,7 +8,7 @@ interface MainButtonProps {
     disabled?: boolean;
 }
 
-const MainButton: React.FC<MainButtonProps> = ({ 
+const MainButton: FC<MainButtonProps> = ({ 
     color, 
     text, 
     onClick, 

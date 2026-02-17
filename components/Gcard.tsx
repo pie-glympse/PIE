@@ -1,5 +1,6 @@
 "use client";
 import { useRef, useEffect } from "react";
+import type { MouseEvent } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 
@@ -80,7 +81,7 @@ export default function EventCard({
   };
 
   // Fonction pour gérer la redirection vers answer-event
-  const handlePreferencesClick = (e: React.MouseEvent) => {
+  const handlePreferencesClick = (e: MouseEvent) => {
     e.stopPropagation();
     router.push(`/answer-event/${eventId}?eventTitle=${encodeURIComponent(title)}`);
     onDropdownToggle?.(); // Ferme le dropdown
@@ -313,7 +314,8 @@ export default function EventCard({
                         width={40}
                         height={40}
                         className="rounded-full object-cover w-full h-full"
-                        unoptimized
+                        sizes="40px"
+                        quality={75}
                       />
                     ) : null}
                   </div>
@@ -349,7 +351,8 @@ export default function EventCard({
           style={{
             objectFit: "contain",
           }}
-          priority
+          sizes="(max-width: 640px) 150px, (max-width: 1024px) 200px, 250px"
+          loading="lazy"
         />
       </div>
     </div>
