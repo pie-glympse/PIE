@@ -1,4 +1,4 @@
-import React, { useState, FormEvent } from 'react';
+import { useState, FormEvent } from 'react';
 import MainButton from '../ui/MainButton';
 import BackArrow from '../ui/BackArrow';
 

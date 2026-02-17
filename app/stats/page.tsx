@@ -1,34 +1,19 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import dynamic from "next/dynamic";
 import { useUser } from "@/context/UserContext";
 import { useRouter } from "next/navigation";
 import BackArrow from "@/components/ui/BackArrow";
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  LineElement,
-  PointElement,
-  ArcElement,
-  Title,
-  Tooltip,
-  Legend,
-} from "chart.js";
-import { Bar, Line, Doughnut } from "react-chartjs-2";
 
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  LineElement,
-  PointElement,
-  ArcElement,
-  Title,
-  Tooltip,
-  Legend
-);
+const ChartWrapper = dynamic(() => import("@/components/charts/ChartWrapper"), {
+  ssr: false,
+  loading: () => (
+    <div className="h-64 flex items-center justify-center">
+      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--color-main)]"></div>
+    </div>
+  ),
+});
 
 interface StatsData {
   hasEvents: boolean;
@@ -372,7 +357,9 @@ export default function StatsPage() {
                 Évolution de la participation
               </h3>
               <div className="h-64">
-                <Line data={monthlyChartData} options={chartOptions} />
+                <ChartWrapper>
+                  {({ Line }: { Line: any }) => <Line data={monthlyChartData} options={chartOptions} />}
+                </ChartWrapper>
               </div>
             </div>
           )}
@@ -384,7 +371,9 @@ export default function StatsPage() {
                 Distribution des notes
               </h3>
               <div className="h-64">
-                <Bar data={ratingChartData} options={chartOptions} />
+                <ChartWrapper>
+                  {({ Bar }) => <Bar data={ratingChartData} options={chartOptions} />}
+                </ChartWrapper>
               </div>
             </div>
           )}
@@ -396,7 +385,9 @@ export default function StatsPage() {
                 Répartition par créneaux
               </h3>
               <div className="h-64">
-                <Doughnut data={timeSlotData} options={chartOptions} />
+                <ChartWrapper>
+                  {({ Doughnut }) => <Doughnut data={timeSlotData} options={chartOptions} />}
+                </ChartWrapper>
               </div>
             </div>
           )}

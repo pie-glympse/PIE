@@ -1,14 +1,24 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
+import dynamic from "next/dynamic";
 import { usePathname } from "next/navigation";
 import Header from "@/components/Header";
 import { UserProvider, useUser } from "../context/UserContext";
-import FeedbackModal from "@/components/FeedbackModal";
-import InvitationModal from "@/components/InvitationModal";
 import { useFeedbackNotification } from "@/hooks/useFeedbackNotification";
 import { useInvitationNotification } from "@/hooks/useInvitationNotification";
 import { useOnboarding } from "@/hooks/useOnboarding";
-import Modal from "@/components/layout/Modal";
+
+const FeedbackModal = dynamic(() => import("@/components/FeedbackModal"), {
+  ssr: false,
+});
+
+const InvitationModal = dynamic(() => import("@/components/InvitationModal"), {
+  ssr: false,
+});
+
+const Modal = dynamic(() => import("@/components/layout/Modal"), {
+  ssr: false,
+});
 
 const hideHeaderRoutes = ["/login", "/register", "/forgot-password", "/reset-password", "/set-password", "/first-connection", "/greetings"];
 

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useState, useEffect, useContext } from 'react';
+import { createContext, useState, useEffect, useContext } from 'react';
 
 type User = { id: string; email: string; firstName: string; lastName: string; role: string; companyId?: string } | null;
 

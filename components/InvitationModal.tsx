@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import { useState } from "react";
 import MainButton from "./ui/MainButton";
 import Image from "next/image";
 

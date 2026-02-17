@@ -2,15 +2,19 @@
 import { useParams, useSearchParams } from 'next/navigation';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
+import dynamic from 'next/dynamic';
 import { useUser } from '../../../context/UserContext';
 import MainButton from '@/components/ui/MainButton';
 import BackArrow from '../../../components/ui/BackArrow';
 import CategoryBtn from '@/components/ui/CategoryBtn';
-import Modal from '@/components/layout/Modal';
 import ChoiceLi from '@/components/ui/ChoiceLi';
 import { StepperIndicator } from '@/components/forms/StepperIndicator';
 import { generateDateRange } from '@/lib/utils/dateUtils';
 import { getQuestionsForActivityType } from '@/lib/preferences/questionsConfig';
+
+const Modal = dynamic(() => import('@/components/layout/Modal'), {
+  ssr: false,
+});
 
 const AnswerEventPage = () => {
     const router = useRouter();

@@ -1,5 +1,5 @@
 "use client"
-import React, { useState, FormEvent } from 'react';
+import { useState, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUser } from '../../context/UserContext'; // ✅ Ajouter l'import
 import MainButton from '@/components/ui/MainButton';

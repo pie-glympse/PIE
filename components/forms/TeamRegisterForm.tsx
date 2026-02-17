@@ -1,5 +1,5 @@
 "use client"
-import React, { useState, FormEvent, useRef } from 'react';
+import { useState, FormEvent, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import MainButton from '@/components/ui/MainButton';
 

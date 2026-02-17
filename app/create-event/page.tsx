@@ -1,13 +1,17 @@
 "use client"
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
+import dynamic from 'next/dynamic';
 import MainButton from '@/components/ui/MainButton';
 import BackArrow from '../../components/ui/BackArrow';
-import Modal from '@/components/layout/Modal';
 import { EventTypeCards } from '@/components/ui/EventTypeCard';
 import EventForm from '@/components/forms/EventForm';
 import { UserSelectionStep } from '@/components/forms/UserSelectionStep';
 import { useUser } from '@/context/UserContext';
+
+const Modal = dynamic(() => import('@/components/layout/Modal'), {
+  ssr: false,
+});
 
 const CreateEventPage = () => {
     const router = useRouter();

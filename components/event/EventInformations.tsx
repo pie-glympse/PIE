@@ -1,9 +1,18 @@
 'use client';
 
 import { useState, useCallback } from 'react';
+import dynamic from 'next/dynamic';
 import Image from 'next/image';
-import Map from '@/components/Map';
 import NearbyActivities from '@/components/event/NearbyActivities';
+
+const Map = dynamic(() => import('@/components/Map'), {
+  ssr: false,
+  loading: () => (
+    <div className="w-full h-[600px] rounded overflow-hidden bg-[var(--color-grey-one)] flex items-center justify-center">
+      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[var(--color-main)]"></div>
+    </div>
+  ),
+});
 
 interface EventInformationsProps {
   event: {
