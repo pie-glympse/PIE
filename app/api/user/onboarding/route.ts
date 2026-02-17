@@ -2,7 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
 function safeJson(obj: unknown) {
-  return JSON.parse(JSON.stringify(obj, (_, value) => (typeof value === "bigint" ? value.toString() : value)));
+  return JSON.parse(
+    JSON.stringify(obj, (_, value) =>
+      typeof value === "bigint" ? value.toString() : value,
+    ),
+  );
 }
 
 export async function POST(request: NextRequest) {
@@ -27,8 +31,11 @@ export async function POST(request: NextRequest) {
     });
 
     return NextResponse.json(
-      { message: "Onboarding marqué comme vu", hasSeenOnboarding: updatedUser.hasSeenOnboarding },
-      { status: 200 }
+      {
+        message: "Onboarding marqué comme vu",
+        hasSeenOnboarding: updatedUser.hasSeenOnboarding,
+      },
+      { status: 200 },
     );
   } catch (error) {
     console.error("Erreur lors de la mise à jour de l'onboarding:", error);
@@ -37,7 +44,7 @@ export async function POST(request: NextRequest) {
         error: "Erreur serveur",
         message: error instanceof Error ? error.message : String(error),
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

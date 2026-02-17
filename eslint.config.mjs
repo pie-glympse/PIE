@@ -17,6 +17,12 @@ const eslintConfig = [
       "@typescript-eslint/no-unused-vars": "warn"
     },
   },
+  {
+    files: ["instrumentation.ts"],
+    rules: {
+      "@typescript-eslint/no-require-imports": "off",
+    },
+  },
 ];
 
 export default eslintConfig;
