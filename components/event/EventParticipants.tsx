@@ -1,4 +1,5 @@
 import Image from 'next/image';
+import type { FC } from 'react';
 
 interface Participant {
     id: number;
