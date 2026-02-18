@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { generateETag, isNotModified, addCacheHeaders, CACHE_STRATEGIES } from "@/lib/cache-utils";
 
 export async function GET(
   request: NextRequest,
@@ -32,10 +33,21 @@ export async function GET(
       );
     }
 
-    return NextResponse.json({
+    const companyData = {
       id: company.id.toString(),
       name: company.name,
-    });
+    };
+
+    const etag = generateETag(companyData);
+
+    // Vérifier si le client a déjà la dernière version
+    if (isNotModified(request, etag)) {
+      return new NextResponse(null, { status: 304 });
+    }
+
+    // Créer la réponse avec les headers de cache
+    const response = NextResponse.json(companyData, { status: 200 });
+    return addCacheHeaders(response, CACHE_STRATEGIES.STATIC_DATA, etag);
   } catch (error) {
     console.error("Error fetching company:", error);
     return NextResponse.json(

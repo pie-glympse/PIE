@@ -1,5 +1,6 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { generateETag, isNotModified, addCacheHeaders, CACHE_STRATEGIES } from "@/lib/cache-utils";
 
 function safeJson(obj: unknown) {
   return JSON.parse(
@@ -9,7 +10,7 @@ function safeJson(obj: unknown) {
   );
 }
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const companyId = searchParams.get('companyId');
@@ -36,7 +37,19 @@ export async function GET(request: Request) {
       }
     });
 
-    return NextResponse.json(safeJson(users), { status: 200 });
+    const usersJson = safeJson(users);
+    
+    // Générer un ETag basé sur le companyId et les utilisateurs
+    const etag = generateETag({ companyId, users: usersJson });
+
+    // Vérifier si le client a déjà la dernière version
+    if (isNotModified(request, etag)) {
+      return new NextResponse(null, { status: 304 });
+    }
+
+    // Créer la réponse avec les headers de cache (semi-statique car peut changer)
+    const response = NextResponse.json(usersJson, { status: 200 });
+    return addCacheHeaders(response, CACHE_STRATEGIES.SEMI_STATIC, etag);
   } catch (error) {
     console.error("Erreur récupération users:", error);
     if (error instanceof Error) {

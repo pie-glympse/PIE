@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { addCacheHeaders, CACHE_STRATEGIES } from "@/lib/cache-utils";
 
 // GET - Récupérer toutes les notifications d'un utilisateur
 export async function GET(request: NextRequest) {
@@ -34,7 +35,9 @@ export async function GET(request: NextRequest) {
       createdAt: notif.createdAt.toISOString(),
     }));
 
-    return NextResponse.json(serializedNotifications);
+    // Les notifications sont dynamiques et ne doivent pas être mises en cache
+    const response = NextResponse.json(serializedNotifications);
+    return addCacheHeaders(response, CACHE_STRATEGIES.DYNAMIC);
   } catch (error) {
     console.error("Erreur récupération notifications:", error);
     return NextResponse.json(

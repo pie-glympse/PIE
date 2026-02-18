@@ -1,15 +1,25 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useUser } from "../../context/UserContext";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import GCalendar from "@/components/Gcalendar";
-import Gcard from "@/components/Gcard";
+import dynamic from "next/dynamic";
 import GcardSkeleton from "@/components/GcardSkeleton";
 import ConfirmationModal from "@/components/ui/ConfirmationModal";
 import { EventsSection, type EventType } from "./EventsSection";
+
+const GCalendar = dynamic(() => import("@/components/Gcalendar"), {
+  ssr: false,
+  loading: () => (
+    <div className="h-[280px] rounded-lg bg-gray-100 animate-pulse" />
+  ),
+});
+
+const Gcard = dynamic(() => import("@/components/Gcard"), {
+  ssr: false,
+});
 
 function EventsSectionFallback() {
   return (
@@ -57,13 +67,9 @@ export default function HomePage() {
   } | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
-  const handleFillPreferences = (event: EventType) => {
-    // ✅ Utiliser le nouveau système si l'événement a des questions configurées
-    // Sinon, utiliser l'ancien système
+  const handleFillPreferences = useCallback(async (event: EventType) => {
     if (event.activityType) {
-      const {
-        getQuestionsForActivityType,
-      } = require("@/lib/preferences/questionsConfig");
+      const { getQuestionsForActivityType } = await import("@/lib/preferences/questionsConfig");
       const questions = getQuestionsForActivityType(event.activityType);
       if (questions.length > 0) {
         router.push(
@@ -72,11 +78,10 @@ export default function HomePage() {
         return;
       }
     }
-    // Fallback sur l'ancien système
     router.push(
       `/answer-event/${event.id}?eventTitle=${encodeURIComponent(event.title)}`,
     );
-  };
+  }, [router]);
 
   // Rafraîchir la liste des événements (Suspense refetch via refreshKey)
   const refreshEvents = useCallback(() => setRefreshEventsKey((k) => k + 1), []);
@@ -90,42 +95,41 @@ export default function HomePage() {
     };
   }, [refreshEvents]);
 
-  const adaptEventForGcard = (event: EventType) => {
-    // Assigner différentes images de fond selon les tags
-    const getBackgroundUrl = (tags: { id: string; name: string }[]) => {
-      if (tags.some((tag) => tag.name === "Restauration"))
-        return "/images/illustration/palm.svg";
-      if (tags.some((tag) => tag.name === "Afterwork"))
-        return "/images/illustration/stack.svg";
-      if (tags.some((tag) => tag.name === "Team Building"))
-        return "/images/illustration/roundstar.svg";
-      return "/images/illustration/roundstar.svg"; // Par défaut
-    };
+  const getBackgroundUrl = useCallback((tags: { id: string; name: string }[]) => {
+    if (tags.some((tag) => tag.name === "Restauration"))
+      return "/images/illustration/palm.svg";
+    if (tags.some((tag) => tag.name === "Afterwork"))
+      return "/images/illustration/stack.svg";
+    if (tags.some((tag) => tag.name === "Team Building"))
+      return "/images/illustration/roundstar.svg";
+    return "/images/illustration/roundstar.svg";
+  }, []);
 
+  const adaptEventForGcard = useCallback((event: EventType) => {
     return {
       title: event.title,
       date: event.date || new Date().toISOString(),
-      participants: event.users || [], // Utiliser les vrais participants ou un tableau vide
+      participants: event.users || [],
       backgroundUrl: getBackgroundUrl(event.tags),
-      state: event.state, // ✅ Ajouter l'état de l'événement
+      state: event.state,
     };
-  };
+  }, [getBackgroundUrl]);
 
-  const openDeleteModal = (eventId: string, eventTitle: string) => {
+  const openDeleteModal = useCallback((eventId: string, eventTitle: string) => {
     setDeleteError(null);
     setDeleteModal({
       isOpen: true,
       eventId,
       eventTitle,
     });
-  };
+  }, []);
 
-  const closeDeleteModal = () => {
+  const closeDeleteModal = useCallback(() => {
     setDeleteModal(null);
     setDeleteError(null);
-  };
+  }, []);
 
-  const handleDeleteEvent = async () => {
+  const handleDeleteEvent = useCallback(async () => {
     if (!deleteModal || !user) return;
 
     try {
@@ -149,23 +153,23 @@ export default function HomePage() {
       console.error("Erreur réseau lors de la suppression :", error);
       setDeleteError("Erreur réseau lors de la suppression.");
     }
-  };
+  }, [deleteModal, user, closeDeleteModal, refreshEvents]);
 
-  const openLeaveModal = (event: EventType) => {
+  const openLeaveModal = useCallback((event: EventType) => {
     setLeaveError(null);
     setLeaveModal({
       isOpen: true,
       eventId: event.id,
       eventTitle: event.title,
     });
-  };
+  }, []);
 
-  const closeLeaveModal = () => {
+  const closeLeaveModal = useCallback(() => {
     setLeaveModal(null);
     setLeaveError(null);
-  };
+  }, []);
 
-  const handleLeaveEvent = async () => {
+  const handleLeaveEvent = useCallback(async () => {
     if (!leaveModal || !user) return;
 
     try {
@@ -190,36 +194,30 @@ export default function HomePage() {
       console.error("Erreur réseau lors du départ de l'événement :", error);
       setLeaveError("Erreur réseau lors du départ de l'événement.");
     }
-  };
+  }, [leaveModal, user, closeLeaveModal, refreshEvents]);
 
-  const handleShare = (eventId: string, eventTitle: string) => {
-    // Logique de partage - vous pouvez adapter selon vos besoins
+  const handleShare = useCallback((eventId: string, eventTitle: string) => {
     alert(`Partager l'événement: ${eventTitle}`);
-  };
+  }, []);
 
-  // Fonction pour modifier un événement
-  const handleEditEvent = (eventId: string) => {
+  const handleEditEvent = useCallback((eventId: string) => {
     router.push(`/edit-event/${eventId}`);
-  };
+  }, [router]);
 
-  // Fonction pour copier un événement
-  const handleCopyEvent = (event: EventType) => {
-    // Fonctions utilitaires pour formater les dates et heures
+  const handleCopyEvent = useCallback((event: EventType) => {
     const formatDate = (dateString: string | undefined) => {
       if (!dateString) return "";
       const date = new Date(dateString);
-      return date.toISOString().split("T")[0]; // Format YYYY-MM-DD
+      return date.toISOString().split("T")[0];
     };
 
     const formatTime = (timeString: string | undefined) => {
       if (!timeString) return "";
       const time = new Date(timeString);
-      return time.toTimeString().split(" ")[0].substring(0, 5); // Format HH:MM
+      return time.toTimeString().split(" ")[0].substring(0, 5);
     };
 
-    // Créer les paramètres URL pour pré-remplir le formulaire avec TOUS les champs
     const params = new URLSearchParams();
-
     params.set("copy", "true");
     if (event.title) params.set("title", `${event.title}`);
     if (event.startDate) params.set("startDate", formatDate(event.startDate));
@@ -236,17 +234,17 @@ export default function HomePage() {
     if (event.duration) params.set("duration", event.duration);
     if (event.recurringRate) params.set("recurringRate", event.recurringRate);
 
-    // Rediriger vers la page de création avec les paramètres
     router.push(`/create-event?${params.toString()}`);
-  };
+  }, [router]);
+
+  const isAuthorized = useMemo(() => 
+    user ? ["ADMIN", "SUPER_ADMIN"].includes(user.role) : false,
+    [user]
+  );
 
   if (isLoading) {
     return <div>Chargement...</div>;
   }
-
-  const isAuthorized = user
-    ? ["ADMIN", "SUPER_ADMIN"].includes(user.role)
-    : false;
 
   return (
     <>

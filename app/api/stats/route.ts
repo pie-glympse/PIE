@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { generateETag, isNotModified, addCacheHeaders, CACHE_STRATEGIES } from "@/lib/cache-utils";
 
 function safeJson(obj: unknown) {
   return JSON.parse(
@@ -287,51 +288,60 @@ export async function GET(request: NextRequest) {
       .slice(0, 10)
       .map(([word, count]) => ({ word, count }));
 
-    return NextResponse.json(
-      safeJson({
-        hasEvents: true,
-        overview: {
-          totalEvents,
-          avgParticipationRate: Math.round(avgParticipationRate * 10) / 10,
-          avgRating: Math.round(avgRating * 10) / 10,
-          totalParticipants,
-          topActivities,
-          topTags,
-        },
-        participation: {
-          responseRate: Math.round(responseRate * 10) / 10,
-          totalInvitations,
-          totalResponses,
-          timeSlotCounts,
-        },
-        satisfaction: {
-          avgRating: Math.round(avgRating * 10) / 10,
-          ratingDistribution,
-          totalFeedbacks,
-          topKeywords,
-          topRatedEvents: eventsWithRatings,
-        },
-        trends: {
-          monthlyData: Object.entries(monthlyData)
-            .sort(([a], [b]) => {
-              const dateA = new Date(a);
-              const dateB = new Date(b);
-              return dateA.getTime() - dateB.getTime();
-            })
-            .map(([month, data]) => ({ month, ...data })),
-          topActivities,
-          topTags,
-        },
-        events: events.map((e) => ({
-          id: e.id.toString(),
-          title: e.title,
-          createdAt: e.createdAt,
-          participants: e.users.length,
-          feedbacks: e.feedbacks.length,
-        })),
-      }),
-      { status: 200 }
-    );
+    const statsData = safeJson({
+      hasEvents: true,
+      overview: {
+        totalEvents,
+        avgParticipationRate: Math.round(avgParticipationRate * 10) / 10,
+        avgRating: Math.round(avgRating * 10) / 10,
+        totalParticipants,
+        topActivities,
+        topTags,
+      },
+      participation: {
+        responseRate: Math.round(responseRate * 10) / 10,
+        totalInvitations,
+        totalResponses,
+        timeSlotCounts,
+      },
+      satisfaction: {
+        avgRating: Math.round(avgRating * 10) / 10,
+        ratingDistribution,
+        totalFeedbacks,
+        topKeywords,
+        topRatedEvents: eventsWithRatings,
+      },
+      trends: {
+        monthlyData: Object.entries(monthlyData)
+          .sort(([a], [b]) => {
+            const dateA = new Date(a);
+            const dateB = new Date(b);
+            return dateA.getTime() - dateB.getTime();
+          })
+          .map(([month, data]) => ({ month, ...data })),
+        topActivities,
+        topTags,
+      },
+      events: events.map((e) => ({
+        id: e.id.toString(),
+        title: e.title,
+        createdAt: e.createdAt,
+        participants: e.users.length,
+        feedbacks: e.feedbacks.length,
+      })),
+    });
+
+    // Générer un ETag basé sur les paramètres de requête et les données
+    const etag = generateETag({ userId, period, activityType, city, stats: statsData });
+
+    // Vérifier si le client a déjà la dernière version
+    if (isNotModified(request, etag)) {
+      return new NextResponse(null, { status: 304 });
+    }
+
+    // Créer la réponse avec les headers de cache (semi-statique car dépend des filtres)
+    const response = NextResponse.json(statsData, { status: 200 });
+    return addCacheHeaders(response, CACHE_STRATEGIES.USER_DATA, etag);
   } catch (error) {
     console.error("Erreur lors de la récupération des statistiques:", error);
     return NextResponse.json(

@@ -1,5 +1,6 @@
 import { NextResponse, NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { generateETag, isNotModified, addCacheHeaders, CACHE_STRATEGIES } from "@/lib/cache-utils";
 
 function safeJson(obj: unknown) {
   return JSON.parse(
@@ -76,11 +77,22 @@ export async function GET(
 
     // Map Prisma relation field to `createdBy` for API consumers
     const eventObj: any = { ...event, createdBy };
+    const eventJson = safeJson(eventObj);
 
-    return NextResponse.json(
-      { event: safeJson(eventObj) },
+    // Générer un ETag basé sur l'ID de l'événement et son contenu
+    const etag = generateETag({ eventId: resolvedParams.id, event: eventJson });
+
+    // Vérifier si le client a déjà la dernière version
+    if (isNotModified(request, etag)) {
+      return new NextResponse(null, { status: 304 });
+    }
+
+    // Créer la réponse avec les headers de cache (semi-statique car peut changer)
+    const response = NextResponse.json(
+      { event: eventJson },
       { status: 200 }
     );
+    return addCacheHeaders(response, CACHE_STRATEGIES.SEMI_STATIC, etag);
   } catch (error) {
     console.error("Erreur récupération event:", error);
     return NextResponse.json({ error: "Erreur récupération event" }, { status: 500 });

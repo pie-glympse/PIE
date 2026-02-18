@@ -1,5 +1,6 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { generateETag, isNotModified, addCacheHeaders, CACHE_STRATEGIES } from "@/lib/cache-utils";
 
 export async function POST(request: Request) {
   try {
@@ -292,7 +293,7 @@ export async function POST(request: Request) {
   }
 }
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get('userId');
@@ -351,13 +352,24 @@ export async function GET(request: Request) {
       return { ...ev, createdBy };
     }));
 
-    return NextResponse.json(
-      JSON.parse(
-        JSON.stringify(mapped, (_, value) =>
-          typeof value === "bigint" ? value.toString() : value
-        )
+    const eventsJson = JSON.parse(
+      JSON.stringify(mapped, (_, value) =>
+        typeof value === "bigint" ? value.toString() : value
       )
     );
+
+    // Générer un ETag basé sur le userId et les événements
+    // Inclure le userId dans le hash pour éviter les collisions entre utilisateurs
+    const etag = generateETag({ userId, events: eventsJson });
+
+    // Vérifier si le client a déjà la dernière version
+    if (isNotModified(request, etag)) {
+      return new NextResponse(null, { status: 304 });
+    }
+
+    // Créer la réponse avec les headers de cache (private car spécifique à l'utilisateur)
+    const response = NextResponse.json(eventsJson, { status: 200 });
+    return addCacheHeaders(response, CACHE_STRATEGIES.SEMI_STATIC, etag);
   } catch (error) {
     console.error("Erreur récupération events:", error);
     return NextResponse.json({ error: "Erreur récupération events" }, { status: 500 });

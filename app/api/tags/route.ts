@@ -1,5 +1,6 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { generateETag, isNotModified, addCacheHeaders, CACHE_STRATEGIES } from "@/lib/cache-utils";
 
 function safeJson(obj: unknown) {
   return JSON.parse(
@@ -9,7 +10,7 @@ function safeJson(obj: unknown) {
   );
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     const tags = await prisma.tag.findMany({
       select: {
@@ -21,7 +22,17 @@ export async function GET() {
       }
     });
 
-    return NextResponse.json(safeJson(tags), { status: 200 });
+    const tagsJson = safeJson(tags);
+    const etag = generateETag(tagsJson);
+
+    // Vérifier si le client a déjà la dernière version
+    if (isNotModified(request, etag)) {
+      return new NextResponse(null, { status: 304 });
+    }
+
+    // Créer la réponse avec les headers de cache
+    const response = NextResponse.json(tagsJson, { status: 200 });
+    return addCacheHeaders(response, CACHE_STRATEGIES.STATIC_DATA, etag);
   } catch (error) {
     console.error("Erreur récupération tags:", error);
     return NextResponse.json({ error: "Erreur récupération tags" }, { status: 500 });
