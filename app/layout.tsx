@@ -19,7 +19,11 @@ const poppins = Poppins({
 })
 
 export const metadata: Metadata = {
-  title: "Glyms App",
+  metadataBase: new URL(process.env.NEXT_PUBLIC_BASE_URL || 'https://glyms.app'),
+  title: {
+    default: "Glyms App",
+    template: "%s - Glyms",
+  },
   description: "Glyms facilite la création et gestion d'événements d'entreprise comme les team buildings. Avec Glyms, les collaborateurs sont au cœur du jeu ! Service proposant une solution en fonction des envies et des disponibilités de chacun des collaborateurs d'une entreprise. L'objectif est de personnaliser les activités du CE d'entreprise en fonction des employés.",
 };
 

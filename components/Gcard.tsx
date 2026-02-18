@@ -1,6 +1,6 @@
 "use client";
 import { useRef, useEffect } from "react";
-import type { MouseEvent } from "react";
+import type { MouseEvent as ReactMouseEvent } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 
@@ -63,7 +63,7 @@ export default function EventCard({
 
   // Fermer le dropdown quand on clique en dehors
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
+    const handleClickOutside = (event: globalThis.MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node) && dropdownOpen) {
         onDropdownToggle?.();
       }
@@ -81,7 +81,7 @@ export default function EventCard({
   };
 
   // Fonction pour gérer la redirection vers answer-event
-  const handlePreferencesClick = (e: MouseEvent) => {
+  const handlePreferencesClick = (e: ReactMouseEvent) => {
     e.stopPropagation();
     router.push(`/answer-event/${eventId}?eventTitle=${encodeURIComponent(title)}`);
     onDropdownToggle?.(); // Ferme le dropdown
