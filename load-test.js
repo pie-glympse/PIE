@@ -1,7 +1,8 @@
 import http from "k6/http";
 import { check, sleep } from "k6";
 
-const BASE_URL = __ENV.BASE_URL || "http://localhost:3000";
+// Pour k6 cloud run : obligatoire d'utiliser une URL publique (ex: -e BASE_URL=https://ton-app.vercel.app)
+const BASE_URL = "https://glyms-app.fr";
 const USER_ID = __ENV.USER_ID || "1";
 const COMPANY_ID = __ENV.COMPANY_ID || "1";
 const EVENT_ID = __ENV.EVENT_ID || "1";

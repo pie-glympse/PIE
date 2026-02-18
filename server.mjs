@@ -3,9 +3,12 @@ import next from "next";
 import http from "http";
 
 // initialise pyroscope AVANT Next
+// Credentials: Grafana Cloud → Pyroscope → Send Profiles → Details (URL, User, Password)
 Pyroscope.init({
   appName: "nextjs-api",
-  serverAddress: "http://localhost:4040",
+  serverAddress: process.env.PYROSCOPE_SERVER_URL || "https://profiles-prod-002.grafana.net",
+  basicAuthUser: process.env.PYROSCOPE_BASIC_AUTH_USER || "1529919",
+  basicAuthPassword: process.env.PYROSCOPE_BASIC_AUTH_PASSWORD,
 });
 
 Pyroscope.start();
