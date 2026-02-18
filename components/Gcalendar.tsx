@@ -71,7 +71,6 @@ const MiniCalendar = ({ eventsData = [] }: MiniCalendarProps) => {
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
-  const [calendarMonths, setCalendarMonths] = useState<MonthInfo[]>([]);
 
   const monthNames = useMemo(() => [
     "Janvier",
@@ -88,26 +87,22 @@ const MiniCalendar = ({ eventsData = [] }: MiniCalendarProps) => {
     "Décembre",
   ], []);
 
-  // Générer les mois du calendrier dynamiquement (d'aujourd'hui à dans un an)
-  useEffect(() => {
+  // Mois du calendrier (d'aujourd'hui à dans un an) — calculés dès le premier rendu pour éviter le CLS
+  const calendarMonths = useMemo(() => {
     const today = new Date();
     const oneYearFromNow = new Date(today);
     oneYearFromNow.setFullYear(today.getFullYear() + 1);
-    
     const months: MonthInfo[] = [];
     let currentDate = new Date(today.getFullYear(), today.getMonth(), 1);
-    
     while (currentDate <= oneYearFromNow) {
       months.push({
         name: monthNames[currentDate.getMonth()],
         month: currentDate.getMonth(),
-        year: currentDate.getFullYear()
+        year: currentDate.getFullYear(),
       });
-      // Passer au mois suivant
       currentDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1);
     }
-    
-    setCalendarMonths(months);
+    return months;
   }, [monthNames]);
 
   // Mapping des couleurs pour les types d'événements (activityType)
@@ -515,15 +510,6 @@ const MiniCalendar = ({ eventsData = [] }: MiniCalendarProps) => {
     return (
       <div className="p-4 bg-red-50 text-red-600 rounded-lg">
         Erreur lors du chargement des événements: {fetchError}
-      </div>
-    );
-  }
-
-  // Afficher un loading si en cours de chargement
-  if (isLoading || calendarMonths.length === 0) {
-    return (
-      <div className="p-4 bg-gray-50 text-gray-600 rounded-lg">
-        Chargement du calendrier...
       </div>
     );
   }

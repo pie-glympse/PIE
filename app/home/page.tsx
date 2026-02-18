@@ -1,55 +1,47 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useUser } from "../../context/UserContext";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import GCalendar from "@/components/Gcalendar";
 import Gcard from "@/components/Gcard";
+import GcardSkeleton from "@/components/GcardSkeleton";
 import ConfirmationModal from "@/components/ui/ConfirmationModal";
+import { EventsSection, type EventType } from "./EventsSection";
 
-type EventType = {
-  id: string;
-  uuid: string;
-  title: string;
-  description?: string;
-  date?: string;
-  startDate?: string;
-  endDate?: string;
-  startTime?: string;
-  endTime?: string;
-  maxPersons?: string;
-  costPerPerson?: string;
-  city?: string;
-  maxDistance?: string;
-  activityType?: string;
-  recurring?: boolean;
-  duration?: string;
-  recurringRate?: string;
-  state?: string;
-  createdById?: string;
-  tags: { id: string; name: string }[];
-  users?: {
-    // Ajouter users pour les participants
-    id: string;
-    firstName: string;
-    lastName: string;
-    email: string;
-  }[];
-  createdBy?: {
-    id: string;
-    firstName: string;
-    lastName: string;
-    email: string;
-  };
-};
+function EventsSectionFallback() {
+  return (
+    <>
+      <h2 className="text-xl font-bold text-gray-800 mb-4">
+        Évènements à venir
+      </h2>
+      <div className="flex flex-col md:flex-row gap-4 md:overflow-x-auto md:pb-2">
+        <GcardSkeleton className="w-full md:w-100 h-60 md:flex-shrink-0" />
+        <GcardSkeleton className="w-full md:w-100 h-60 md:flex-shrink-0" />
+        <GcardSkeleton className="w-full md:w-100 h-60 md:flex-shrink-0" />
+        <Link
+          href="/create-event"
+          aria-label="Ajouter un évènement"
+          className="w-full md:w-20 h-60 md:flex-shrink-0 flex items-center justify-center relative bg-white hover:bg-gray-50 transition group rounded-xl border border-dashed border-gray-300"
+        >
+          <span className="text-6xl text-gray-300 font-light">+</span>
+        </Link>
+      </div>
+      <div className="flex justify-end mt-4">
+        <span className="text-body-large font-poppins text-black underline">
+          Tout voir →
+        </span>
+      </div>
+    </>
+  );
+}
 
 export default function HomePage() {
   const { user, isLoading } = useUser();
   const router = useRouter();
-  const [events, setEvents] = useState<EventType[]>([]);
-  const [fetchError, setFetchError] = useState<string | null>(null);
+  const [refreshEventsKey, setRefreshEventsKey] = useState(0);
   const [dropdownEvent, setDropdownEvent] = useState<string | null>(null);
   const [leaveModal, setLeaveModal] = useState<{
     isOpen: boolean;
@@ -69,64 +61,44 @@ export default function HomePage() {
     // ✅ Utiliser le nouveau système si l'événement a des questions configurées
     // Sinon, utiliser l'ancien système
     if (event.activityType) {
-      const { getQuestionsForActivityType } = require('@/lib/preferences/questionsConfig');
+      const {
+        getQuestionsForActivityType,
+      } = require("@/lib/preferences/questionsConfig");
       const questions = getQuestionsForActivityType(event.activityType);
       if (questions.length > 0) {
-        router.push(`/event-preferences/${event.id}?eventTitle=${encodeURIComponent(event.title)}`);
+        router.push(
+          `/event-preferences/${event.id}?eventTitle=${encodeURIComponent(event.title)}`,
+        );
         return;
       }
     }
     // Fallback sur l'ancien système
-    router.push(`/answer-event/${event.id}?eventTitle=${encodeURIComponent(event.title)}`);
+    router.push(
+      `/answer-event/${event.id}?eventTitle=${encodeURIComponent(event.title)}`,
+    );
   };
 
-  // Fonction pour récupérer les événements
-  const fetchEvents = async () => {
-    if (!user) return;
-    
-    try {
-      const res = await fetch(`/api/events?userId=${user.id}`);
-      if (!res.ok) throw new Error("Erreur lors de la récupération des événements");
-      const data = await res.json();
-      setEvents(data);
-      setFetchError(null);
-    } catch (err) {
-      setFetchError(err instanceof Error ? err.message : "Erreur lors de la récupération");
-    }
-  };
+  // Rafraîchir la liste des événements (Suspense refetch via refreshKey)
+  const refreshEvents = useCallback(() => setRefreshEventsKey((k) => k + 1), []);
 
-  // Récupérer les événements depuis l'API
   useEffect(() => {
-    if (!isLoading && user) {
-      fetchEvents();
-    }
-  }, [isLoading, user]);
-
-  // Écouter les mises à jour d'événements (après acceptation d'invitation, etc.)
-  useEffect(() => {
-    const handleEventsUpdate = () => {
-      if (user) {
-        fetchEvents();
-      }
-    };
-
-    // Écouter l'événement de mise à jour des notifications (déclenché après acceptation d'invitation)
-    window.addEventListener("notificationsUpdated", handleEventsUpdate);
-    // Écouter aussi un événement spécifique pour les mises à jour d'événements
-    window.addEventListener("eventsUpdated", handleEventsUpdate);
-
+    window.addEventListener("notificationsUpdated", refreshEvents);
+    window.addEventListener("eventsUpdated", refreshEvents);
     return () => {
-      window.removeEventListener("notificationsUpdated", handleEventsUpdate);
-      window.removeEventListener("eventsUpdated", handleEventsUpdate);
+      window.removeEventListener("notificationsUpdated", refreshEvents);
+      window.removeEventListener("eventsUpdated", refreshEvents);
     };
-  }, [user]);
+  }, [refreshEvents]);
 
   const adaptEventForGcard = (event: EventType) => {
     // Assigner différentes images de fond selon les tags
     const getBackgroundUrl = (tags: { id: string; name: string }[]) => {
-      if (tags.some((tag) => tag.name === "Restauration")) return "/images/illustration/palm.svg";
-      if (tags.some((tag) => tag.name === "Afterwork")) return "/images/illustration/stack.svg";
-      if (tags.some((tag) => tag.name === "Team Building")) return "/images/illustration/roundstar.svg";
+      if (tags.some((tag) => tag.name === "Restauration"))
+        return "/images/illustration/palm.svg";
+      if (tags.some((tag) => tag.name === "Afterwork"))
+        return "/images/illustration/stack.svg";
+      if (tags.some((tag) => tag.name === "Team Building"))
+        return "/images/illustration/roundstar.svg";
       return "/images/illustration/roundstar.svg"; // Par défaut
     };
 
@@ -165,12 +137,13 @@ export default function HomePage() {
         body: JSON.stringify({ userId: user.id }),
       });
       if (res.ok) {
-        // Mise à jour locale en supprimant l'event supprimé
-        setEvents((prev) => prev.filter((event) => event.id !== deleteModal.eventId));
         closeDeleteModal();
+        refreshEvents();
       } else {
         const errorData = await res.json();
-        setDeleteError(errorData.error || "Erreur lors de la suppression de l'événement.");
+        setDeleteError(
+          errorData.error || "Erreur lors de la suppression de l'événement.",
+        );
       }
     } catch (error) {
       console.error("Erreur réseau lors de la suppression :", error);
@@ -205,11 +178,13 @@ export default function HomePage() {
       });
 
       if (response.ok) {
-        setEvents((prev) => prev.filter((event) => event.id !== leaveModal.eventId));
         closeLeaveModal();
+        refreshEvents();
       } else {
         const errorData = await response.json();
-        setLeaveError(errorData.error || "Erreur lors du départ de l'événement.");
+        setLeaveError(
+          errorData.error || "Erreur lors du départ de l'événement.",
+        );
       }
     } catch (error) {
       console.error("Erreur réseau lors du départ de l'événement :", error);
@@ -256,7 +231,8 @@ export default function HomePage() {
     if (event.city) params.set("city", event.city);
     if (event.maxDistance) params.set("maxDistance", event.maxDistance);
     if (event.activityType) params.set("activityType", event.activityType);
-    if (event.recurring !== undefined) params.set("recurring", event.recurring.toString());
+    if (event.recurring !== undefined)
+      params.set("recurring", event.recurring.toString());
     if (event.duration) params.set("duration", event.duration);
     if (event.recurringRate) params.set("recurringRate", event.recurringRate);
 
@@ -268,7 +244,9 @@ export default function HomePage() {
     return <div>Chargement...</div>;
   }
 
-  const isAuthorized = user ? ["ADMIN", "SUPER_ADMIN"].includes(user.role) : false;
+  const isAuthorized = user
+    ? ["ADMIN", "SUPER_ADMIN"].includes(user.role)
+    : false;
 
   return (
     <>
@@ -329,78 +307,128 @@ export default function HomePage() {
 
         {/* Évènements à venir */}
         <section className="flex flex-col">
-          <h2 className="text-xl font-bold text-gray-800 mb-4">
-            {events.length > 0 ? "Évènements à venir" : "Pas d'évènement à venir"}
-          </h2>
-
-          {fetchError && <p className="text-red-600 font-semibold mb-4">{fetchError}</p>}
-
-          {/* Container responsive pour les cartes */}
-          <div className="flex flex-col md:flex-row gap-4 md:overflow-x-auto md:pb-2">
-            {events.length === 0 && !fetchError && <p className="text-gray-500">Aucun événement trouvé.</p>}
-
-            {events.slice(0, 3).map((event) => {
-              // Comparer les IDs en tant que strings pour éviter les problèmes de type
-              const isCreator = !!(user && event.createdBy?.id && String(event.createdBy.id) === String(user.id));
-              const isParticipant = event.users?.some((u) => String(u.id) === String(user?.id)) || false;
-              const canLeave = !isCreator && isParticipant;
-
-              return (
-                <Gcard
-                  eventId={event.id}
-                  key={event.id}
-                  {...adaptEventForGcard(event)}
-                  className="w-full md:w-100 h-60 md:flex-shrink-0"
-                  dropdownOpen={dropdownEvent === event.id}
-                  onDropdownToggle={() => setDropdownEvent(dropdownEvent === event.id ? null : event.id)}
-                  isAuthorized={isAuthorized}
-                  onShare={() => handleShare(event.id, event.title)}
-                  onPreferences={() => handleFillPreferences(event)}
-                  onDelete={() => openDeleteModal(event.id, event.title)}
-                  onCopy={() => handleCopyEvent(event)}
-                  onEdit={isCreator ? () => handleEditEvent(event.id) : undefined}
-                  canLeave={canLeave}
-                  onLeave={canLeave ? () => openLeaveModal(event) : undefined}
-                  isCreator={isCreator}
-                  showPreferencesButton={true} // ou logique selon si l'utilisateur a déjà des préférences
-                />
-              );
-            })}
-
-            {/* Bouton Ajouter */}
-            <Link
-              href="/create-event"
-              aria-label="Ajouter un évènement"
-              className="w-full md:w-20 h-60 md:flex-shrink-0 flex items-center justify-center relative bg-white hover:bg-gray-50 transition group rounded-xl"
+          {user && (
+            <EventsSection
+              userId={user.id}
+              refreshKey={refreshEventsKey}
+              fallback={<EventsSectionFallback />}
             >
-              <svg
-                className="absolute inset-0 w-full h-full"
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 100 240"
-                preserveAspectRatio="none"
-              >
-                <rect
-                  x="2"
-                  y="2"
-                  width="96"
-                  height="236"
-                  rx="12"
-                  fill="none"
-                  stroke="#FCC638"
-                  strokeWidth="2"
-                  strokeDasharray="12 8"
-                />
-              </svg>
-              <span className="relative z-10 text-6xl text-yellow-400 font-light">+</span>
-            </Link>
-          </div>
+                {({ events, error }) => (
+                  <>
+                    <h2 className="text-xl font-bold text-gray-800 mb-4">
+                      {events.length > 0
+                        ? "Évènements à venir"
+                        : "Pas d'évènement à venir"}
+                    </h2>
+                    {error && (
+                      <p className="text-red-600 font-semibold mb-4">
+                        {error}
+                      </p>
+                    )}
+                    <div className="flex flex-col md:flex-row gap-4 md:overflow-x-auto md:pb-2">
+                      {events.length === 0 && !error && (
+                        <p className="text-gray-500">
+                          Aucun événement trouvé.
+                        </p>
+                      )}
+                      {events.slice(0, 3).map((event) => {
+                        const isCreator = !!(
+                          event.createdBy?.id &&
+                          String(event.createdBy.id) === String(user.id)
+                        );
+                        const isParticipant =
+                          event.users?.some(
+                            (u) => String(u.id) === String(user?.id)
+                          ) ?? false;
+                        const canLeave = !isCreator && isParticipant;
 
-          {/* Lien "Tout voir" */}
-          <div className="flex justify-end mt-4">
-            <Link href="/events" className="text-body-large font-poppins text-black underline">
-              Tout voir →
-            </Link>
-          </div>
+                        return (
+                          <Gcard
+                            key={event.id}
+                            eventId={event.id}
+                            {...adaptEventForGcard(event)}
+                            className="w-full md:w-100 h-60 md:flex-shrink-0"
+                            dropdownOpen={dropdownEvent === event.id}
+                            onDropdownToggle={() =>
+                              setDropdownEvent(
+                                dropdownEvent === event.id ? null : event.id
+                              )
+                            }
+                            isAuthorized={isAuthorized}
+                            onShare={() => handleShare(event.id, event.title)}
+                            onPreferences={() => handleFillPreferences(event)}
+                            onDelete={() =>
+                              openDeleteModal(event.id, event.title)
+                            }
+                            onCopy={() => handleCopyEvent(event)}
+                            onEdit={
+                              isCreator
+                                ? () => handleEditEvent(event.id)
+                                : undefined
+                            }
+                            canLeave={canLeave}
+                            onLeave={
+                              canLeave
+                                ? () => openLeaveModal(event)
+                                : undefined
+                            }
+                            isCreator={isCreator}
+                            showPreferencesButton={true}
+                          />
+                        );
+                      })}
+
+                      {/* Bouton Ajouter */}
+                      <Link
+                        href="/create-event"
+                        aria-label="Ajouter un évènement"
+                        className="w-full md:w-20 h-60 md:flex-shrink-0 flex items-center justify-center relative bg-white hover:bg-gray-50 transition group rounded-xl"
+                      >
+                        <svg
+                          className="absolute inset-0 w-full h-full"
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 100 240"
+                          preserveAspectRatio="none"
+                        >
+                          <rect
+                            x="2"
+                            y="2"
+                            width="96"
+                            height="236"
+                            rx="12"
+                            fill="none"
+                            stroke="#FCC638"
+                            strokeWidth="2"
+                            strokeDasharray="12 8"
+                          />
+                        </svg>
+                        <span className="relative z-10 text-6xl text-yellow-400 font-light">
+                          +
+                        </span>
+                      </Link>
+                    </div>
+
+                    <div className="flex justify-end mt-4">
+                      <Link
+                        href="/events"
+                        className="text-body-large font-poppins text-black underline"
+                      >
+                        Tout voir →
+                      </Link>
+                    </div>
+                  </>
+                )}
+            </EventsSection>
+          )}
+
+          {!user && (
+            <>
+              <h2 className="text-xl font-bold text-gray-800 mb-4">
+                Pas d&apos;évènement à venir
+              </h2>
+              <p className="text-gray-500">Connectez-vous pour voir vos événements.</p>
+            </>
+          )}
         </section>
 
         {leaveModal && (

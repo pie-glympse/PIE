@@ -67,13 +67,13 @@ const getPositionClasses = (position: Position): string => {
     case "bottom-left":
       return `${baseClasses} bottom-0 left-0`;
     case "bottom-center":
-      return `${baseClasses} bottom-0 left-1/2 transform -translate-x-1/2`;
+      return `${baseClasses} bottom-0 left-1/2`;
     case "top-right":
       return `${baseClasses} top-0 right-0`;
     case "top-left":
       return `${baseClasses} top-0 left-0`;
     case "top-center":
-      return `${baseClasses} top-0 left-1/2 transform -translate-x-1/2`;
+      return `${baseClasses} top-0 left-1/2`;
     default:
       return `${baseClasses} bottom-0 right-0`;
   }
