@@ -80,15 +80,15 @@ export const CACHE_STRATEGIES = {
   // Ressources statiques (images, fonts, etc.) - 1 an
   STATIC: "public, max-age=31536000, immutable",
   
-  // Données statiques (tags, company) - 1 heure avec revalidation
-  STATIC_DATA: "public, s-maxage=3600, stale-while-revalidate=86400",
+  // Données statiques (tags, company) - Cache navigateur 24h, CDN 5min (optimisé client)
+  STATIC_DATA: "public, max-age=86400, s-maxage=300",
   
-  // Données semi-statiques (events, users) - 5 minutes avec revalidation
-  SEMI_STATIC: "private, max-age=300, stale-while-revalidate=600",
+  // Données semi-statiques (events, users) - Cache navigateur 30min, CDN 1min (optimisé client)
+  SEMI_STATIC: "private, max-age=1800, s-maxage=60",
   
   // Données dynamiques (notifications) - Pas de cache
   DYNAMIC: "no-cache, no-store, must-revalidate",
   
-  // Données utilisateur spécifiques - Cache court avec revalidation
-  USER_DATA: "private, max-age=60, stale-while-revalidate=120",
+  // Données utilisateur spécifiques - Cache navigateur 5min, CDN 30s (optimisé client)
+  USER_DATA: "private, max-age=300, s-maxage=30",
 } as const;
