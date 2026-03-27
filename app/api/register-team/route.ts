@@ -2,10 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import { randomBytes } from "node:crypto";
-import { Resend } from "resend";
+import { render } from "@react-email/render";
 import { SetPasswordEmailTemplate } from "@/components/set-password-email-template";
-
-const resend = new Resend(process.env.RESEND_API_KEY);
+import { sendEmail } from "@/lib/brevo";
 
 interface CSVRow {
     email: string;
@@ -20,14 +19,14 @@ function parseCSV(text: string): CSVRow[] {
     // Détecter si la première ligne est un header
     const firstLine = lines[0].toLowerCase();
     const hasHeader = firstLine.includes('email') && (firstLine.includes('prenom') || firstLine.includes('prénom') || firstLine.includes('firstname') || firstLine.includes('first name'));
-    
+
     const dataLines = hasHeader ? lines.slice(1) : lines;
-    
+
     return dataLines.map(line => {
         // Gérer les virgules et points-virgules comme séparateurs
         const parts = line.includes(';') ? line.split(';') : line.split(',');
         const trimmedParts = parts.map(p => p.trim().replace(/^"|"$/g, ''));
-        
+
         return {
             email: trimmedParts[0] || '',
             firstName: trimmedParts[1] || '',
@@ -77,7 +76,7 @@ export async function POST(req: NextRequest) {
         const ownerEmail = email.toLowerCase().trim();
         const employeeEmails = employees.map(e => e.email.toLowerCase().trim());
         const allEmails = [ownerEmail, ...employeeEmails];
-        
+
         const existingUsers = await prisma.user.findMany({
             where: {
                 email: { in: allEmails }
@@ -120,7 +119,7 @@ export async function POST(req: NextRequest) {
         // Créer le patron (admin) - on génère un mot de passe temporaire
         const tempPassword = randomBytes(16).toString('hex');
         const hashedTempPassword = await bcrypt.hash(tempPassword, 10);
-        
+
         const owner = await prisma.user.create({
             data: {
                 email: ownerEmail,
@@ -147,7 +146,6 @@ export async function POST(req: NextRequest) {
             }
         });
 
-        // Log pour vérifier que le token est bien créé
         console.log("Token créé pour le patron:", {
             email: ownerEmail,
             tokenId: ownerTokenRecord.id.toString(),
@@ -162,21 +160,24 @@ export async function POST(req: NextRequest) {
 
         const isDevelopment = process.env.NODE_ENV === "development";
         const ownerRecipientEmail = isDevelopment
-            ? process.env.RESEND_TEST_EMAIL || "glyms.app@gmail.com"
+            ? process.env.BREVO_TEST_EMAIL || "glyms.app@gmail.com"
             : ownerEmail;
 
-        await resend.emails.send({
-            from: process.env.RESEND_FROM_EMAIL || "Glyms <onboarding@resend.dev>",
-            to: [ownerRecipientEmail],
+        const ownerHtml = await render(
+            SetPasswordEmailTemplate({
+                setPasswordLink: ownerSetPasswordLink,
+                userEmail: ownerEmail,
+                firstName,
+                isOwner: true,
+            })
+        );
+
+        await sendEmail({
+            to: [{ email: ownerRecipientEmail, name: `${firstName} ${lastName}` }],
             subject: isDevelopment
                 ? `[TEST] Créez votre mot de passe Glyms - ${ownerEmail}`
                 : "Créez votre mot de passe - Glyms",
-            react: SetPasswordEmailTemplate({
-                setPasswordLink: ownerSetPasswordLink,
-                userEmail: ownerEmail,
-                firstName: firstName,
-                isOwner: true
-            }),
+            html: ownerHtml,
         });
 
         // Créer les utilisateurs de l'équipe
@@ -185,15 +186,15 @@ export async function POST(req: NextRequest) {
 
         for (const employee of employees) {
             try {
-                const email = employee.email.toLowerCase().trim();
-                
+                const employeeEmail = employee.email.toLowerCase().trim();
+
                 // Vérifier si l'email existe déjà (double vérification)
                 const existing = await prisma.user.findUnique({
-                    where: { email }
+                    where: { email: employeeEmail }
                 });
 
                 if (existing) {
-                    errors.push(`Email ${email} déjà utilisé`);
+                    errors.push(`Email ${employeeEmail} déjà utilisé`);
                     continue;
                 }
 
@@ -204,7 +205,7 @@ export async function POST(req: NextRequest) {
                 // Créer l'utilisateur
                 const user = await prisma.user.create({
                     data: {
-                        email,
+                        email: employeeEmail,
                         password: hashedPwd,
                         firstName: employee.firstName || '',
                         lastName: employee.lastName || '',
@@ -221,16 +222,15 @@ export async function POST(req: NextRequest) {
                 const tokenRecord = await prisma.passwordResetToken.create({
                     data: {
                         token,
-                        email,
+                        email: employeeEmail,
                         userId: user.id,
                         expiresAt,
                         used: false
                     }
                 });
 
-                // Log pour vérifier que le token est bien créé
                 console.log("Token créé pour:", {
-                    email,
+                    email: employeeEmail,
                     tokenId: tokenRecord.id.toString(),
                     tokenLength: token.length,
                     tokenPreview: token.substring(0, 10) + "...",
@@ -238,24 +238,27 @@ export async function POST(req: NextRequest) {
                 });
 
                 // Envoyer l'email
-                const setPasswordLink = `${baseUrl}/set-password?token=${token}&email=${encodeURIComponent(email)}`;
-                
-                const recipientEmail = isDevelopment
-                    ? process.env.RESEND_TEST_EMAIL || "glyms.app@gmail.com"
-                    : email;
+                const setPasswordLink = `${baseUrl}/set-password?token=${token}&email=${encodeURIComponent(employeeEmail)}`;
 
-                await resend.emails.send({
-                    from: process.env.RESEND_FROM_EMAIL || "Glyms <onboarding@resend.dev>",
-                    to: [recipientEmail],
-                    subject: isDevelopment
-                        ? `[TEST] Créez votre mot de passe Glyms - ${email}`
-                        : "Créez votre mot de passe - Glyms",
-                    react: SetPasswordEmailTemplate({
+                const recipientEmail = isDevelopment
+                    ? process.env.BREVO_TEST_EMAIL || "glyms.app@gmail.com"
+                    : employeeEmail;
+
+                const employeeHtml = await render(
+                    SetPasswordEmailTemplate({
                         setPasswordLink,
-                        userEmail: email,
+                        userEmail: employeeEmail,
                         firstName: employee.firstName || '',
-                        isOwner: false
-                    }),
+                        isOwner: false,
+                    })
+                );
+
+                await sendEmail({
+                    to: [{ email: recipientEmail, name: `${employee.firstName} ${employee.lastName}` }],
+                    subject: isDevelopment
+                        ? `[TEST] Créez votre mot de passe Glyms - ${employeeEmail}`
+                        : "Créez votre mot de passe - Glyms",
+                    html: employeeHtml,
                 });
 
                 usersCreated++;

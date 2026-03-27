@@ -1,22 +1,18 @@
 import { EmailTemplate } from "@/components/email-template";
-import { Resend } from "resend";
-
-const resend = new Resend(process.env.RESEND_API_KEY);
+import { render } from "@react-email/render";
+import { sendEmail } from "@/lib/brevo";
 
 export async function POST() {
   try {
-    const { data, error } = await resend.emails.send({
-      from: "Acme <onboarding@resend.dev>",
-      to: ["delivered@resend.dev"],
+    const html = await render(EmailTemplate({ firstName: "John" }));
+
+    await sendEmail({
+      to: [{ email: "delivered@example.com", name: "John" }],
       subject: "Hello world",
-      react: EmailTemplate({ firstName: "John" }),
+      html,
     });
 
-    if (error) {
-      return Response.json({ error }, { status: 500 });
-    }
-
-    return Response.json(data);
+    return Response.json({ message: "Email envoyé" });
   } catch (error) {
     return Response.json({ error }, { status: 500 });
   }
