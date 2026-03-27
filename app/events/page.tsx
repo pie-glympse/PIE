@@ -11,6 +11,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { EventList } from "@/components/event/EventList";
 import { useEvents, filterEventsByStatus, type EventType } from "@/hooks/useEvents";
 import { useEventPreferences } from "@/hooks/useEventPreferences";
+import { EventListSkeleton } from "@/components/event/EventListSkeleton";
 import ConfirmationModal from "@/components/ui/ConfirmationModal";
 
 const TAGS = [
@@ -126,7 +127,20 @@ export default function EventForm() {
   }, [isLoading, user, user?.companyId]);
 
   if (isLoading || eventsLoading) {
-    return <div>Chargement...</div>;
+    return (
+      <section className="overflow-y-auto md:overflow-hidden pt-24 p-10 flex flex-col gap-8">
+        <div className="h-full w-full flex flex-col gap-6 items-start p-4 md:p-10">
+          <div className="h-8 w-48 rounded bg-gray-200 animate-pulse" />
+          <div className="h-10 w-72 rounded bg-gray-200 animate-pulse" />
+          <div className="flex gap-2">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="h-9 w-24 rounded-full bg-gray-200 animate-pulse" />
+            ))}
+          </div>
+          <EventListSkeleton count={6} viewMode={viewMode} />
+        </div>
+      </section>
+    );
   }
 
   if (!user) return null;

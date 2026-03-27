@@ -7,6 +7,7 @@ import ShareButton from "@/components/ui/ShareButton";
 import TabNavigation from "@/components/ui/TabNavigation";
 import EventInformations from "@/components/event/EventInformations";
 import EventParticipants from "@/components/event/EventParticipants";
+import EventParticipantsSkeleton from "@/components/event/EventParticipantsSkeleton";
 import EventDocuments from "@/components/event/EventDocuments";
 import { useUser } from "@/context/UserContext";
 import ConfirmationModal from "@/components/ui/ConfirmationModal";
@@ -330,8 +331,24 @@ export default function SingleEventPage() {
 
   if (loading) {
     return (
-      <div className="flex h-screen items-center justify-center">
-        <div>Chargement de l&apos;événement...</div>
+      <div className="overflow-y-auto pt-24 px-6 md:px-12 pb-10 flex flex-col gap-6 max-w-6xl mx-auto">
+        {/* Header skeleton */}
+        <div className="flex items-center justify-between animate-pulse">
+          <div className="h-6 w-6 rounded bg-gray-200" />
+          <div className="h-6 w-6 rounded bg-gray-200" />
+        </div>
+        <div className="flex items-center gap-4 animate-pulse">
+          <div className="h-8 w-64 rounded bg-gray-200" />
+          <div className="h-6 w-20 rounded-full bg-gray-200" />
+        </div>
+        {/* Tabs skeleton */}
+        <div className="flex gap-4 animate-pulse">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="h-9 w-28 rounded bg-gray-200" />
+          ))}
+        </div>
+        {/* Participants skeleton */}
+        <EventParticipantsSkeleton count={6} />
       </div>
     );
   }

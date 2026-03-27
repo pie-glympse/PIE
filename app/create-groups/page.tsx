@@ -3,8 +3,10 @@
 import { useState } from "react";
 import { useTeamsData, type User, type Team } from "./hooks/useTeamsData";
 import { TeamsSidebar } from "./components/TeamsSidebar";
+import { TeamsSidebarSkeleton } from "./components/TeamsSidebarSkeleton";
 import { TeamHeader } from "./components/TeamHeader";
 import { UserList } from "./components/UserList";
+import { UserListSkeleton } from "./components/UserListSkeleton";
 import { CreateTeamModal } from "./components/CreateTeamModal";
 import { AddUserModal } from "./components/AddUserModal";
 import {
@@ -151,7 +153,17 @@ const CreateGroupsPage = () => {
   };
 
   if (isLoading) {
-    return <div>Chargement...</div>;
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <div className="flex fixed top-22 left-0 right-0 bottom-0">
+          <TeamsSidebarSkeleton />
+          <div className="flex-1 flex flex-col p-10">
+            <div className="h-8 w-48 rounded bg-gray-200 animate-pulse mb-6" />
+            <UserListSkeleton count={8} isAdmin={false} />
+          </div>
+        </div>
+      </div>
+    );
   }
 
   if (!user) {

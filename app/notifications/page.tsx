@@ -240,7 +240,29 @@ export default function NotificationsPage() {
   const totalNotifications = notifications.length;
 
   if (isLoading || loading) {
-    return <div className="pt-24 p-10">Chargement...</div>;
+    return (
+      <main className="h-screen overflow-y-auto pt-24 p-10 flex flex-col gap-6">
+        <div className="h-full w-full flex flex-col gap-4 items-start p-10">
+          <div className="h-6 w-6 rounded bg-gray-200 animate-pulse" />
+          <div className="h-8 w-64 rounded bg-gray-200 animate-pulse" />
+          <div className="h-5 w-20 rounded bg-gray-200 animate-pulse mt-2" />
+          <div className="space-y-2 w-full">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="flex items-center gap-3 animate-pulse">
+                <div className="flex-1 h-12 rounded-lg bg-gray-100" />
+                <div className="w-5 h-5 rounded bg-gray-200 flex-shrink-0" />
+              </div>
+            ))}
+          </div>
+          <div className="h-5 w-24 rounded bg-gray-200 animate-pulse mt-4" />
+          <div className="space-y-2 w-full">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="h-12 rounded-lg bg-gray-100 animate-pulse" />
+            ))}
+          </div>
+        </div>
+      </main>
+    );
   }
 
   return (
