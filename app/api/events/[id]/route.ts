@@ -30,12 +30,8 @@ export async function GET(
     const event = await prisma.event.findUnique({
       where: { id: eventId },
       include: {
-        tags: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
+        selectedGoogleTags: true,
+        confirmedGoogleTag: true,
         users: {
           select: {
             id: true,
@@ -166,7 +162,8 @@ export async function PUT(
       where: { id: eventId },
       data: updateData,
       include: {
-        tags: true,
+        selectedGoogleTags: true,
+        confirmedGoogleTag: true,
         users: {
           select: {
             id: true,

@@ -24,7 +24,7 @@ model User {
   companyStats                  CompanyStats?
   Event_Event_createdByIdToUser Event[]                     @relation("Event_createdByIdToUser")
   preferences                   EventUserPreference[]
-  preferenceAnswers             EventUserPreferenceAnswer[]
+  themeVotes                    EventThemeVote[]
   photos                        EventsUsersPhoto[]
   feedbacks                     Feedback[]
   notifications                 Notification[]
@@ -65,7 +65,6 @@ model Event {
   createdAt                    DateTime                    @default(now())
   updatedAt                    DateTime
   uuid                         String                      @unique @default(uuid())
-  activityType                 String?
   city                         String?
   endDate                      DateTime?
   endTime                      DateTime?
@@ -76,53 +75,58 @@ model Event {
   duration                     Int?
   recurring                    Boolean                     @default(false)
   recurringRate                String?
-  confirmedGoogleMapsTags      String[]                    @default([])
+  isSpecificPlace              Boolean                     @default(false)
+  confirmedGoogleTagId         BigInt?
   blacklistedPlaces            BlacklistedPlace[]
   User_Event_createdByIdToUser User?                       @relation("Event_createdByIdToUser", fields: [createdById], references: [id])
   location                     EventLocation?
   preferences                  EventUserPreference[]
-  preferenceAnswers            EventUserPreferenceAnswer[]
+  themeVotes                   EventThemeVote[]
   photos                       EventsUsersPhoto[]
   feedbacks                    Feedback[]
   notifications                Notification[]
   votes                        Vote[]
-  tags                         Tag[]                       @relation("EventTags")
+  selectedGoogleTags           GoogleTag[]                 @relation("EventSelectedGoogleTags")
+  confirmedGoogleTag           GoogleTag?                  @relation("EventConfirmedGoogleTag", fields: [confirmedGoogleTagId], references: [id])
   users                        User[]                      @relation("EventUsers")
 }
 
-model Tag {
-  id          BigInt                @id
-  name        String
-  preferences EventUserPreference[]
-  events      Event[]               @relation("EventTags")
+model GoogleTag {
+  id          BigInt   @id @default(autoincrement())
+  techName    String   @unique @map("tech_name")
+  displayName String?  @map("display_name")
+  source      String   @default("google-docs")
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  selectedByEvents Event[]         @relation("EventSelectedGoogleTags")
+  confirmedOnEvents Event[]        @relation("EventConfirmedGoogleTag")
+  themeVotes       EventThemeVote[]
+
+  @@map("google_tags")
 }
 
 model EventUserPreference {
   userId         BigInt
   eventId        BigInt
   preferredDate  DateTime
-  tagId          BigInt?
-  googleMapsTags Json?
-  event          Event                       @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  tag            Tag?                        @relation(fields: [tagId], references: [id])
-  user           User                        @relation(fields: [userId], references: [id])
-  answers        EventUserPreferenceAnswer[]
+  event          Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user           User  @relation(fields: [userId], references: [id])
 
   @@id([userId, eventId])
 }
 
-model EventUserPreferenceAnswer {
-  id         BigInt              @id @default(autoincrement())
+model EventThemeVote {
   userId     BigInt
   eventId    BigInt
-  questionId String
-  answerIds  String[]
-  event      Event               @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  preference EventUserPreference @relation(fields: [userId, eventId], references: [userId, eventId], onDelete: Cascade)
-  user       User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  googleTagId BigInt
+  createdAt   DateTime @default(now())
+  event       Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  googleTag   GoogleTag @relation(fields: [googleTagId], references: [id], onDelete: Cascade)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([userId, eventId, questionId])
-  @@index([userId, eventId])
+  @@id([userId, eventId, googleTagId])
+  @@index([eventId, googleTagId])
 }
 
 model EventsUsersPhoto {

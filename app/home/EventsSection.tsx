@@ -16,20 +16,23 @@ export type EventType = {
   costPerPerson?: string;
   city?: string;
   maxDistance?: string;
-  activityType?: string;
+  isSpecificPlace?: boolean;
   recurring?: boolean;
   duration?: string;
   recurringRate?: string;
   state?: string;
   createdById?: string;
-  tags: { id: string; name: string }[];
+  selectedGoogleTags?: { id: string; techName: string; displayName?: string | null }[];
+  confirmedGoogleTag?: { id: string; techName: string; displayName?: string | null } | null;
   users?: { id: string; firstName: string; lastName: string; email: string }[];
   createdBy?: { id: string; firstName: string; lastName: string; email: string };
 };
 
 function fetchEvents(userId: string): Promise<{ events: EventType[]; error: string | null }> {
   const uid = typeof userId === "bigint" ? String(userId) : String(userId ?? "");
-  return fetch(`/api/events?userId=${encodeURIComponent(uid)}`)
+  return fetch(`/api/events?userId=${encodeURIComponent(uid)}&_ts=${Date.now()}`, {
+    cache: "no-store",
+  })
     .then((res) => {
       if (!res.ok) throw new Error("Erreur lors de la récupération des événements");
       return res.json();

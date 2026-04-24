@@ -56,7 +56,6 @@ export default function StatsPage() {
   const [stats, setStats] = useState<StatsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState("all");
-  const [activityType, setActivityType] = useState("all");
   const [city, setCity] = useState("all");
 
   useEffect(() => {
@@ -69,7 +68,7 @@ export default function StatsPage() {
     if (user) {
       fetchStats();
     }
-  }, [user, period, activityType, city]);
+  }, [user, period, city]);
 
   const fetchStats = async () => {
     if (!user) return;
@@ -80,7 +79,6 @@ export default function StatsPage() {
         userId: user.id.toString(),
         period,
       });
-      if (activityType !== "all") params.append("activityType", activityType);
       if (city !== "all") params.append("city", city);
 
       const response = await fetch(`/api/stats?${params.toString()}`);
@@ -267,18 +265,6 @@ export default function StatsPage() {
             <option value="month">Ce mois</option>
             <option value="quarter">Ce trimestre</option>
             <option value="year">Cette année</option>
-          </select>
-          <select
-            value={activityType}
-            onChange={(e) => setActivityType(e.target.value)}
-            className="px-4 py-2 border-2 border-[var(--color-grey-two)] rounded-lg font-poppins text-body-small bg-white"
-          >
-            <option value="all">Tous les types</option>
-            {stats.overview?.topActivities.map((activity) => (
-              <option key={activity.name} value={activity.name}>
-                {activity.name}
-              </option>
-            ))}
           </select>
         </div>
 

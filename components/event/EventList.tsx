@@ -20,10 +20,12 @@ interface EventListProps {
 }
 
 const adaptEventForGcard = (event: EventType) => {
-  const getBackgroundUrl = (tags: { id: string; name: string }[]) => {
-    if (tags.some((tag) => tag.name === "Restauration")) return "/images/illustration/palm.svg";
-    if (tags.some((tag) => tag.name === "Afterwork")) return "/images/illustration/stack.svg";
-    if (tags.some((tag) => tag.name === "Team Building")) return "/images/illustration/roundstar.svg";
+  const getBackgroundUrl = (
+    themes: { id: string; techName: string; displayName?: string | null }[] = [],
+  ) => {
+    if (themes.some((tag) => tag.techName.includes("restaurant"))) return "/images/illustration/palm.svg";
+    if (themes.some((tag) => tag.techName.includes("bar"))) return "/images/illustration/stack.svg";
+    if (themes.some((tag) => tag.techName.includes("park"))) return "/images/illustration/roundstar.svg";
     return "/images/illustration/roundstar.svg";
   };
 
@@ -31,7 +33,7 @@ const adaptEventForGcard = (event: EventType) => {
     title: event.title,
     date: event.startDate || new Date().toISOString(),
     participants: event.users || [],
-    backgroundUrl: getBackgroundUrl(event.tags),
+    backgroundUrl: getBackgroundUrl(event.selectedGoogleTags),
     state: event.state,
   };
 };

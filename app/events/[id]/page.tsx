@@ -22,11 +22,12 @@ type EventDetails = {
   endTime?: string;
   maxPersons?: string;
   costPerPerson?: string;
-  activityType?: string;
+  isSpecificPlace?: boolean;
   state?: string;
   city?: string;
   maxDistance?: number;
-  tags: { id: string; name: string }[];
+  selectedGoogleTags?: { id: string; techName: string; displayName?: string | null }[];
+  confirmedGoogleTag?: { id: string; techName: string; displayName?: string | null } | null;
   users: {
     id: string;
     firstName: string;
@@ -250,12 +251,12 @@ export default function SingleEventPage() {
             ? {
                 ...prev,
                 state: updatedEvent.state,
-                activityType: updatedEvent.activityType || prev.activityType,
                 date: updatedEvent.startDate || updatedEvent.date || prev.date,
                 startDate: updatedEvent.startDate || prev.startDate,
                 endDate: updatedEvent.endDate || prev.endDate,
                 startTime: updatedEvent.startTime || prev.startTime,
                 endTime: updatedEvent.endTime || prev.endTime,
+                confirmedGoogleTag: updatedEvent.confirmedGoogleTag || prev.confirmedGoogleTag,
               }
             : null
         );
@@ -397,22 +398,7 @@ export default function SingleEventPage() {
                   <div className="flex-1">
                     <h3 className="text-h3 font-urbanist font-semibold mb-3">Événement finalisé avec succès !</h3>
                     <div className="space-y-3">
-                      {/* ✅ Afficher l'activityType original */}
-                      {event.activityType && (
-                        <div className="flex items-center gap-3">
-                          <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                          <div>
-                            <span className="text-body-large font-poppins font-medium text-[var(--color-text)]">
-                              Type d&apos;événement :
-                            </span>
-                            <span className="ml-2 text-body-large font-poppins text-blue-700 font-semibold">
-                              {event.activityType}
-                            </span>
-                          </div>
-                        </div>
-                      )}
-                      {/* ✅ Afficher le tag préféré voté */}
-                      {event.tags && event.tags.length > 0 && (
+                      {event.confirmedGoogleTag && (
                         <div className="flex items-center gap-3">
                           <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                           <div>
@@ -420,7 +406,7 @@ export default function SingleEventPage() {
                               Préférence choisie :
                             </span>
                             <span className="ml-2 text-body-large font-poppins text-green-700 font-semibold">
-                              {event.tags[0].name}
+                              {event.confirmedGoogleTag.displayName || event.confirmedGoogleTag.techName}
                             </span>
                           </div>
                         </div>

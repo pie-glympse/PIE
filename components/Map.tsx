@@ -1,17 +1,17 @@
 // components/Map.tsx
-'use client';
+"use client";
 
-import { GoogleMap, useLoadScript, Marker } from '@react-google-maps/api';
-import { useState, useEffect, useRef } from 'react';
+import { GoogleMap, useLoadScript, Marker } from "@react-google-maps/api";
+import { useState, useEffect, useRef } from "react";
 
 const containerStyle = {
-  width: '100%',
-  height: '100%',
+  width: "100%",
+  height: "100%",
 };
 
 const defaultCenter = {
   lat: 48.8566, // Latitude de Paris par défaut
-  lng: 2.3522,  // Longitude de Paris par défaut
+  lng: 2.3522, // Longitude de Paris par défaut
 };
 
 interface PlaceMarker {
@@ -37,34 +37,38 @@ export default function GoogleMapComponent({ address, places = [] }: MapProps) {
   const infoWindowRef = useRef<google.maps.InfoWindow | null>(null);
 
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
-  
+
   if (!apiKey) {
-    console.error('❌ NEXT_PUBLIC_GOOGLE_MAPS_API_KEY n\'est pas définie dans les variables d\'environnement');
+    console.error(
+      "❌ NEXT_PUBLIC_GOOGLE_MAPS_API_KEY n'est pas définie dans les variables d'environnement",
+    );
   }
 
   const { isLoaded, loadError } = useLoadScript({
-    googleMapsApiKey: apiKey || '',
+    googleMapsApiKey: apiKey || "",
   });
 
   // Fonction pour convertir une adresse en coordonnées avec le Geocoder JavaScript
   const geocodeWithJavaScriptAPI = (address: string) => {
-    if (!address || !isLoaded || typeof google === 'undefined') return;
+    if (!address || !isLoaded || typeof google === "undefined") {
+      return;
+    }
 
     setIsGeocoding(true);
-    
+
     const geocoder = new google.maps.Geocoder();
-    
+
     geocoder.geocode({ address: address }, (results, status) => {
       setIsGeocoding(false);
-      
-      if (status === 'OK' && results && results[0]) {
+
+      if (status === "OK" && results && results[0]) {
         const location = results[0].geometry.location;
         setCenter({
           lat: location.lat(),
-          lng: location.lng()
+          lng: location.lng(),
         });
       } else {
-        console.error('Geocoding failed:', status);
+        console.error("Geocoding failed:", status);
         // Garder le centre par défaut en cas d'erreur
       }
     });
@@ -78,16 +82,20 @@ export default function GoogleMapComponent({ address, places = [] }: MapProps) {
   }, [address, isLoaded]);
 
   if (loadError) {
-    console.error('❌ Erreur de chargement Google Maps:', loadError);
+    console.error("❌ Erreur de chargement Google Maps:", loadError);
     return (
       <div className="p-4 bg-red-50 border border-red-200 rounded">
-        <p className="text-red-800 font-semibold">Erreur de chargement de la carte</p>
+        <p className="text-red-800 font-semibold">
+          Erreur de chargement de la carte
+        </p>
         <p className="text-red-600 text-sm mt-2">
-          {loadError.message || 'Vérifiez que NEXT_PUBLIC_GOOGLE_MAPS_API_KEY est correctement configurée'}
+          {loadError.message ||
+            "Vérifiez que NEXT_PUBLIC_GOOGLE_MAPS_API_KEY est correctement configurée"}
         </p>
         {!apiKey && (
           <p className="text-red-600 text-sm mt-1">
-            ⚠️ La clé API n'est pas définie dans les variables d'environnement
+            ⚠️ La clé API n&apos;est pas définie dans les variables
+            d&apos;environnement
           </p>
         )}
       </div>
@@ -106,11 +114,11 @@ export default function GoogleMapComponent({ address, places = [] }: MapProps) {
 
     const allPoints = [
       center, // Point de l'événement
-      ...places.map(place => place.location) // Points des lieux recommandés
+      ...places.map((place) => place.location), // Points des lieux recommandés
     ];
 
-    const lats = allPoints.map(p => p.lat);
-    const lngs = allPoints.map(p => p.lng);
+    const lats = allPoints.map((p) => p.lat);
+    const lngs = allPoints.map((p) => p.lng);
 
     const minLat = Math.min(...lats);
     const maxLat = Math.max(...lats);
@@ -127,7 +135,7 @@ export default function GoogleMapComponent({ address, places = [] }: MapProps) {
     const latDiff = maxLat - minLat;
     const lngDiff = maxLng - minLng;
     const maxDiff = Math.max(latDiff, lngDiff);
-    
+
     let zoom = 14;
     if (maxDiff > 0.1) zoom = 10;
     else if (maxDiff > 0.05) zoom = 11;
@@ -144,9 +152,9 @@ export default function GoogleMapComponent({ address, places = [] }: MapProps) {
   const createCustomMarkerIcon = () => {
     return {
       path: google.maps.SymbolPath.CIRCLE,
-      fillColor: '#FCC638',
+      fillColor: "#FCC638",
       fillOpacity: 1,
-      strokeColor: '#FFFFFF',
+      strokeColor: "#FFFFFF",
       strokeWeight: 2,
       scale: 8,
     };
@@ -160,18 +168,18 @@ export default function GoogleMapComponent({ address, places = [] }: MapProps) {
         maxWidth: 180, // Limiter la largeur pour éviter le scroll
       });
     }
-    
+
     const marker = markerRefs.current[place.id];
     if (marker) {
       // Construire le contenu HTML de la popup avec image plus petite
-      const imageHtml = place.photoUrl 
+      const imageHtml = place.photoUrl
         ? `<img src="${place.photoUrl}" alt="${place.name}" style="width: 100%; height: 60px; object-fit: cover; border-radius: 4px; margin-bottom: 6px; display: block;" />`
-        : '';
-      
-      const addressHtml = place.address 
+        : "";
+
+      const addressHtml = place.address
         ? `<p style="margin: 2px 0 0 0; font-size: 11px; color: #666; line-height: 1.3;">${place.address}</p>`
-        : '';
-      
+        : "";
+
       const content = `
         <div style="padding: 0; max-width: 180px; overflow: hidden;">
           ${imageHtml}
@@ -179,7 +187,7 @@ export default function GoogleMapComponent({ address, places = [] }: MapProps) {
           ${addressHtml}
         </div>
       `;
-      
+
       infoWindowRef.current.setContent(content);
       infoWindowRef.current.open({
         anchor: marker,
@@ -204,10 +212,8 @@ export default function GoogleMapComponent({ address, places = [] }: MapProps) {
         zoom={mapBounds.zoom}
       >
         {/* Marker pour l'événement principal */}
-        <Marker 
-          position={center}
-        />
-        
+        <Marker position={center} />
+
         {/* Markers pour les lieux recommandés */}
         {places.map((place) => (
           <Marker
@@ -217,13 +223,13 @@ export default function GoogleMapComponent({ address, places = [] }: MapProps) {
             onLoad={(marker) => {
               // Stocker la référence du marker
               markerRefs.current[place.id] = marker;
-              
+
               // Ajouter les listeners pour le survol
-              marker.addListener('mouseover', () => {
+              marker.addListener("mouseover", () => {
                 handleMarkerMouseOver(place);
               });
-              
-              marker.addListener('mouseout', () => {
+
+              marker.addListener("mouseout", () => {
                 handleMarkerMouseOut();
               });
             }}

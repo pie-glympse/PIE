@@ -68,19 +68,7 @@ export default function HomePage() {
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const handleFillPreferences = useCallback(async (event: EventType) => {
-    if (event.activityType) {
-      const { getQuestionsForActivityType } = await import("@/lib/preferences/questionsConfig");
-      const questions = getQuestionsForActivityType(event.activityType);
-      if (questions.length > 0) {
-        router.push(
-          `/event-preferences/${event.id}?eventTitle=${encodeURIComponent(event.title)}`,
-        );
-        return;
-      }
-    }
-    router.push(
-      `/answer-event/${event.id}?eventTitle=${encodeURIComponent(event.title)}`,
-    );
+    router.push(`/event-preferences/${event.id}?eventTitle=${encodeURIComponent(event.title)}`);
   }, [router]);
 
   // Rafraîchir la liste des événements (Suspense refetch via refreshKey)
@@ -95,12 +83,12 @@ export default function HomePage() {
     };
   }, [refreshEvents]);
 
-  const getBackgroundUrl = useCallback((tags: { id: string; name: string }[]) => {
-    if (tags.some((tag) => tag.name === "Restauration"))
+  const getBackgroundUrl = useCallback((tags: { id: string; techName: string }[] = []) => {
+    if (tags.some((tag) => tag.techName.includes("restaurant")))
       return "/images/illustration/palm.svg";
-    if (tags.some((tag) => tag.name === "Afterwork"))
+    if (tags.some((tag) => tag.techName.includes("bar")))
       return "/images/illustration/stack.svg";
-    if (tags.some((tag) => tag.name === "Team Building"))
+    if (tags.some((tag) => tag.techName.includes("park")))
       return "/images/illustration/roundstar.svg";
     return "/images/illustration/roundstar.svg";
   }, []);
@@ -110,7 +98,7 @@ export default function HomePage() {
       title: event.title,
       date: event.date || new Date().toISOString(),
       participants: event.users || [],
-      backgroundUrl: getBackgroundUrl(event.tags),
+      backgroundUrl: getBackgroundUrl(event.selectedGoogleTags || []),
       state: event.state,
     };
   }, [getBackgroundUrl]);
@@ -228,7 +216,6 @@ export default function HomePage() {
     if (event.costPerPerson) params.set("costPerPerson", event.costPerPerson);
     if (event.city) params.set("city", event.city);
     if (event.maxDistance) params.set("maxDistance", event.maxDistance);
-    if (event.activityType) params.set("activityType", event.activityType);
     if (event.recurring !== undefined)
       params.set("recurring", event.recurring.toString());
     if (event.duration) params.set("duration", event.duration);
@@ -278,28 +265,8 @@ export default function HomePage() {
         {/* Calendrier */}
         <section>
           <GCalendar year={2025} />
-          {/* Légende des couleurs */}
-          <div className="mt-4 flex flex-wrap gap-4 justify-center md:justify-start">
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 rounded  bg-[var(--color-secondary)]"></div>
-              <span className="text-sm text-gray-500">Gastronomie</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 rounded bg-[var(--color-calendar-green)]"></div>
-              <span className="text-sm text-gray-500">Nature & Bien-être</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 rounded bg-[var(--color-tertiary)]"></div>
-              <span className="text-sm text-gray-500">Divertissement</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 rounded bg-[var(--color-main)]"></div>
-              <span className="text-sm text-gray-500">Culture</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 rounded bg-orange-500"></div>
-              <span className="text-sm text-gray-500">Sport</span>
-            </div>
+          <div className="mt-4 text-sm text-gray-500">
+            Les jours avec événements sont affichés en gris.
           </div>
         </section>
 

@@ -1,6 +1,7 @@
 // middleware.ts (à la racine, pas dans app/)
 import { NextRequest, NextResponse } from 'next/server';
 import { jwtVerify } from 'jose';
+import { OFFICE_COOKIE_NAME, verifyOfficeToken } from '@/lib/officeAuth';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'supersecretkey';
 
@@ -23,6 +24,17 @@ async function verifyToken(token: string): Promise<boolean> {
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+
+  const isOfficeRoute = pathname.startsWith('/office');
+  if (isOfficeRoute && pathname !== '/office/login') {
+    const officeToken = request.cookies.get(OFFICE_COOKIE_NAME)?.value;
+    const isOfficeTokenValid = officeToken ? await verifyOfficeToken(officeToken) : false;
+
+    if (!isOfficeTokenValid) {
+      const loginUrl = new URL('/office/login', request.url);
+      return NextResponse.redirect(loginUrl);
+    }
+  }
   
   // Lire le token dans les cookies
   const token = request.cookies.get('token')?.value;

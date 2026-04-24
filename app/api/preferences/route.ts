@@ -21,9 +21,6 @@ export async function GET(request: NextRequest) {
           eventId: BigInt(eventId),
         },
       },
-      include: {
-        tag: true,
-      },
     });
 
     if (!preference) {
@@ -33,7 +30,14 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    return NextResponse.json(preference, { status: 200 });
+    return NextResponse.json(
+      JSON.parse(
+        JSON.stringify(preference, (_, value) =>
+          typeof value === "bigint" ? value.toString() : value,
+        ),
+      ),
+      { status: 200 },
+    );
   } catch (error) {
     console.error('Erreur récupération préférence :', error);
     return NextResponse.json(

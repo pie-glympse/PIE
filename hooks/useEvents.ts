@@ -11,11 +11,12 @@ export type EventType = {
   maxPersons?: string;
   costPerPerson?: string;
   state?: string;
-  activityType?: string;
   city?: string;
   maxDistance?: number;
+  isSpecificPlace?: boolean;
   createdById?: string;
-  tags: { id: string; name: string }[];
+  selectedGoogleTags?: { id: string; techName: string; displayName?: string | null }[];
+  confirmedGoogleTag?: { id: string; techName: string; displayName?: string | null } | null;
   users: {
     id: string;
     firstName: string;
@@ -42,7 +43,9 @@ export const useEvents = (userId?: string) => {
     }
 
     setLoading(true);
-    fetch(`/api/events?userId=${userId}`)
+    fetch(`/api/events?userId=${encodeURIComponent(userId)}&_ts=${Date.now()}`, {
+      cache: "no-store",
+    })
       .then((res) => {
         if (!res.ok) throw new Error("Erreur lors de la récupération des événements");
         return res.json();
