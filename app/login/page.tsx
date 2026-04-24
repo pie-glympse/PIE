@@ -8,7 +8,7 @@ import { useUser } from '@/context/UserContext';
 
 export default function LoginPage() {
     const router = useRouter();
-    const { user, isLoading } = useUser();
+    const { user, isLoading, logout } = useUser();
 
     // Rediriger vers /home si l'utilisateur est déjà connecté
     useEffect(() => {
@@ -43,8 +43,9 @@ export default function LoginPage() {
         return <div className="flex items-center justify-center h-screen">Chargement...</div>;
     }
 
-    // Ne rien afficher si l'utilisateur est connecté (pendant la redirection)
+    // Cookie expiré mais localStorage encore présent → vider la session et afficher le login
     if (user) {
+        logout();
         return null;
     }
 

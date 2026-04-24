@@ -347,6 +347,7 @@ const CreateEventPage = () => {
                         currentUserId={user?.id || ''}
                         selectedUserIds={selectedUserIds}
                         onUserToggle={handleUserToggle}
+                        maxPersons={formData?.maxPersons ? Number(formData.maxPersons) : null}
                     />
                 );
 
