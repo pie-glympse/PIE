@@ -41,6 +41,7 @@ model User {
 model Company {
   id                BigInt             @id @default(autoincrement())
   name              String
+  address           String?
   blacklistedPlaces BlacklistedPlace[]
   teams             Team[]
   users             User[]
