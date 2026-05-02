@@ -2,6 +2,7 @@
 
 import { useState, FormEvent, useEffect } from "react";
 import type { FC, ReactNode, ChangeEvent } from "react";
+import { useUser } from "@/context/UserContext";
 import MainButton from "@/components/ui/MainButton";
 import SimpleAutocomplete from "@/components/ui/SimpleAutocomplete";
 
@@ -60,6 +61,7 @@ const EventForm: FC<EventFormProps> = ({
   initialData,
   onSubmit,
 }) => {
+  const { user } = useUser();
   const [eventTitle, setEventTitle] = useState(initialData?.title || "");
   const [startDate, setStartDate] = useState(initialData?.startDate || "");
   const [endDate, setEndDate] = useState(initialData?.endDate || "");
@@ -82,6 +84,14 @@ const EventForm: FC<EventFormProps> = ({
   const [duration, setDuration] = useState(initialData?.duration || "");
   const [recurringRate, setRecurringRate] = useState(initialData?.recurringRate || "");
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
+
+  useEffect(() => {
+    if (city || !user?.id) return;
+    fetch(`/api/company?userId=${user.id}`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => { if (data?.companyAddress) setCity(data.companyAddress); })
+      .catch(() => {});
+  }, [user?.id]);
 
   useEffect(() => {
     const fetchTags = async () => {

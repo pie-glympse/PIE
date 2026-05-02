@@ -43,6 +43,7 @@ export async function POST(req: NextRequest) {
         const lastName = formData.get('lastName') as string;
         const email = formData.get('email') as string;
         const companyName = formData.get('companyName') as string;
+        const companyAddress = formData.get('companyAddress') as string | null;
         const csvFile = formData.get('csvFile') as File;
 
         // Validation
@@ -113,7 +114,8 @@ export async function POST(req: NextRequest) {
         // Créer la Company
         const company = await prisma.company.create({
             data: {
-                name: companyName
+                name: companyName,
+                address: companyAddress || null,
             }
         });
 
