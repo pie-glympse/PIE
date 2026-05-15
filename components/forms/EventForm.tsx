@@ -34,6 +34,7 @@ interface EventFormProps {
     isSpecificPlace?: boolean;
     googleTagIds?: string[];
   };
+  requireMaxPersons?: boolean;
   onSubmit: (formData: {
     title: string;
     startDate: string;
@@ -59,6 +60,7 @@ const EventForm: FC<EventFormProps> = ({
   subtitle,
   buttonText,
   initialData,
+  requireMaxPersons = false,
   onSubmit,
 }) => {
   const { user } = useUser();
@@ -181,6 +183,11 @@ const EventForm: FC<EventFormProps> = ({
     }
 
     if (!validateDatesAndTimes()) return;
+
+    if (requireMaxPersons && (!maxPersons || parseInt(maxPersons, 10) <= 0)) {
+      alert("Le nombre maximum de participants est obligatoire pour un événement public");
+      return;
+    }
 
     let calculatedEndDate = endDate;
     if (isRecurring && startDate && duration) {
@@ -410,7 +417,7 @@ const EventForm: FC<EventFormProps> = ({
       <div className="flex flex-col md:flex-row gap-4 mb-4">
         <div className="flex-1">
           <label htmlFor="maxPersons" className="block mb-1 text-body-large font-poppins text-[var(--color-grey-three)]">
-            Places maximum
+            Places maximum{requireMaxPersons ? " *" : ""}
           </label>
           <input
             id="maxPersons"
@@ -418,6 +425,7 @@ const EventForm: FC<EventFormProps> = ({
             value={maxPersons}
             onChange={(e) => setMaxPersons(e.target.value)}
             min="1"
+            required={requireMaxPersons}
             className="w-full px-5 py-2 text-base bg-white border-2 border-[var(--color-grey-two)] rounded"
           />
         </div>

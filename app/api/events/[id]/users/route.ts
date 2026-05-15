@@ -60,8 +60,15 @@ export async function GET(req: NextRequest) {
       where: { id: eventId },
       select: {
         users: {
-          select: { id: true },
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            photoUrl: true,
+          },
         },
+        _count: { select: { users: true } },
       },
     });
 
@@ -74,7 +81,14 @@ export async function GET(req: NextRequest) {
 
     const userIds = event.users.map((u) => u.id.toString());
 
-    return NextResponse.json({ userIds });
+    return NextResponse.json({
+      userIds,
+      users: event.users.map((u) => ({
+        ...u,
+        id: u.id.toString(),
+      })),
+      participantCount: event._count.users,
+    });
   } catch (error) {
     console.error("Error fetching event users:", error);
     return NextResponse.json(

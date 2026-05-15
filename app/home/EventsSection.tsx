@@ -26,6 +26,13 @@ export type EventType = {
   confirmedGoogleTag?: { id: string; techName: string; displayName?: string | null } | null;
   users?: { id: string; firstName: string; lastName: string; email: string }[];
   createdBy?: { id: string; firstName: string; lastName: string; email: string };
+  isPublic?: boolean;
+  publicStatus?: string;
+  participantCount?: number;
+  maxParticipants?: number | null;
+  isParticipant?: boolean;
+  canJoin?: boolean;
+  isFull?: boolean;
 };
 
 function fetchEvents(userId: string): Promise<{ events: EventType[]; error: string | null }> {

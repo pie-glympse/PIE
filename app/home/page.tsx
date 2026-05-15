@@ -9,6 +9,7 @@ import dynamic from "next/dynamic";
 import GcardSkeleton from "@/components/GcardSkeleton";
 import ConfirmationModal from "@/components/ui/ConfirmationModal";
 import { EventsSection, type EventType } from "./EventsSection";
+import { useJoinPublicEvent } from "@/hooks/useJoinPublicEvent";
 
 const GCalendar = dynamic(() => import("@/components/Gcalendar"), {
   ssr: false,
@@ -57,6 +58,7 @@ export default function HomePage() {
     isOpen: boolean;
     eventId: string;
     eventTitle: string;
+    isPublic?: boolean;
   } | null>(null);
   const [leaveError, setLeaveError] = useState<string | null>(null);
 
@@ -73,6 +75,7 @@ export default function HomePage() {
 
   // Rafraîchir la liste des événements (Suspense refetch via refreshKey)
   const refreshEvents = useCallback(() => setRefreshEventsKey((k) => k + 1), []);
+  const { joinEvent, joiningEventId } = useJoinPublicEvent(refreshEvents);
 
   useEffect(() => {
     window.addEventListener("notificationsUpdated", refreshEvents);
@@ -149,8 +152,21 @@ export default function HomePage() {
       isOpen: true,
       eventId: event.id,
       eventTitle: event.title,
+      isPublic: event.isPublic,
     });
   }, []);
+
+  const handleParticipate = useCallback(
+    async (event: EventType) => {
+      if (!user?.id || !event.isPublic) return;
+      const isCreator =
+        (event.createdBy?.id && String(event.createdBy.id) === String(user.id)) ||
+        (event.isCreator ?? false);
+      if (isCreator || event.isParticipant) return;
+      await joinEvent(event.id, user.id);
+    },
+    [user?.id, joinEvent],
+  );
 
   const closeLeaveModal = useCallback(() => {
     setLeaveModal(null);
@@ -339,6 +355,21 @@ export default function HomePage() {
                             }
                             isCreator={isCreator}
                             showPreferencesButton={true}
+                            isPublic={event.isPublic}
+                            participantCount={event.participantCount ?? event.users?.length ?? 0}
+                            maxParticipants={
+                              event.maxParticipants ??
+                              (event.maxPersons ? Number(event.maxPersons) : null)
+                            }
+                            isParticipant={event.isParticipant ?? isParticipant || isCreator}
+                            isFull={event.isFull}
+                            joinLoading={joiningEventId === event.id}
+                            hideParticipateButton={isCreator}
+                            onParticipate={
+                              event.isPublic && !isCreator
+                                ? () => handleParticipate(event)
+                                : undefined
+                            }
                           />
                         );
                       })}
@@ -402,8 +433,12 @@ export default function HomePage() {
             onClose={closeLeaveModal}
             onConfirm={handleLeaveEvent}
             title={`Quitter l'événement "${leaveModal.eventTitle}"`}
-            message="Êtes-vous sûr de vouloir quitter cet événement ? Cette action est irréversible."
-            confirmButtonText="Oui, quitter"
+            message={
+              leaveModal.isPublic
+                ? "Souhaitez-vous vraiment quitter cet événement ? Votre place sera libérée."
+                : "Êtes-vous sûr de vouloir quitter cet événement ? Cette action est irréversible."
+            }
+            confirmButtonText="Quitter l'événement"
             cancelButtonText="Annuler"
             error={leaveError}
           />

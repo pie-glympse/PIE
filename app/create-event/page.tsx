@@ -6,6 +6,10 @@ import MainButton from "@/components/ui/MainButton";
 import BackArrow from "../../components/ui/BackArrow";
 import EventForm from "@/components/forms/EventForm";
 import { UserSelectionStep } from "@/components/forms/UserSelectionStep";
+import {
+  EventVisibilityStep,
+  type EventVisibility,
+} from "@/components/forms/EventVisibilityStep";
 import { useUser } from "@/context/UserContext";
 
 const Modal = dynamic(() => import("@/components/layout/Modal"), { ssr: false });
@@ -14,6 +18,7 @@ const CreateEventPage = () => {
   const router = useRouter();
   const { user, isLoading } = useUser();
   const [currentStep, setCurrentStep] = useState(1);
+  const [visibility, setVisibility] = useState<EventVisibility>("public");
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   type EventFormData = {
@@ -38,6 +43,10 @@ const CreateEventPage = () => {
   const [formData, setFormData] = useState<EventFormData | null>(null);
   const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
   const [createdEventId, setCreatedEventId] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const isPublic = visibility === "public";
+  const totalSteps = isPublic ? 2 : 3;
 
   useEffect(() => {
     if (!isLoading && !user) {
@@ -47,44 +56,53 @@ const CreateEventPage = () => {
 
   const handleFormSubmit = (data: EventFormData) => {
     setFormData(data);
-    setCurrentStep(2);
-  };
-
-  const handleCreate = async () => {
-    if (!user || !formData) return;
-    const eventData = {
-      ...formData,
-      maxPersons: formData.maxPersons ? Number(formData.maxPersons) : null,
-      costPerPerson: formData.costPerPerson ? Number(formData.costPerPerson) : null,
-      maxDistance: formData.maxDistance ? Number(formData.maxDistance) : null,
-      duration: formData.duration ? Number(formData.duration) : null,
-      recurringRate: formData.recurringRate || null,
-      state: "pending",
-      userId: user.id,
-      invitedUsers: selectedUserIds,
-    };
-
-    const response = await fetch("/api/events", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(eventData),
-    });
-
-    if (response.ok) {
-      const createdEvent = await response.json();
-      setCreatedEventId(createdEvent.id);
-      setIsModalOpen(true);
+    if (isPublic) {
+      void handleCreate(data);
     } else {
-      const error = await response.json();
-      alert(error?.error || "Erreur lors de la création de l'événement");
+      setCurrentStep(3);
     }
   };
 
-  const canContinue = () => {
-    if (currentStep === 1) return !!formData;
-    if (currentStep === 2) return selectedUserIds.length > 0;
-    return false;
+  const handleCreate = async (dataOverride?: EventFormData) => {
+    const payload = dataOverride ?? formData;
+    if (!user || !payload) return;
+
+    setIsSubmitting(true);
+    try {
+      const eventData = {
+        ...payload,
+        maxPersons: payload.maxPersons ? Number(payload.maxPersons) : null,
+        costPerPerson: payload.costPerPerson ? Number(payload.costPerPerson) : null,
+        maxDistance: payload.maxDistance ? Number(payload.maxDistance) : null,
+        duration: payload.duration ? Number(payload.duration) : null,
+        recurringRate: payload.recurringRate || null,
+        state: "pending",
+        userId: user.id,
+        isPublic,
+        invitedUsers: isPublic ? [] : selectedUserIds,
+      };
+
+      const response = await fetch("/api/events", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(eventData),
+      });
+
+      if (response.ok) {
+        const createdEvent = await response.json();
+        setCreatedEventId(createdEvent.id);
+        setIsModalOpen(true);
+        window.dispatchEvent(new Event("eventsUpdated"));
+      } else {
+        const error = await response.json();
+        alert(error?.error || "Erreur lors de la création de l'événement");
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
   };
+
+  const canContinuePrivateInvite = () => selectedUserIds.length > 0;
 
   if (isLoading) {
     return <div className="flex items-center justify-center min-h-screen">Chargement...</div>;
@@ -98,26 +116,52 @@ const CreateEventPage = () => {
           <BackArrow
             onClick={() => {
               if (currentStep === 1) router.back();
-              else setCurrentStep(1);
+              else setCurrentStep((s) => s - 1);
             }}
           />
 
           <div className="flex items-center gap-4 mb-4">
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${currentStep >= 1 ? "bg-[var(--color-main)] text-white" : "bg-gray-200 text-gray-500"}`}>1</div>
-            <div className={`w-8 h-1 ${currentStep >= 2 ? "bg-[var(--color-main)]" : "bg-gray-200"}`}></div>
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${currentStep >= 2 ? "bg-[var(--color-main)] text-white" : "bg-gray-200 text-gray-500"}`}>2</div>
+            {Array.from({ length: totalSteps }, (_, i) => i + 1).map((step, index) => (
+              <div key={step}>
+                <div
+                  className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
+                    currentStep >= step
+                      ? "bg-[var(--color-main)] text-white"
+                      : "bg-gray-200 text-gray-500"
+                  }`}
+                >
+                  {step}
+                </div>
+                {index < totalSteps - 1 && (
+                  <div
+                    className={`w-8 h-1 ${currentStep > step ? "bg-[var(--color-main)]" : "bg-gray-200"}`}
+                  />
+                )}
+              </div>
+            ))}
           </div>
 
           <div className="w-full flex flex-col">
-            {currentStep === 1 ? (
+            {currentStep === 1 && (
+              <EventVisibilityStep
+                value={visibility}
+                onChange={setVisibility}
+                onContinue={() => setCurrentStep(2)}
+              />
+            )}
+
+            {currentStep === 2 && (
               <EventForm
                 title="Créez vos évènements personnalisés !"
                 subtitle="Entrez les informations générales de l'événement"
-                buttonText="Continuer"
+                buttonText={isPublic ? "Créer l'événement" : "Continuer"}
+                requireMaxPersons={isPublic}
                 initialData={formData || undefined}
                 onSubmit={handleFormSubmit}
               />
-            ) : (
+            )}
+
+            {currentStep === 3 && !isPublic && (
               <UserSelectionStep
                 title="Créez vos évènements personnalisés !"
                 subtitle="Séléctionnez vos collaborateurs"
@@ -134,12 +178,12 @@ const CreateEventPage = () => {
             )}
           </div>
 
-          {currentStep !== 1 && (
+          {currentStep === 3 && !isPublic && (
             <div className="w-1/6">
               <MainButton
-                text="Créer et inviter"
-                onClick={handleCreate}
-                disabled={!canContinue()}
+                text={isSubmitting ? "Création..." : "Créer et inviter"}
+                onClick={() => handleCreate()}
+                disabled={!canContinuePrivateInvite() || isSubmitting}
                 color="bg-[var(--color-text)] font-poppins text-body-large"
               />
             </div>
@@ -155,7 +199,11 @@ const CreateEventPage = () => {
         }
         showSteppers={false}
         title="Événement créé avec succès !"
-        text="Votre événement a été créé et est maintenant disponible."
+        text={
+          isPublic
+            ? "Votre événement public est visible par toute l'entreprise."
+            : "Votre événement a été créé et est maintenant disponible."
+        }
         buttonText="Voir l'événement"
         stepContents={[
           {

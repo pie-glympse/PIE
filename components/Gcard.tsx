@@ -3,6 +3,7 @@ import { useRef, useEffect } from "react";
 import type { MouseEvent as ReactMouseEvent } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import PublicEventParticipateButton from "@/components/event/PublicEventParticipateButton";
 
 interface Participant {
   id: string;
@@ -33,6 +34,14 @@ interface EventCardProps {
   canLeave?: boolean;
   onLeave?: () => void;
   isCreator?: boolean;
+  isPublic?: boolean;
+  participantCount?: number;
+  maxParticipants?: number | null;
+  isParticipant?: boolean;
+  isFull?: boolean;
+  joinLoading?: boolean;
+  onParticipate?: () => void;
+  hideParticipateButton?: boolean;
 }
 
 export default function EventCard({
@@ -55,6 +64,14 @@ export default function EventCard({
   canLeave = false,
   onLeave,
   isCreator = false,
+  isPublic = false,
+  participantCount = 0,
+  maxParticipants = null,
+  isParticipant = false,
+  isFull = false,
+  joinLoading = false,
+  onParticipate,
+  hideParticipateButton = false,
 }: EventCardProps) {
   const router = useRouter();
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -109,7 +126,14 @@ export default function EventCard({
       {/* Contenu principal */}
       <div className="relative z-10">
         <div className="flex">
+          <div className="flex flex-col gap-1 min-w-0 flex-1">
+          {isPublic && (
+            <span className="inline-flex w-fit px-2 py-0.5 rounded-full bg-[#E9F1FE] text-xs font-poppins text-[var(--color-text)]">
+              Public
+            </span>
+          )}
           <h3 className="text-lg font-semibold text-gray-900 mb-2">{title}</h3>
+          </div>
 
           {/* Container pour la pastille d'état et le menu */}
           <div className="ml-auto flex items-center gap-2">
@@ -337,6 +361,20 @@ export default function EventCard({
             </p>
           )}
         </div>
+
+        {isPublic && !hideParticipateButton && (
+          <PublicEventParticipateButton
+            participantCount={participantCount}
+            maxParticipants={maxParticipants}
+            isParticipant={isParticipant}
+            isCreator={isCreator}
+            isFull={isFull}
+            isPublic={isPublic}
+            loading={joinLoading}
+            onParticipate={onParticipate}
+            size="card"
+          />
+        )}
       </div>
 
       {/* Container pour l'image d'arrière-plan avec overflow-hidden */}

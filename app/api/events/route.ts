@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { addCacheHeaders, CACHE_STRATEGIES } from "@/lib/cache-utils";
+import { enrichEventForClient } from "@/lib/event-public";
 
 const toJson = (data: unknown) =>
   JSON.parse(
@@ -37,10 +38,18 @@ export async function POST(request: Request) {
       recurringRate,
       userId,
       invitedUsers = [],
+      isPublic = false,
     } = body;
 
     if (!userId) {
       return NextResponse.json({ error: "userId manquant" }, { status: 400 });
+    }
+
+    if (isPublic && (!maxPersons || Number(maxPersons) <= 0)) {
+      return NextResponse.json(
+        { error: "Le nombre maximum de participants est obligatoire pour un événement public" },
+        { status: 400 },
+      );
     }
 
     const userIdBigInt = BigInt(userId);
@@ -70,6 +79,8 @@ export async function POST(request: Request) {
           : city,
         maxDistance: maxDistance ? Number(maxDistance) : null,
         isSpecificPlace,
+        isPublic: Boolean(isPublic),
+        publicStatus: "open",
         recurring: recurring || false,
         duration: duration ? Number(duration) : null,
         recurringRate: recurringRate || null,
@@ -90,10 +101,14 @@ export async function POST(request: Request) {
         selectedGoogleTags: true,
         confirmedGoogleTag: true,
         users: true,
+        _count: { select: { users: true } },
+        User_Event_createdByIdToUser: {
+          select: { id: true, firstName: true, lastName: true, email: true, companyId: true },
+        },
       },
     });
 
-    if (Array.isArray(invitedUsers) && invitedUsers.length > 0) {
+    if (!isPublic && Array.isArray(invitedUsers) && invitedUsers.length > 0) {
       await prisma.notification.createMany({
         data: invitedUsers
           .filter((invitedUserId: number) => invitedUserId !== Number(userId))
@@ -106,7 +121,33 @@ export async function POST(request: Request) {
       });
     }
 
-    return NextResponse.json(toJson(event), { status: 201 });
+    if (isPublic) {
+      const creator = await prisma.user.findUnique({
+        where: { id: userIdBigInt },
+        select: { companyId: true },
+      });
+      if (creator?.companyId) {
+        const companyUsers = await prisma.user.findMany({
+          where: {
+            companyId: creator.companyId,
+            id: { not: userIdBigInt },
+          },
+          select: { id: true },
+        });
+        if (companyUsers.length > 0) {
+          await prisma.notification.createMany({
+            data: companyUsers.map((u) => ({
+              userId: u.id,
+              message: `Nouvel événement public : "${title}" — des places sont disponibles`,
+              type: "EVENT_PUBLIC_AVAILABLE",
+              eventId: event.id,
+            })),
+          });
+        }
+      }
+    }
+
+    return NextResponse.json(toJson(enrichEventForClient(event, userId)), { status: 201 });
   } catch (error) {
     console.error("Erreur création event:", error);
     return NextResponse.json(
@@ -123,8 +164,28 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "userId manquant" }, { status: 400 });
     }
 
+    const currentUser = await prisma.user.findUnique({
+      where: { id: BigInt(userId) },
+      select: { companyId: true },
+    });
+
     const events = await prisma.event.findMany({
-      where: { users: { some: { id: BigInt(userId) } } },
+      where: {
+        OR: [
+          { users: { some: { id: BigInt(userId) } } },
+          ...(currentUser?.companyId
+            ? [
+                {
+                  isPublic: true,
+                  publicStatus: { not: "closed" },
+                  User_Event_createdByIdToUser: {
+                    companyId: currentUser.companyId,
+                  },
+                },
+              ]
+            : []),
+        ],
+      },
       include: {
         selectedGoogleTags: true,
         confirmedGoogleTag: true,
@@ -138,17 +199,32 @@ export async function GET(request: NextRequest) {
             companyId: true,
           },
         },
+        User_Event_createdByIdToUser: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            companyId: true,
+          },
+        },
         location: true,
         preferences: true,
         photos: true,
         feedbacks: true,
         votes: true,
         notifications: true,
+        _count: { select: { users: true } },
       },
       orderBy: { createdAt: "desc" },
     });
 
-    const response = NextResponse.json(toJson(events), { status: 200 });
+    const uniqueEvents = Array.from(
+      new Map(events.map((e) => [e.id.toString(), e])).values(),
+    );
+
+    const enriched = uniqueEvents.map((e) => enrichEventForClient(e, userId));
+    const response = NextResponse.json(toJson(enriched), { status: 200 });
     return addCacheHeaders(response, CACHE_STRATEGIES.DYNAMIC);
   } catch (error) {
     console.error("Erreur récupération events:", error);
