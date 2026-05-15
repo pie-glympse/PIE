@@ -77,6 +77,8 @@ model Event {
   recurring                    Boolean                     @default(false)
   recurringRate                String?
   isSpecificPlace              Boolean                     @default(false)
+  isPublic                     Boolean                     @default(false)
+  publicStatus                 String                      @default("open")
   confirmedGoogleTagId         BigInt?
   blacklistedPlaces            BlacklistedPlace[]
   User_Event_createdByIdToUser User?                       @relation("Event_createdByIdToUser", fields: [createdById], references: [id])

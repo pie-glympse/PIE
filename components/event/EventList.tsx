@@ -17,6 +17,8 @@ interface EventListProps {
   showAddButton?: boolean;
   onLeaveEvent?: (event: EventType) => void;
   currentUserId?: string;
+  onParticipate?: (event: EventType) => void;
+  joiningEventId?: string | null;
 }
 
 const adaptEventForGcard = (event: EventType) => {
@@ -54,6 +56,8 @@ export const EventList = ({
   showAddButton = true,
   onLeaveEvent,
   currentUserId,
+  onParticipate,
+  joiningEventId,
 }: EventListProps) => {
   if (viewMode === "grid") {
     return (
@@ -82,6 +86,18 @@ export const EventList = ({
                 isCreator={isCreator}
                 showPreferencesButton={
                   !userEventPreferences.has(event.id) && event.state?.toLowerCase() !== "confirmed"
+                }
+                isPublic={event.isPublic}
+                participantCount={event.participantCount ?? event.users?.length ?? 0}
+                maxParticipants={event.maxParticipants ?? (event.maxPersons ? Number(event.maxPersons) : null)}
+                isParticipant={event.isParticipant ?? isParticipant || isCreator}
+                isFull={event.isFull}
+                joinLoading={joiningEventId === event.id}
+                hideParticipateButton={isCreator}
+                onParticipate={
+                  onParticipate && event.isPublic && !isCreator
+                    ? () => onParticipate(event)
+                    : undefined
                 }
               />
             </div>
@@ -143,6 +159,18 @@ export const EventList = ({
               onLeave={canLeave && onLeaveEvent ? () => onLeaveEvent(event) : undefined}
               isCreator={isCreator}
               showPreferencesButton={!userEventPreferences.has(event.id) && event.state?.toLowerCase() !== "confirmed"}
+              isPublic={event.isPublic}
+              participantCount={event.participantCount ?? event.users?.length ?? 0}
+              maxParticipants={event.maxParticipants ?? (event.maxPersons ? Number(event.maxPersons) : null)}
+              isParticipant={event.isParticipant ?? isParticipant || isCreator}
+              isFull={event.isFull}
+              joinLoading={joiningEventId === event.id}
+              hideParticipateButton={isCreator}
+              onParticipate={
+                onParticipate && event.isPublic && !isCreator
+                  ? () => onParticipate(event)
+                  : undefined
+              }
             />
           </div>
         );
