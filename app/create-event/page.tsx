@@ -11,12 +11,14 @@ import {
   type EventVisibility,
 } from "@/components/forms/EventVisibilityStep";
 import { useUser } from "@/context/UserContext";
+import { useToast } from "@/context/ToastContext";
 
 const Modal = dynamic(() => import("@/components/layout/Modal"), { ssr: false });
 
 const CreateEventPage = () => {
   const router = useRouter();
   const { user, isLoading } = useUser();
+  const { showPointsToast } = useToast();
   const [currentStep, setCurrentStep] = useState(1);
   const [visibility, setVisibility] = useState<EventVisibility>("public");
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -93,6 +95,7 @@ const CreateEventPage = () => {
         setCreatedEventId(createdEvent.id);
         setIsModalOpen(true);
         window.dispatchEvent(new Event("eventsUpdated"));
+        showPointsToast(30, "avoir créé un événement");
       } else {
         const error = await response.json();
         alert(error?.error || "Erreur lors de la création de l'événement");
