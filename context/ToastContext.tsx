@@ -58,14 +58,6 @@ export function ToastProvider({ children }: { children: ReactNode }) {
           </div>
         ))}
       </div>
-      {process.env.NODE_ENV === "development" && (
-        <button
-          onClick={() => showPointsToast(50, "avoir rejoint un événement")}
-          className="fixed bottom-6 left-6 z-50 bg-black text-white text-xs font-poppins px-3 py-2 rounded-lg opacity-40 hover:opacity-100 transition-opacity"
-        >
-          Test toast
-        </button>
-      )}
     </ToastContext.Provider>
   );
 }
