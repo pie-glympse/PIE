@@ -38,14 +38,9 @@ export default function LoginPage() {
         router.push('/first-connection'); // ou la route appropriée
     };
 
-    // Afficher un loader pendant la vérification
-    if (isLoading) {
+    // Afficher un loader pendant la vérification ou la redirection
+    if (isLoading || user) {
         return <div className="flex items-center justify-center h-screen">Chargement...</div>;
-    }
-
-    // Ne rien afficher si l'utilisateur est connecté (pendant la redirection)
-    if (user) {
-        return null;
     }
 
     return (

@@ -29,8 +29,8 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="fr">
-      <body className={`${poppins.variable} ${urbanist.variable} antialiased bg-red-500`}>
+    <html lang="fr" suppressHydrationWarning>
+      <body className={`${poppins.variable} ${urbanist.variable} antialiased`}>
         <AppShell>
           <div className="relative">
             {children}

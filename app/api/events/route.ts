@@ -147,6 +147,15 @@ export async function POST(request: Request) {
       }
     }
 
+    const { addPoints, POINT_ACTIONS } = await import("@/lib/points-badges");
+    await addPoints(
+      userIdBigInt,
+      POINT_ACTIONS.EVENT_CREATED,
+      "event_created",
+      `Création de l'événement "${title}"`,
+      event.id,
+    ).catch(() => {});
+
     return NextResponse.json(toJson(enrichEventForClient(event, userId)), { status: 201 });
   } catch (error) {
     console.error("Erreur création event:", error);

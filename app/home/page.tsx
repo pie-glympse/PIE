@@ -61,6 +61,7 @@ export default function HomePage() {
     isPublic?: boolean;
   } | null>(null);
   const [leaveError, setLeaveError] = useState<string | null>(null);
+  const [selectedBadge, setSelectedBadge] = useState<{ icon: string; name: string } | null>(null);
 
   const [deleteModal, setDeleteModal] = useState<{
     isOpen: boolean;
@@ -76,6 +77,24 @@ export default function HomePage() {
   // Rafraîchir la liste des événements (Suspense refetch via refreshKey)
   const refreshEvents = useCallback(() => setRefreshEventsKey((k) => k + 1), []);
   const { joinEvent, joiningEventId } = useJoinPublicEvent(refreshEvents);
+
+  // Récupérer le badge sélectionné
+  useEffect(() => {
+    if (!isLoading && user) {
+      fetch(`/api/badges?userId=${user.id}`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.success && data.selectedBadgeId) {
+            const selected = data.badges.find((b: any) => b.id.toString() === data.selectedBadgeId.toString());
+            if (selected) {
+              setSelectedBadge({ icon: selected.icon, name: selected.name });
+            }
+          }
+        })
+        .catch((err) => console.error("Erreur lors de la récupération du badge:", err));
+    }
+  }, [isLoading, user]);
+
 
   useEffect(() => {
     window.addEventListener("notificationsUpdated", refreshEvents);
@@ -159,9 +178,7 @@ export default function HomePage() {
   const handleParticipate = useCallback(
     async (event: EventType) => {
       if (!user?.id || !event.isPublic) return;
-      const isCreator =
-        (event.createdBy?.id && String(event.createdBy.id) === String(user.id)) ||
-        (event.isCreator ?? false);
+      const isCreator = !!(event.createdBy?.id && String(event.createdBy.id) === String(user.id));
       if (isCreator || event.isParticipant) return;
       await joinEvent(event.id, user.id);
     },
@@ -268,13 +285,29 @@ export default function HomePage() {
                 "invité"
               )}
             </p>
-            <Image
-              src="/images/icones/pastille.svg"
-              alt="Statut utilisateur"
-              width={24}
-              height={24}
-              className="w-6 h-6"
-            />
+            <Link href="/ranking" className="cursor-pointer hover:scale-110 transition-transform">
+              {selectedBadge ? (
+                selectedBadge.icon.startsWith('/') ? (
+                  <Image
+                    src={selectedBadge.icon}
+                    alt={selectedBadge.name}
+                    width={300}
+                    height={300}
+                    className="w-13 h-13 object-contain"
+                  />
+                ) : (
+                  <span className="text-2xl">{selectedBadge.icon}</span>
+                )
+              ) : (
+                <Image
+                  src="/images/icones/pastille.svg"
+                  alt="Statut utilisateur"
+                  width={24}
+                  height={24}
+                  className="w-6 h-6"
+                />
+              )}
+            </Link>
           </div>
         </section>
 
@@ -361,7 +394,7 @@ export default function HomePage() {
                               event.maxParticipants ??
                               (event.maxPersons ? Number(event.maxPersons) : null)
                             }
-                            isParticipant={event.isParticipant ?? isParticipant || isCreator}
+                            isParticipant={(event.isParticipant ?? isParticipant) || isCreator}
                             isFull={event.isFull}
                             joinLoading={joiningEventId === event.id}
                             hideParticipateButton={isCreator}
