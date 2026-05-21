@@ -32,7 +32,7 @@
     "react": "^19.0.0",
     "react-chartjs-2": "^5.3.1",
     "react-dom": "^19.0.0",
-    "react-parallax-tilt": "^1.7.315",
+    "react-parallax-tilt": "^1.7.328",
     "resend": "^6.2.0"
   },
   "devDependencies": {

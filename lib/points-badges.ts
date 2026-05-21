@@ -1,6 +1,4 @@
-import { PrismaClient } from "@prisma/client";
-
-const prisma = new PrismaClient();
+import { prisma } from "@/lib/prisma";
 
 /**
  * Actions qui rapportent des points
@@ -44,9 +42,9 @@ export async function addPoints(
         },
       },
       include: {
-        userBadges: {
+        UserBadge: {
           include: {
-            badge: true,
+            Badge: true,
           },
         },
       },
@@ -121,10 +119,10 @@ export async function getUserBadges(userId: bigint) {
     const userBadges = await prisma.userBadge.findMany({
       where: { userId },
       include: {
-        badge: true,
+        Badge: true,
       },
       orderBy: {
-        badge: {
+        Badge: {
           order: "asc",
         },
       },
@@ -163,7 +161,7 @@ export async function selectBadge(userId: bigint, badgeId: bigint) {
         selectedBadgeId: badgeId,
       },
       include: {
-        selectedBadge: true,
+        Badge: true,
       },
     });
 

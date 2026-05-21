@@ -178,9 +178,7 @@ export default function HomePage() {
   const handleParticipate = useCallback(
     async (event: EventType) => {
       if (!user?.id || !event.isPublic) return;
-      const isCreator =
-        (event.createdBy?.id && String(event.createdBy.id) === String(user.id)) ||
-        (event.isCreator ?? false);
+      const isCreator = !!(event.createdBy?.id && String(event.createdBy.id) === String(user.id));
       if (isCreator || event.isParticipant) return;
       await joinEvent(event.id, user.id);
     },
@@ -396,7 +394,7 @@ export default function HomePage() {
                               event.maxParticipants ??
                               (event.maxPersons ? Number(event.maxPersons) : null)
                             }
-                            isParticipant={event.isParticipant ?? isParticipant || isCreator}
+                            isParticipant={(event.isParticipant ?? isParticipant) || isCreator}
                             isFull={event.isFull}
                             joinLoading={joiningEventId === event.id}
                             hideParticipateButton={isCreator}

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import prisma from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 
 export async function GET(request: NextRequest) {
   try {
@@ -26,9 +26,9 @@ export async function GET(request: NextRequest) {
       select: {
         points: true,
         selectedBadgeId: true,
-        userBadges: {
+        UserBadge: {
           include: {
-            badge: true,
+            Badge: true,
           },
         },
       },
@@ -47,10 +47,10 @@ export async function GET(request: NextRequest) {
       id: badge.id.toString(),
     }));
 
-    const serializedUnlockedBadges = user.userBadges.map((ub) => ({
+    const serializedUnlockedBadges = user.UserBadge.map((ub) => ({
       badge: {
-        ...ub.badge,
-        id: ub.badge.id.toString(),
+        ...ub.Badge,
+        id: ub.Badge.id.toString(),
       },
       unlockedAt: ub.unlockedAt,
     }));

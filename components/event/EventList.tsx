@@ -90,7 +90,7 @@ export const EventList = ({
                 isPublic={event.isPublic}
                 participantCount={event.participantCount ?? event.users?.length ?? 0}
                 maxParticipants={event.maxParticipants ?? (event.maxPersons ? Number(event.maxPersons) : null)}
-                isParticipant={event.isParticipant ?? isParticipant || isCreator}
+                isParticipant={(event.isParticipant ?? isParticipant) || isCreator}
                 isFull={event.isFull}
                 joinLoading={joiningEventId === event.id}
                 hideParticipateButton={isCreator}
@@ -162,7 +162,7 @@ export const EventList = ({
               isPublic={event.isPublic}
               participantCount={event.participantCount ?? event.users?.length ?? 0}
               maxParticipants={event.maxParticipants ?? (event.maxPersons ? Number(event.maxPersons) : null)}
-              isParticipant={event.isParticipant ?? isParticipant || isCreator}
+              isParticipant={(event.isParticipant ?? isParticipant) || isCreator}
               isFull={event.isFull}
               joinLoading={joiningEventId === event.id}
               hideParticipateButton={isCreator}
