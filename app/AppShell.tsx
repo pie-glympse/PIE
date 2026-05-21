@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import { usePathname } from "next/navigation";
 import Header from "@/components/Header";
 import { UserProvider, useUser } from "../context/UserContext";
+import { ToastProvider } from "@/context/ToastContext";
 import { useFeedbackNotification } from "@/hooks/useFeedbackNotification";
 import { useInvitationNotification } from "@/hooks/useInvitationNotification";
 import { useOnboarding } from "@/hooks/useOnboarding";
@@ -168,12 +169,14 @@ export default function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <UserProvider>
-      {showHeader && <Header />}
-      <OnboardingProvider>
-        <FeedbackProvider>
-          <InvitationProvider>{children}</InvitationProvider>
-        </FeedbackProvider>
-      </OnboardingProvider>
+      <ToastProvider>
+        {showHeader && <Header />}
+        <OnboardingProvider>
+          <FeedbackProvider>
+            <InvitationProvider>{children}</InvitationProvider>
+          </FeedbackProvider>
+        </OnboardingProvider>
+      </ToastProvider>
     </UserProvider>
   );
 }

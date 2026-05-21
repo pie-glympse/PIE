@@ -10,6 +10,7 @@ import GcardSkeleton from "@/components/GcardSkeleton";
 import ConfirmationModal from "@/components/ui/ConfirmationModal";
 import { EventsSection, type EventType } from "./EventsSection";
 import { useJoinPublicEvent } from "@/hooks/useJoinPublicEvent";
+import { useToast } from "@/context/ToastContext";
 
 const GCalendar = dynamic(() => import("@/components/Gcalendar"), {
   ssr: false,
@@ -52,6 +53,7 @@ function EventsSectionFallback() {
 export default function HomePage() {
   const { user, isLoading } = useUser();
   const router = useRouter();
+  const { showPointsToast } = useToast();
   const [refreshEventsKey, setRefreshEventsKey] = useState(0);
   const [dropdownEvent, setDropdownEvent] = useState<string | null>(null);
   const [leaveModal, setLeaveModal] = useState<{
@@ -180,9 +182,10 @@ export default function HomePage() {
       if (!user?.id || !event.isPublic) return;
       const isCreator = !!(event.createdBy?.id && String(event.createdBy.id) === String(user.id));
       if (isCreator || event.isParticipant) return;
-      await joinEvent(event.id, user.id);
+      const result = await joinEvent(event.id, user.id);
+      if (result) showPointsToast(50, "avoir rejoint un événement");
     },
-    [user?.id, joinEvent],
+    [user?.id, joinEvent, showPointsToast],
   );
 
   const closeLeaveModal = useCallback(() => {
