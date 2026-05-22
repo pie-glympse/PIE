@@ -34,81 +34,72 @@ export default function NotificationsPage() {
     creatorName: string;
     notificationId: string;
   } | null>(null);
+  const [refetchKey, setRefetchKey] = useState(0);
+  const refetch = () => setRefetchKey((k) => k + 1);
 
   // Récupérer les notifications depuis l'API
   useEffect(() => {
-    const fetchNotifications = async () => {
-      if (!isLoading && user) {
-        try {
-          const response = await fetch(`/api/notifications?userId=${user.id}`);
-          if (response.ok) {
-            const data = await response.json();
-            setNotifications(data);
-            
-            // Vérifier s'il y a une notification d'invitation non lue à afficher automatiquement
-            const unreadInvitation = data.find(
-              (n: Notification) =>
-                !n.read &&
-                n.type === "EVENT_INVITATION" &&
-                n.eventId
-            );
-            
-            if (unreadInvitation && !selectedInvitation) {
-              // Afficher automatiquement la modale d'invitation
-              // Récupérer les détails de l'événement
-              try {
-                const eventResponse = await fetch(`/api/events/${unreadInvitation.eventId}`);
-                if (eventResponse.ok) {
-                  const eventData = await eventResponse.json();
-                  const event = eventData.event || eventData;
-                  
-                  // Extraire le nom du créateur depuis le message de notification
-                  // Format: "@FirstName LastName vous a invité à son événement "Title""
-                  const messageMatch = unreadInvitation.message.match(/@([^@]+?) vous a invité/);
-                  const creatorName = messageMatch
-                    ? messageMatch[1].trim()
-                    : "Quelqu'un";
+    if (isLoading || !user) return;
 
-                  setSelectedInvitation({
-                    eventId: unreadInvitation.eventId!,
-                    eventTitle: event.title || "Événement",
-                    creatorName,
-                    notificationId: unreadInvitation.id,
-                  });
-                } else {
-                  // Si on ne peut pas récupérer l'événement, utiliser quand même la notification
-                  const messageMatch = unreadInvitation.message.match(/@([^@]+?) vous a invité/);
-                  setSelectedInvitation({
-                    eventId: unreadInvitation.eventId,
-                    eventTitle: "Événement",
-                    creatorName: messageMatch ? messageMatch[1].trim() : "Quelqu'un",
-                    notificationId: unreadInvitation.id,
-                  });
-                }
-              } catch (error) {
-                console.error("Erreur lors de la récupération de l'événement:", error);
-                const messageMatch = unreadInvitation.message.match(/@([^@]+?) vous a invité/);
-                setSelectedInvitation({
-                  eventId: unreadInvitation.eventId!,
-                  eventTitle: "Événement",
-                  creatorName: messageMatch ? messageMatch[1].trim() : "Quelqu'un",
-                  notificationId: unreadInvitation.id,
-                });
-              }
-            }
-          } else {
-            console.error("Erreur récupération notifications");
-          }
-        } catch (error) {
-          console.error("Erreur:", error);
-        } finally {
-          setLoading(false);
+    const controller = new AbortController();
+
+    const fetchNotifications = async () => {
+      try {
+        const response = await fetch(`/api/notifications?userId=${user.id}`, {
+          signal: controller.signal,
+        });
+
+        if (!response.ok) {
+          const body = await response.json().catch(() => ({}));
+          console.warn(`Notifications: ${response.status}`, body);
+          return;
         }
+
+        const data: Notification[] = await response.json();
+        setNotifications(data);
+
+        // Ouvrir automatiquement la première invitation non lue
+        const unreadInvitation = data.find(
+          (n) => !n.read && n.type === "EVENT_INVITATION" && n.eventId
+        );
+
+        if (unreadInvitation) {
+          const messageMatch = unreadInvitation.message.match(/@([^@]+?) vous a invité/);
+          const creatorName = messageMatch ? messageMatch[1].trim() : "Quelqu'un";
+
+          try {
+            const eventRes = await fetch(`/api/events/${unreadInvitation.eventId}`, {
+              signal: controller.signal,
+            });
+            const eventData = eventRes.ok ? await eventRes.json() : {};
+            const event = eventData.event || eventData;
+
+            setSelectedInvitation({
+              eventId: unreadInvitation.eventId!,
+              eventTitle: event.title || "Événement",
+              creatorName,
+              notificationId: unreadInvitation.id,
+            });
+          } catch {
+            setSelectedInvitation({
+              eventId: unreadInvitation.eventId!,
+              eventTitle: "Événement",
+              creatorName,
+              notificationId: unreadInvitation.id,
+            });
+          }
+        }
+      } catch (error: unknown) {
+        if (error instanceof Error && error.name === "AbortError") return;
+        console.warn("Erreur lors du chargement des notifications:", error);
+      } finally {
+        setLoading(false);
       }
     };
 
     fetchNotifications();
-  }, [isLoading, user, selectedInvitation]);
+    return () => controller.abort();
+  }, [isLoading, user, refetchKey]);
 
   const handleMarkAsRead = async (id: string) => {
     try {
@@ -387,21 +378,7 @@ export default function NotificationsPage() {
           isOpen={true}
           onClose={() => {
             setSelectedFeedback(null);
-            // Recharger les notifications pour mettre à jour l'état
-            const fetchNotifications = async () => {
-              try {
-                const response = await fetch(
-                  `/api/notifications?userId=${user.id}`
-                );
-                if (response.ok) {
-                  const data = await response.json();
-                  setNotifications(data);
-                }
-              } catch (error) {
-                console.error("Erreur:", error);
-              }
-            };
-            fetchNotifications();
+            refetch();
           }}
           eventId={selectedFeedback.eventId}
           eventTitle={selectedFeedback.eventTitle}
@@ -416,21 +393,7 @@ export default function NotificationsPage() {
           isOpen={true}
           onClose={() => {
             setSelectedInvitation(null);
-            // Recharger les notifications pour mettre à jour l'état
-            const fetchNotifications = async () => {
-              try {
-                const response = await fetch(
-                  `/api/notifications?userId=${user.id}`
-                );
-                if (response.ok) {
-                  const data = await response.json();
-                  setNotifications(data);
-                }
-              } catch (error) {
-                console.error("Erreur:", error);
-              }
-            };
-            fetchNotifications();
+            refetch();
           }}
           eventId={selectedInvitation.eventId}
           eventTitle={selectedInvitation.eventTitle}
