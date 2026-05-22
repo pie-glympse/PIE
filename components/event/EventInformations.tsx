@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState } from 'react';
 import dynamic from 'next/dynamic';
 import Image from 'next/image';
 import NearbyActivities from '@/components/event/NearbyActivities';
@@ -27,9 +27,10 @@ interface EventInformationsProps {
     maxPersons?: string;
     costPerPerson?: string;
     city?: string;
-    activityType?: string;
+    isSpecificPlace?: boolean;
+    selectedGoogleTags?: { id: string; techName: string; displayName?: string | null }[];
+    confirmedGoogleTag?: { id: string; techName: string; displayName?: string | null } | null;
     maxDistance?: number;
-    tags: { id: string; name: string }[];
     users?: {
       id: string;
       companyId?: string;
@@ -52,13 +53,6 @@ const EventInformations = ({ event }: EventInformationsProps) => {
   const isConfirmed = event.state?.toLowerCase() === 'confirmed';
   const [recommendedPlaces, setRecommendedPlaces] = useState<Place[]>([]);
   
-  // Callback stable pour éviter les re-renders infinis
-  const handlePlacesLoaded = useCallback((places: Place[]) => {
-    // Filtrer uniquement les lieux qui ont des coordonnées
-    const placesWithLocation = places.filter(place => place.location);
-    setRecommendedPlaces(placesWithLocation);
-  }, []);
-
   // Formatter la date en français
   const formatDate = (dateString: string) => {
     if (!dateString) return "Non définie";
@@ -150,18 +144,10 @@ const EventInformations = ({ event }: EventInformationsProps) => {
     return "Non définie";
   };
 
-  // Fonction pour obtenir le texte du lieu
-  // Pour les événements "Je sais ce que je veux faire", l'adresse est stockée dans city
   const getLocationText = () => {
-    // Vérifier si c'est un événement "Je sais ce que je veux faire"
-    const isSpecificPlaceEvent = event.activityType === "Je sais ce que je veux";
-    
-    // Si c'est ce type d'événement et que city contient l'adresse, l'utiliser
-    if (isSpecificPlaceEvent && event.city) {
+    if (event.isSpecificPlace && event.city) {
       return event.city;
     }
-    
-    // Sinon, utiliser city par défaut
     return event.city || "Lieu non défini";
   };
 
@@ -297,12 +283,10 @@ const EventInformations = ({ event }: EventInformationsProps) => {
       {/* Section Recommandations d'activités */}
       <NearbyActivities 
         city={event.city} 
-        activityType={event.activityType}
         maxDistance={event.maxDistance || 5}
         eventId={event.id}
         companyId={event.users?.[0]?.companyId?.toString()}
         eventState={event.state}
-        onPlacesLoaded={handlePlacesLoaded}
       />
     </div>
   );

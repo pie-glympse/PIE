@@ -17,13 +17,17 @@ interface EventListProps {
   showAddButton?: boolean;
   onLeaveEvent?: (event: EventType) => void;
   currentUserId?: string;
+  onParticipate?: (event: EventType) => void;
+  joiningEventId?: string | null;
 }
 
 const adaptEventForGcard = (event: EventType) => {
-  const getBackgroundUrl = (tags: { id: string; name: string }[]) => {
-    if (tags.some((tag) => tag.name === "Restauration")) return "/images/illustration/palm.svg";
-    if (tags.some((tag) => tag.name === "Afterwork")) return "/images/illustration/stack.svg";
-    if (tags.some((tag) => tag.name === "Team Building")) return "/images/illustration/roundstar.svg";
+  const getBackgroundUrl = (
+    themes: { id: string; techName: string; displayName?: string | null }[] = [],
+  ) => {
+    if (themes.some((tag) => tag.techName.includes("restaurant"))) return "/images/illustration/palm.svg";
+    if (themes.some((tag) => tag.techName.includes("bar"))) return "/images/illustration/stack.svg";
+    if (themes.some((tag) => tag.techName.includes("park"))) return "/images/illustration/roundstar.svg";
     return "/images/illustration/roundstar.svg";
   };
 
@@ -31,7 +35,7 @@ const adaptEventForGcard = (event: EventType) => {
     title: event.title,
     date: event.startDate || new Date().toISOString(),
     participants: event.users || [],
-    backgroundUrl: getBackgroundUrl(event.tags),
+    backgroundUrl: getBackgroundUrl(event.selectedGoogleTags),
     state: event.state,
   };
 };
@@ -52,6 +56,8 @@ export const EventList = ({
   showAddButton = true,
   onLeaveEvent,
   currentUserId,
+  onParticipate,
+  joiningEventId,
 }: EventListProps) => {
   if (viewMode === "grid") {
     return (
@@ -80,6 +86,18 @@ export const EventList = ({
                 isCreator={isCreator}
                 showPreferencesButton={
                   !userEventPreferences.has(event.id) && event.state?.toLowerCase() !== "confirmed"
+                }
+                isPublic={event.isPublic}
+                participantCount={event.participantCount ?? event.users?.length ?? 0}
+                maxParticipants={event.maxParticipants ?? (event.maxPersons ? Number(event.maxPersons) : null)}
+                isParticipant={(event.isParticipant ?? isParticipant) || isCreator}
+                isFull={event.isFull}
+                joinLoading={joiningEventId === event.id}
+                hideParticipateButton={isCreator}
+                onParticipate={
+                  onParticipate && event.isPublic && !isCreator
+                    ? () => onParticipate(event)
+                    : undefined
                 }
               />
             </div>
@@ -141,6 +159,18 @@ export const EventList = ({
               onLeave={canLeave && onLeaveEvent ? () => onLeaveEvent(event) : undefined}
               isCreator={isCreator}
               showPreferencesButton={!userEventPreferences.has(event.id) && event.state?.toLowerCase() !== "confirmed"}
+              isPublic={event.isPublic}
+              participantCount={event.participantCount ?? event.users?.length ?? 0}
+              maxParticipants={event.maxParticipants ?? (event.maxPersons ? Number(event.maxPersons) : null)}
+              isParticipant={(event.isParticipant ?? isParticipant) || isCreator}
+              isFull={event.isFull}
+              joinLoading={joiningEventId === event.id}
+              hideParticipateButton={isCreator}
+              onParticipate={
+                onParticipate && event.isPublic && !isCreator
+                  ? () => onParticipate(event)
+                  : undefined
+              }
             />
           </div>
         );

@@ -1,6 +1,7 @@
 import { NextResponse, NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { generateETag, isNotModified, addCacheHeaders, CACHE_STRATEGIES } from "@/lib/cache-utils";
+import { enrichEventForClient } from "@/lib/event-public";
 
 function safeJson(obj: unknown) {
   return JSON.parse(
@@ -26,17 +27,24 @@ export async function GET(
   try {
     const resolvedParams = await params;
     const eventId = BigInt(resolvedParams.id);
+    const userId = new URL(request.url).searchParams.get("userId");
 
     const event = await prisma.event.findUnique({
       where: { id: eventId },
       include: {
-        tags: {
+        selectedGoogleTags: true,
+        confirmedGoogleTag: true,
+        users: {
           select: {
             id: true,
-            name: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            companyId: true,
+            photoUrl: true,
           },
         },
-        users: {
+        User_Event_createdByIdToUser: {
           select: {
             id: true,
             firstName: true,
@@ -51,7 +59,8 @@ export async function GET(
         photos: true,
         feedbacks: true,
         votes: true,
-        notifications: true
+        notifications: true,
+        _count: { select: { users: true } },
       },
     });
 
@@ -59,24 +68,7 @@ export async function GET(
       return NextResponse.json({ error: "Événement non trouvé" }, { status: 404 });
     }
 
-    // Récupérer le créateur de l'événement
-    let createdBy = null;
-    if (event.createdById) {
-      const creator = await prisma.user.findUnique({
-        where: { id: event.createdById },
-        select: {
-          id: true,
-          email: true,
-          firstName: true,
-          lastName: true,
-          photoUrl: true,
-        }
-      });
-      createdBy = creator;
-    }
-
-    // Map Prisma relation field to `createdBy` for API consumers
-    const eventObj: any = { ...event, createdBy };
+    const eventObj = enrichEventForClient(event, userId ?? undefined);
     const eventJson = safeJson(eventObj);
 
     // Générer un ETag basé sur l'ID de l'événement et son contenu
@@ -166,7 +158,8 @@ export async function PUT(
       where: { id: eventId },
       data: updateData,
       include: {
-        tags: true,
+        selectedGoogleTags: true,
+        confirmedGoogleTag: true,
         users: {
           select: {
             id: true,

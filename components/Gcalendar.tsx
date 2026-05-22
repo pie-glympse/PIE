@@ -16,11 +16,10 @@ interface APIEvent {
   maxPersons?: string;
   costPerPerson?: string;
   state?: string;
-  activityType?: string; // ✅ Ajouter activityType
   recurring?: boolean;
   duration?: number;
   recurringRate?: string;
-  tags: { id: string; name: string }[];
+  tags?: { id: string; name: string }[];
 }
 
 // Type pour les événements du calendrier
@@ -30,8 +29,7 @@ interface Event {
   title: string;
   description: string;
   time: string;
-  activityType?: string; // ✅ Ajouter activityType
-  tags: { id: string; name: string }[];
+  tags?: { id: string; name: string }[];
   isMultiDay?: boolean;
   originalStartDate?: string;
   originalEndDate?: string;
@@ -104,19 +102,6 @@ const MiniCalendar = ({ eventsData = [] }: MiniCalendarProps) => {
     }
     return months;
   }, [monthNames]);
-
-  // Mapping des couleurs pour les types d'événements (activityType)
-  const getColorForActivityType = (activityType: string): string => {
-    const activityColors: Record<string, string> = {
-      'Gastronomie': 'bg-[var(--color-main)] hover:bg-[#ca9e2d]',
-      'Culture': 'bg-[var(--color-secondary)] hover:bg-[#df4f4f]',
-      'Nature & Bien-être': 'bg-[var(--color-tertiary)] hover:bg-[#c16bc7]',
-      'Divertissement': 'bg-[var(--color-calendar-green)] hover:bg-[var(--color-calendar-green-hover)]',
-      'Sport': 'bg-orange-500 hover:bg-orange-600',
-    };
-
-    return activityColors[activityType] || 'bg-[var(--color-calendar-grey)] hover:bg-[var(--color-calendar-grey-hover)]';
-  };
 
   // Détecter si on est sur mobile
   useEffect(() => {
@@ -248,8 +233,7 @@ const MiniCalendar = ({ eventsData = [] }: MiniCalendarProps) => {
           title: apiEvent.title,
           description: apiEvent.description || '',
           time: getTimeFromDate(apiEvent.startDate),
-          activityType: apiEvent.activityType,
-          tags: apiEvent.tags,
+          tags: apiEvent.tags || [],
           isMultiDay: eventDuration > 1,
           originalStartDate: startDate,
           originalEndDate: endDate,
@@ -270,8 +254,7 @@ const MiniCalendar = ({ eventsData = [] }: MiniCalendarProps) => {
       title: apiEvent.title,
       description: apiEvent.description || '',
       time: getTimeFromDate(apiEvent.startDate),
-      activityType: apiEvent.activityType,
-      tags: apiEvent.tags,
+      tags: apiEvent.tags || [],
       isMultiDay: isMultiDay,
       originalStartDate: startDate,
       originalEndDate: endDate,
@@ -425,13 +408,7 @@ const MiniCalendar = ({ eventsData = [] }: MiniCalendarProps) => {
 
     const firstEvent = dayEvents[0];
     
-    // D'abord vérifier activityType
-    if (firstEvent.activityType) {
-      const color = getColorForActivityType(firstEvent.activityType);
-      return color;
-    }
-
-    return 'bg-gray-400 hover:bg-gray-500';
+    return "bg-[var(--color-calendar-grey)] hover:bg-[var(--color-calendar-grey-hover)]";
   };
 
   // Fonction pour gérer le clic sur un jour avec événement
@@ -626,11 +603,6 @@ const MiniCalendar = ({ eventsData = [] }: MiniCalendarProps) => {
                     {event.description}
                   </div>
                 )}
-                {event.activityType && (
-                  <div className="text-gray-400 text-xs">
-                    Type: {event.activityType}
-                  </div>
-                )}
                 {event.recurring && (
                   <div className="text-gray-400 text-xs">
                     🔁 Récurrent ({event.recurringRate === 'day' ? 'Quotidien' : 
@@ -643,9 +615,9 @@ const MiniCalendar = ({ eventsData = [] }: MiniCalendarProps) => {
                   <div className="text-gray-400 text-xs">{event.time}</div>
                 )}
                 {/* Afficher les tags dans le tooltip si nécessaire */}
-                {event.tags.length > 0 && (
+                {(event.tags?.length || 0) > 0 && (
                   <div className="flex flex-wrap gap-1 mt-1">
-                    {event.tags.map((tag) => (
+                    {(event.tags || []).map((tag) => (
                       <span 
                         key={tag.id}
                         className="px-1.5 py-0.5 text-xs rounded-full bg-gray-200 text-gray-700"

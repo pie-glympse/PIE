@@ -8,7 +8,7 @@ import { useUser } from '@/context/UserContext';
 
 export default function LoginPage() {
     const router = useRouter();
-    const { user, isLoading, logout } = useUser();
+    const { user, isLoading } = useUser();
 
     // Rediriger vers /home si l'utilisateur est déjà connecté
     useEffect(() => {
@@ -38,15 +38,9 @@ export default function LoginPage() {
         router.push('/first-connection'); // ou la route appropriée
     };
 
-    // Afficher un loader pendant la vérification
-    if (isLoading) {
+    // Afficher un loader pendant la vérification ou la redirection
+    if (isLoading || user) {
         return <div className="flex items-center justify-center h-screen">Chargement...</div>;
-    }
-
-    // Cookie expiré mais localStorage encore présent → vider la session et afficher le login
-    if (user) {
-        logout();
-        return null;
     }
 
     return (

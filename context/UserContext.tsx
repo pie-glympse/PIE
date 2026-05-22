@@ -25,22 +25,35 @@ export function UserProvider({ children }: { children: ReactNode }) {
 const [isLoading, setIsLoading] = useState(true);
 
 useEffect(() => {
-  const savedToken = localStorage.getItem("token");
-  const savedUser = localStorage.getItem("user");
+    try {
+      const ls = globalThis.localStorage;
+      if (typeof ls?.getItem !== "function") {
+        return;
+      }
+      const savedToken = ls.getItem("token");
+      const savedUser = ls.getItem("user");
 
-  if (savedToken && savedUser) {
-    setToken(savedToken);
-    setUser(JSON.parse(savedUser));
-  }
-    setIsLoading(false);
-
-}, []); // tableau vide = run only once on mount
+      if (savedToken && savedUser) {
+        setToken(savedToken);
+        setUser(JSON.parse(savedUser));
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
 
   const logout = () => {
     setUser(null);
     setToken(null);
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
+    try {
+      const ls = globalThis.localStorage;
+      if (typeof ls?.removeItem === "function") {
+        ls.removeItem("token");
+        ls.removeItem("user");
+      }
+    } catch {
+      /* ignore */
+    }
   };
 
   return (

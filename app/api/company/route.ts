@@ -36,7 +36,8 @@ export async function GET(request: Request) {
 
     return NextResponse.json(safeJson({
       companyName: user.company.name,
-      companyId: user.company.id
+      companyId: user.company.id,
+      companyAddress: user.company.address || null,
     }), { status: 200 });
 
   } catch (error) {

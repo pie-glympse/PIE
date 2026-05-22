@@ -32,12 +32,6 @@ export async function GET(request: NextRequest) {
             title: true,
           },
         },
-        tag: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
       },
     });
 

@@ -1,0 +1,78 @@
+{
+	"ulid": "01KJ2QTPHAW4EMHFHWW1CJZ1FJ",
+	"minTime": 1771766110.753,
+	"maxTime": 1771766110.779,
+	"stats": {
+		"numSamples": 507,
+		"numSeries": 9,
+		"numProfiles": 9
+	},
+	"files": [
+		{
+			"relPath": "index.tsdb",
+			"sizeBytes": 4028,
+			"tsdb": {
+				"numSeries": 9
+			}
+		},
+		{
+			"relPath": "profiles.parquet",
+			"sizeBytes": 7454,
+			"parquet": {
+				"numRowGroups": 1,
+				"numRows": 9
+			}
+		},
+		{
+			"relPath": "symbols/functions.parquet",
+			"sizeBytes": 32745,
+			"parquet": {
+				"numRowGroups": 2,
+				"numRows": 793
+			}
+		},
+		{
+			"relPath": "symbols/index.symdb",
+			"sizeBytes": 180
+		},
+		{
+			"relPath": "symbols/locations.parquet",
+			"sizeBytes": 41195,
+			"parquet": {
+				"numRowGroups": 2,
+				"numRows": 956
+			}
+		},
+		{
+			"relPath": "symbols/mappings.parquet",
+			"sizeBytes": 1833,
+			"parquet": {
+				"numRowGroups": 2,
+				"numRows": 2
+			}
+		},
+		{
+			"relPath": "symbols/stacktraces.symdb",
+			"sizeBytes": 5876
+		},
+		{
+			"relPath": "symbols/strings.parquet",
+			"sizeBytes": 60162,
+			"parquet": {
+				"numRowGroups": 2,
+				"numRows": 1079
+			}
+		}
+	],
+	"compaction": {
+		"level": 1,
+		"sources": [
+			"01KJ2QTPHAW4EMHFHWW1CJZ1FJ"
+		]
+	},
+	"version": 3,
+	"labels": {},
+	"downsample": {
+		"resolution": 0
+	}
+}

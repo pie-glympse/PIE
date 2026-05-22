@@ -1,15 +1,25 @@
 import { NextResponse } from "next/server";
 import { createUser } from "../../../lib/user/createUser";
+import { prisma } from "@/lib/prisma";
 import jwt from "jsonwebtoken";
 
 const JWT_SECRET = process.env.JWT_SECRET || "supersecretkey";
 
 export async function POST(req: Request) {
   try {
-    const { email, password, firstName, lastName } = await req.json();
+    const { email, password, firstName, lastName, companyName, address } = await req.json();
 
     const user = await createUser({ email, password, firstName, lastName });
 
+    if (companyName) {
+      const company = await prisma.company.create({
+        data: { name: companyName, address: address || null },
+      });
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { companyId: company.id, role: "ADMIN" },
+      });
+    }
     // Conversion de l'id BigInt en string pour le payload JWT et la réponse
     const payload = {
       id: user.id.toString(),

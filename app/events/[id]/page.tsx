@@ -10,6 +10,8 @@ import EventParticipants from "@/components/event/EventParticipants";
 import EventDocuments from "@/components/event/EventDocuments";
 import { useUser } from "@/context/UserContext";
 import ConfirmationModal from "@/components/ui/ConfirmationModal";
+import PublicEventParticipateButton from "@/components/event/PublicEventParticipateButton";
+import { useJoinPublicEvent } from "@/hooks/useJoinPublicEvent";
 
 type EventDetails = {
   id: string;
@@ -22,11 +24,12 @@ type EventDetails = {
   endTime?: string;
   maxPersons?: string;
   costPerPerson?: string;
-  activityType?: string;
+  isSpecificPlace?: boolean;
   state?: string;
   city?: string;
   maxDistance?: number;
-  tags: { id: string; name: string }[];
+  selectedGoogleTags?: { id: string; techName: string; displayName?: string | null }[];
+  confirmedGoogleTag?: { id: string; techName: string; displayName?: string | null } | null;
   users: {
     id: string;
     firstName: string;
@@ -42,6 +45,14 @@ type EventDetails = {
   };
   createdAt: string;
   updatedAt: string;
+  isPublic?: boolean;
+  publicStatus?: string;
+  participantCount?: number;
+  maxParticipants?: number | null;
+  isParticipant?: boolean;
+  isCreator?: boolean;
+  canJoin?: boolean;
+  isFull?: boolean;
 };
 
 export default function SingleEventPage() {
@@ -69,6 +80,7 @@ export default function SingleEventPage() {
   // État pour la modal de suppression
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const { joinEvent, joiningEventId } = useJoinPublicEvent();
 
   const tabs = [
     {
@@ -87,7 +99,8 @@ export default function SingleEventPage() {
   useEffect(() => {
     const fetchEvent = async () => {
       try {
-        const response = await fetch(`/api/events/${id}`);
+        const userQuery = user?.id ? `?userId=${encodeURIComponent(user.id)}` : "";
+        const response = await fetch(`/api/events/${id}${userQuery}`);
 
         if (!response.ok) {
           if (response.status === 404) {
@@ -111,7 +124,7 @@ export default function SingleEventPage() {
     if (id) {
       fetchEvent();
     }
-  }, [id]);
+  }, [id, user?.id]);
 
   const handleTabChange = (tabId: string) => {
     setActiveTab(tabId);
@@ -168,6 +181,25 @@ export default function SingleEventPage() {
     setLeaveError(null);
   };
 
+  const refetchEvent = async () => {
+    const userQuery = user?.id ? `?userId=${encodeURIComponent(user.id)}` : "";
+    const response = await fetch(`/api/events/${id}${userQuery}`);
+    if (response.ok) {
+      const data = await response.json();
+      setEvent(data.event || data);
+    }
+  };
+
+  const handleParticipate = async () => {
+    if (!event || !user) return;
+    const userIsCreator =
+      event.isCreator ||
+      (event.createdBy?.id && String(event.createdBy.id) === String(user.id));
+    if (userIsCreator || event.isParticipant) return;
+    const ok = await joinEvent(event.id, user.id);
+    if (ok) await refetchEvent();
+  };
+
   const handleLeaveEvent = async () => {
     if (!event || !user) return;
 
@@ -182,7 +214,12 @@ export default function SingleEventPage() {
 
       if (response.ok) {
         closeLeaveModal();
-        router.push("/events"); // Rediriger vers la liste des événements
+        if (event.isPublic) {
+          await refetchEvent();
+          window.dispatchEvent(new Event("eventsUpdated"));
+        } else {
+          router.push("/events");
+        }
       } else {
         const errorData = await response.json();
         setLeaveError(errorData.error || "Erreur lors du départ de l'événement.");
@@ -250,12 +287,12 @@ export default function SingleEventPage() {
             ? {
                 ...prev,
                 state: updatedEvent.state,
-                activityType: updatedEvent.activityType || prev.activityType,
                 date: updatedEvent.startDate || updatedEvent.date || prev.date,
                 startDate: updatedEvent.startDate || prev.startDate,
                 endDate: updatedEvent.endDate || prev.endDate,
                 startTime: updatedEvent.startTime || prev.startTime,
                 endTime: updatedEvent.endTime || prev.endTime,
+                confirmedGoogleTag: updatedEvent.confirmedGoogleTag || prev.confirmedGoogleTag,
               }
             : null
         );
@@ -378,6 +415,19 @@ export default function SingleEventPage() {
               Organisé par {`${organizer?.firstName} ${organizer?.lastName}` || "Organisateur inconnu"}
             </p>
 
+            {event.isPublic && (
+              <div className="mt-3 flex flex-col gap-2">
+                <span className="inline-flex w-fit px-3 py-1 rounded-full bg-[#E9F1FE] text-body-small font-poppins font-medium text-[var(--color-text)]">
+                  Événement public
+                </span>
+                <p className="text-body-large font-poppins text-[var(--color-grey-three)]">
+                  {event.participantCount ?? event.users?.length ?? 0}
+                  {" / "}
+                  {event.maxParticipants ?? event.maxPersons ?? "—"} participants
+                </p>
+              </div>
+            )}
+
             {/* ✅ Afficher les résultats des votes si l'événement est confirmé */}
             {event.state?.toLowerCase() === "confirmed" && (
               <div className="mt-6 p-6 rounded-lg shadow-sm">
@@ -397,22 +447,7 @@ export default function SingleEventPage() {
                   <div className="flex-1">
                     <h3 className="text-h3 font-urbanist font-semibold mb-3">Événement finalisé avec succès !</h3>
                     <div className="space-y-3">
-                      {/* ✅ Afficher l'activityType original */}
-                      {event.activityType && (
-                        <div className="flex items-center gap-3">
-                          <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                          <div>
-                            <span className="text-body-large font-poppins font-medium text-[var(--color-text)]">
-                              Type d&apos;événement :
-                            </span>
-                            <span className="ml-2 text-body-large font-poppins text-blue-700 font-semibold">
-                              {event.activityType}
-                            </span>
-                          </div>
-                        </div>
-                      )}
-                      {/* ✅ Afficher le tag préféré voté */}
-                      {event.tags && event.tags.length > 0 && (
+                      {event.confirmedGoogleTag && (
                         <div className="flex items-center gap-3">
                           <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                           <div>
@@ -420,7 +455,7 @@ export default function SingleEventPage() {
                               Préférence choisie :
                             </span>
                             <span className="ml-2 text-body-large font-poppins text-green-700 font-semibold">
-                              {event.tags[0].name}
+                              {event.confirmedGoogleTag.displayName || event.confirmedGoogleTag.techName}
                             </span>
                           </div>
                         </div>
@@ -454,9 +489,25 @@ export default function SingleEventPage() {
               </div>
             )}
           </div>
-          <div>
-            {/* Boutons conditionnels à gauche du bouton partager */}
-            <div className="flex items-center gap-3">
+          <div className="flex flex-col items-end gap-3">
+            {event.isPublic && !isCreator && (
+              <PublicEventParticipateButton
+                participantCount={event.participantCount ?? event.users?.length ?? 0}
+                maxParticipants={
+                  event.maxParticipants ??
+                  (event.maxPersons ? Number(event.maxPersons) : null)
+                }
+                isParticipant={event.isParticipant ?? !!isParticipant}
+                isCreator={!!isCreator}
+                isFull={event.isFull ?? false}
+                isPublic={!!event.isPublic}
+                loading={joiningEventId === event.id}
+                onParticipate={() => handleParticipate()}
+                size="detail"
+                className="min-w-[200px]"
+              />
+            )}
+            <div className="flex items-center gap-3 flex-wrap justify-end">
               {activeTab === "participants" && isAuthorized && (
                 <button
                   onClick={handleAddMembers}
@@ -623,8 +674,12 @@ export default function SingleEventPage() {
             onClose={closeLeaveModal}
             onConfirm={handleLeaveEvent}
             title={`Quitter l'événement "${event.title}"`}
-            message="Êtes-vous sûr de vouloir quitter cet événement ? Cette action est irréversible."
-            confirmButtonText="Oui, quitter"
+            message={
+              event.isPublic
+                ? "Souhaitez-vous vraiment quitter cet événement ? Votre place sera libérée."
+                : "Êtes-vous sûr de vouloir quitter cet événement ? Cette action est irréversible."
+            }
+            confirmButtonText="Quitter l'événement"
             cancelButtonText="Annuler"
             error={leaveError}
           />

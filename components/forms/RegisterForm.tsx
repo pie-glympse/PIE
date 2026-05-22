@@ -4,6 +4,7 @@ import type { FC, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUser } from '../../context/UserContext';
 import MainButton from '@/components/ui/MainButton';
+import SimpleAutocomplete from '@/components/ui/SimpleAutocomplete';
 
 interface RegisterFormProps {
     title: ReactNode;
@@ -33,7 +34,6 @@ const RegisterForm: FC<RegisterFormProps> = ({
     const [lastName, setLastName] = useState('');
     const [companyName, setCompanyName] = useState('');
     const [address, setAddress] = useState('');
-    const [postalCode, setPostalCode] = useState('');
     // ✅ Ajouter l'état d'erreur comme dans LoginForm
     const [errorMsg, setErrorMsg] = useState('');
 
@@ -49,7 +49,6 @@ const RegisterForm: FC<RegisterFormProps> = ({
                 lastName,
                 companyName,
                 address,
-                postalCode
             };
 
             const response = await fetch('/api/register', {
@@ -137,30 +136,14 @@ const RegisterForm: FC<RegisterFormProps> = ({
                 />
             </div>
 
-            {/* Adresse et Code postal */}
-            <div className="flex flex-row gap-4 mb-4">
-                <div className="flex-1">
-                    <label htmlFor="address" className="block mb-1 text-body-large font-poppins text-[var(--color-grey-three)]">Adresse</label>
-                    <input
-                        id="address"
-                        type="text"
-                        value={address}
-                        onChange={e => setAddress(e.target.value)}
-                        placeholder="Adresse"
-                        className="w-full px-5 py-2 text-base bg-white border-2 border-[var(--color-grey-two)] rounded placeholder:font-poppins placeholder:text-[#EAEAEF]"
-                    />
-                </div>
-                <div className="flex-1">
-                    <label htmlFor="postalCode" className="block mb-1 text-body-large font-poppins text-[var(--color-grey-three)]">Code postal</label>
-                    <input
-                        id="postalCode"
-                        type="text"
-                        value={postalCode}
-                        onChange={e => setPostalCode(e.target.value)}
-                        placeholder="Code postal"
-                        className="w-full px-5 py-2 text-base bg-white border-2 border-[var(--color-grey-two)] rounded placeholder:font-poppins placeholder:text-[#EAEAEF]"
-                    />
-                </div>
+            {/* Adresse de l'entreprise */}
+            <div className="mb-4">
+                <label htmlFor="address" className="block mb-1 text-body-large font-poppins text-[var(--color-grey-three)]">Adresse de l'entreprise</label>
+                <SimpleAutocomplete
+                    value={address}
+                    onChange={setAddress}
+                    placeholder="Ex : 12 Rue de Rivoli, Paris"
+                />
             </div>
 
             {/* Email */}

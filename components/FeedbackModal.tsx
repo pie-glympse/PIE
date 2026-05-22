@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import MainButton from "./ui/MainButton";
+import { useToast } from "@/context/ToastContext";
 
 interface FeedbackModalProps {
   isOpen: boolean;
@@ -20,6 +21,7 @@ export default function FeedbackModal({
   userId,
   notificationId,
 }: FeedbackModalProps) {
+  const { showPointsToast } = useToast();
   const [currentStep, setCurrentStep] = useState(1);
   const [participated, setParticipated] = useState<boolean | null>(null);
   const [rating, setRating] = useState<number | null>(null);
@@ -79,7 +81,7 @@ export default function FeedbackModal({
       // Déclencher l'événement pour mettre à jour les notifications
       window.dispatchEvent(new Event("notificationsUpdated"));
 
-      // Fermer la modal
+      showPointsToast(20, "avoir donné un feedback");
       onClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erreur lors de la soumission");
@@ -227,3 +229,4 @@ export default function FeedbackModal({
     </div>
   );
 }
+

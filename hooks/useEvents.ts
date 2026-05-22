@@ -11,11 +11,12 @@ export type EventType = {
   maxPersons?: string;
   costPerPerson?: string;
   state?: string;
-  activityType?: string;
   city?: string;
   maxDistance?: number;
+  isSpecificPlace?: boolean;
   createdById?: string;
-  tags: { id: string; name: string }[];
+  selectedGoogleTags?: { id: string; techName: string; displayName?: string | null }[];
+  confirmedGoogleTag?: { id: string; techName: string; displayName?: string | null } | null;
   users: {
     id: string;
     firstName: string;
@@ -28,6 +29,14 @@ export type EventType = {
     lastName: string;
     email: string;
   };
+  isPublic?: boolean;
+  publicStatus?: string;
+  participantCount?: number;
+  maxParticipants?: number | null;
+  isParticipant?: boolean;
+  isCreator?: boolean;
+  canJoin?: boolean;
+  isFull?: boolean;
 };
 
 export const useEvents = (userId?: string) => {
@@ -35,14 +44,16 @@ export const useEvents = (userId?: string) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  const fetchEvents = () => {
     if (!userId) {
       setLoading(false);
-      return;
+      return Promise.resolve();
     }
 
     setLoading(true);
-    fetch(`/api/events?userId=${userId}`)
+    return fetch(`/api/events?userId=${encodeURIComponent(userId)}&_ts=${Date.now()}`, {
+      cache: "no-store",
+    })
       .then((res) => {
         if (!res.ok) throw new Error("Erreur lors de la récupération des événements");
         return res.json();
@@ -53,9 +64,39 @@ export const useEvents = (userId?: string) => {
       })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    fetchEvents();
   }, [userId]);
 
-  return { events, loading, error, setEvents };
+  useEffect(() => {
+    const onUpdate = (e: Event) => {
+      const detail = (e as CustomEvent<{ eventId?: string; event?: EventType }>).detail;
+      if (detail?.event?.id) {
+        setEvents((prev) =>
+          prev.map((ev) =>
+            ev.id === detail.event!.id
+              ? {
+                  ...ev,
+                  ...detail.event,
+                  users: detail.event!.users ?? ev.users,
+                  participantCount:
+                    detail.event!.participantCount ??
+                    detail.event!.users?.length ??
+                    ev.participantCount,
+                }
+              : ev,
+          ),
+        );
+      }
+      void fetchEvents();
+    };
+    window.addEventListener("eventsUpdated", onUpdate);
+    return () => window.removeEventListener("eventsUpdated", onUpdate);
+  }, [userId]);
+
+  return { events, loading, error, setEvents, refetch: fetchEvents };
 };
 
 export const filterEventsByStatus = (

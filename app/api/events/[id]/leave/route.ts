@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import {
+  computePublicStatus,
+  getMaxParticipants,
+  getParticipantCount,
+} from "@/lib/event-public";
 
 function safeJson(obj: unknown) {
   return JSON.parse(JSON.stringify(obj, (_, value) => (typeof value === "bigint" ? value.toString() : value)));
@@ -46,19 +51,35 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       return NextResponse.json({ error: "Vous ne participez pas à cet événement" }, { status: 403 });
     }
 
-    // Retirer l'utilisateur de l'événement
+    const participantCount = getParticipantCount(event.users) - 1;
+    const maxParticipants = getMaxParticipants(event);
+    const newPublicStatus = event.isPublic
+      ? computePublicStatus(participantCount, maxParticipants, event.publicStatus)
+      : event.publicStatus;
+
     await prisma.event.update({
       where: { id: eventId },
       data: {
         users: {
           disconnect: { id: userIdBigInt },
         },
+        ...(event.isPublic ? { publicStatus: newPublicStatus } : {}),
       },
     });
 
+    const counts = await prisma.event.findUnique({
+      where: { id: eventId },
+      select: { _count: { select: { users: true } } },
+    });
+
     return NextResponse.json(
-      { message: "Vous avez quitté l'événement avec succès" },
-      { status: 200 }
+      {
+        message: "Vous avez quitté l'événement avec succès",
+        participantCount: counts?._count.users ?? participantCount,
+        maxParticipants,
+        publicStatus: newPublicStatus,
+      },
+      { status: 200 },
     );
   } catch (error) {
     console.error("Erreur lors de la sortie de l'événement:", error);

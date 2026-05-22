@@ -93,6 +93,17 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       },
     });
 
+    // Vérifier l'état du profil avant la mise à jour
+    const existingUser = await prisma.user.findUnique({
+      where: { id: BigInt(userId) },
+      select: {
+        firstName: true,
+        lastName: true,
+      }
+    });
+
+    const wasProfileComplete = existingUser?.firstName && existingUser?.lastName;
+
     const updateData: {
       firstName: string;
       lastName: string;
@@ -148,6 +159,18 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
         bannerUrl: true,
       },
     });
+
+    // Ajouter des points si le profil vient d'être complété
+    const isNowComplete = updatedUser.firstName && updatedUser.lastName;
+    if (!wasProfileComplete && isNowComplete) {
+      const { addPoints, POINT_ACTIONS } = await import("@/lib/points-badges");
+      await addPoints(
+        BigInt(userId),
+        POINT_ACTIONS.PROFILE_COMPLETED,
+        "profile_completed",
+        `Profil complété`
+      );
+    }
 
     return NextResponse.json(safeJson(updatedUser), { status: 200 });
   } catch (error) {

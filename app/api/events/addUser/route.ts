@@ -18,7 +18,6 @@ export async function POST(req: NextRequest) {
         eventId: BigInt(eventId),
         userId: BigInt(userId),
         preferredDate: new Date(), // adapte si besoin
-        tagId: BigInt(0), // adapte si besoin
       },
     });
 

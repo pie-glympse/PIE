@@ -55,6 +55,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Vérifier si c'est un nouveau feedback (pour les points)
+    const existingFeedback = await prisma.feedback.findUnique({
+      where: { userId_eventId: { userId: BigInt(userId), eventId: BigInt(eventId) } },
+      select: { userId: true },
+    });
+
     // Créer ou mettre à jour le feedback
     const feedback = await prisma.feedback.upsert({
       where: {
@@ -78,6 +84,18 @@ export async function POST(request: NextRequest) {
         createdAt: new Date(),
       },
     });
+
+    // Ajouter des points si c'est le premier feedback pour cet événement
+    if (!existingFeedback) {
+      const { addPoints, POINT_ACTIONS } = await import("@/lib/points-badges");
+      await addPoints(
+        BigInt(userId),
+        POINT_ACTIONS.FEEDBACK_GIVEN,
+        "feedback_given",
+        `Feedback donné pour l'événement ${eventId}`,
+        BigInt(eventId),
+      ).catch(() => {});
+    }
 
     // Supprimer la notification de feedback après soumission
     // (pour ne plus afficher la popup)

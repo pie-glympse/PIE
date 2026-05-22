@@ -15,7 +15,6 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get("userId");
     const period = searchParams.get("period") || "all"; // week, month, quarter, year, all
-    const activityType = searchParams.get("activityType");
     const city = searchParams.get("city");
 
     if (!userId) {
@@ -56,10 +55,6 @@ export async function GET(request: NextRequest) {
       where.createdAt = dateFilter;
     }
 
-    if (activityType) {
-      where.activityType = activityType;
-    }
-
     if (city) {
       where.city = city;
     }
@@ -86,10 +81,10 @@ export async function GET(request: NextRequest) {
             },
           },
         },
-        tags: {
+        selectedGoogleTags: {
           select: {
             id: true,
-            name: true,
+            displayName: true,
           },
         },
         preferences: {
@@ -142,24 +137,14 @@ export async function GET(request: NextRequest) {
         ? allRatings.reduce((a, b) => a + b, 0) / allRatings.length
         : 0;
 
-    // Top 3 des types d'activités
-    const activityTypeCounts: Record<string, number> = {};
-    events.forEach((event) => {
-      if (event.activityType) {
-        activityTypeCounts[event.activityType] =
-          (activityTypeCounts[event.activityType] || 0) + 1;
-      }
-    });
-    const topActivities = Object.entries(activityTypeCounts)
-      .sort(([, a], [, b]) => b - a)
-      .slice(0, 3)
-      .map(([name, count]) => ({ name, count }));
+    const topActivities: { name: string; count: number }[] = [];
 
     // Top 3 des tags
     const tagCounts: Record<string, number> = {};
     events.forEach((event) => {
-      event.tags.forEach((tag) => {
-        tagCounts[tag.name] = (tagCounts[tag.name] || 0) + 1;
+      event.selectedGoogleTags.forEach((tag) => {
+        const name = tag.displayName || `Tag ${tag.id.toString()}`;
+        tagCounts[name] = (tagCounts[name] || 0) + 1;
       });
     });
     const topTags = Object.entries(tagCounts)
@@ -332,7 +317,7 @@ export async function GET(request: NextRequest) {
     });
 
     // Générer un ETag basé sur les paramètres de requête et les données
-    const etag = generateETag({ userId, period, activityType, city, stats: statsData });
+    const etag = generateETag({ userId, period, city, stats: statsData });
 
     // Vérifier si le client a déjà la dernière version
     if (isNotModified(request, etag)) {

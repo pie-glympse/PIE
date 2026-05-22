@@ -9,6 +9,8 @@ import dynamic from "next/dynamic";
 import GcardSkeleton from "@/components/GcardSkeleton";
 import ConfirmationModal from "@/components/ui/ConfirmationModal";
 import { EventsSection, type EventType } from "./EventsSection";
+import { useJoinPublicEvent } from "@/hooks/useJoinPublicEvent";
+import { useToast } from "@/context/ToastContext";
 
 const GCalendar = dynamic(() => import("@/components/Gcalendar"), {
   ssr: false,
@@ -51,14 +53,17 @@ function EventsSectionFallback() {
 export default function HomePage() {
   const { user, isLoading } = useUser();
   const router = useRouter();
+  const { showPointsToast } = useToast();
   const [refreshEventsKey, setRefreshEventsKey] = useState(0);
   const [dropdownEvent, setDropdownEvent] = useState<string | null>(null);
   const [leaveModal, setLeaveModal] = useState<{
     isOpen: boolean;
     eventId: string;
     eventTitle: string;
+    isPublic?: boolean;
   } | null>(null);
   const [leaveError, setLeaveError] = useState<string | null>(null);
+  const [selectedBadge, setSelectedBadge] = useState<{ icon: string; name: string } | null>(null);
 
   const [deleteModal, setDeleteModal] = useState<{
     isOpen: boolean;
@@ -68,23 +73,30 @@ export default function HomePage() {
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const handleFillPreferences = useCallback(async (event: EventType) => {
-    if (event.activityType) {
-      const { getQuestionsForActivityType } = await import("@/lib/preferences/questionsConfig");
-      const questions = getQuestionsForActivityType(event.activityType);
-      if (questions.length > 0) {
-        router.push(
-          `/event-preferences/${event.id}?eventTitle=${encodeURIComponent(event.title)}`,
-        );
-        return;
-      }
-    }
-    router.push(
-      `/answer-event/${event.id}?eventTitle=${encodeURIComponent(event.title)}`,
-    );
+    router.push(`/event-preferences/${event.id}?eventTitle=${encodeURIComponent(event.title)}`);
   }, [router]);
 
   // Rafraîchir la liste des événements (Suspense refetch via refreshKey)
   const refreshEvents = useCallback(() => setRefreshEventsKey((k) => k + 1), []);
+  const { joinEvent, joiningEventId } = useJoinPublicEvent(refreshEvents);
+
+  // Récupérer le badge sélectionné
+  useEffect(() => {
+    if (!isLoading && user) {
+      fetch(`/api/badges?userId=${user.id}`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.success && data.selectedBadgeId) {
+            const selected = data.badges.find((b: any) => b.id.toString() === data.selectedBadgeId.toString());
+            if (selected) {
+              setSelectedBadge({ icon: selected.icon, name: selected.name });
+            }
+          }
+        })
+        .catch((err) => console.error("Erreur lors de la récupération du badge:", err));
+    }
+  }, [isLoading, user]);
+
 
   useEffect(() => {
     window.addEventListener("notificationsUpdated", refreshEvents);
@@ -95,12 +107,12 @@ export default function HomePage() {
     };
   }, [refreshEvents]);
 
-  const getBackgroundUrl = useCallback((tags: { id: string; name: string }[]) => {
-    if (tags.some((tag) => tag.name === "Restauration"))
+  const getBackgroundUrl = useCallback((tags: { id: string; techName: string }[] = []) => {
+    if (tags.some((tag) => tag.techName.includes("restaurant")))
       return "/images/illustration/palm.svg";
-    if (tags.some((tag) => tag.name === "Afterwork"))
+    if (tags.some((tag) => tag.techName.includes("bar")))
       return "/images/illustration/stack.svg";
-    if (tags.some((tag) => tag.name === "Team Building"))
+    if (tags.some((tag) => tag.techName.includes("park")))
       return "/images/illustration/roundstar.svg";
     return "/images/illustration/roundstar.svg";
   }, []);
@@ -110,7 +122,7 @@ export default function HomePage() {
       title: event.title,
       date: event.date || new Date().toISOString(),
       participants: event.users || [],
-      backgroundUrl: getBackgroundUrl(event.tags),
+      backgroundUrl: getBackgroundUrl(event.selectedGoogleTags || []),
       state: event.state,
     };
   }, [getBackgroundUrl]);
@@ -161,8 +173,20 @@ export default function HomePage() {
       isOpen: true,
       eventId: event.id,
       eventTitle: event.title,
+      isPublic: event.isPublic,
     });
   }, []);
+
+  const handleParticipate = useCallback(
+    async (event: EventType) => {
+      if (!user?.id || !event.isPublic) return;
+      const isCreator = !!(event.createdBy?.id && String(event.createdBy.id) === String(user.id));
+      if (isCreator || event.isParticipant) return;
+      const result = await joinEvent(event.id, user.id);
+      if (result) showPointsToast(50, "avoir rejoint un événement");
+    },
+    [user?.id, joinEvent, showPointsToast],
+  );
 
   const closeLeaveModal = useCallback(() => {
     setLeaveModal(null);
@@ -228,7 +252,6 @@ export default function HomePage() {
     if (event.costPerPerson) params.set("costPerPerson", event.costPerPerson);
     if (event.city) params.set("city", event.city);
     if (event.maxDistance) params.set("maxDistance", event.maxDistance);
-    if (event.activityType) params.set("activityType", event.activityType);
     if (event.recurring !== undefined)
       params.set("recurring", event.recurring.toString());
     if (event.duration) params.set("duration", event.duration);
@@ -265,41 +288,37 @@ export default function HomePage() {
                 "invité"
               )}
             </p>
-            <Image
-              src="/images/icones/pastille.svg"
-              alt="Statut utilisateur"
-              width={24}
-              height={24}
-              className="w-6 h-6"
-            />
+            <Link href="/ranking" className="cursor-pointer hover:scale-110 transition-transform">
+              {selectedBadge ? (
+                selectedBadge.icon.startsWith('/') ? (
+                  <Image
+                    src={selectedBadge.icon}
+                    alt={selectedBadge.name}
+                    width={300}
+                    height={300}
+                    className="w-13 h-13 object-contain"
+                  />
+                ) : (
+                  <span className="text-2xl">{selectedBadge.icon}</span>
+                )
+              ) : (
+                <Image
+                  src="/images/icones/pastille.svg"
+                  alt="Statut utilisateur"
+                  width={24}
+                  height={24}
+                  className="w-6 h-6"
+                />
+              )}
+            </Link>
           </div>
         </section>
 
         {/* Calendrier */}
         <section>
           <GCalendar year={2025} />
-          {/* Légende des couleurs */}
-          <div className="mt-4 flex flex-wrap gap-4 justify-center md:justify-start">
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 rounded  bg-[var(--color-secondary)]"></div>
-              <span className="text-sm text-gray-500">Gastronomie</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 rounded bg-[var(--color-calendar-green)]"></div>
-              <span className="text-sm text-gray-500">Nature & Bien-être</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 rounded bg-[var(--color-tertiary)]"></div>
-              <span className="text-sm text-gray-500">Divertissement</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 rounded bg-[var(--color-main)]"></div>
-              <span className="text-sm text-gray-500">Culture</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 rounded bg-orange-500"></div>
-              <span className="text-sm text-gray-500">Sport</span>
-            </div>
+          <div className="mt-4 text-sm text-gray-500">
+            Les jours avec événements sont affichés en gris.
           </div>
         </section>
 
@@ -372,6 +391,21 @@ export default function HomePage() {
                             }
                             isCreator={isCreator}
                             showPreferencesButton={true}
+                            isPublic={event.isPublic}
+                            participantCount={event.participantCount ?? event.users?.length ?? 0}
+                            maxParticipants={
+                              event.maxParticipants ??
+                              (event.maxPersons ? Number(event.maxPersons) : null)
+                            }
+                            isParticipant={(event.isParticipant ?? isParticipant) || isCreator}
+                            isFull={event.isFull}
+                            joinLoading={joiningEventId === event.id}
+                            hideParticipateButton={isCreator}
+                            onParticipate={
+                              event.isPublic && !isCreator
+                                ? () => handleParticipate(event)
+                                : undefined
+                            }
                           />
                         );
                       })}
@@ -435,8 +469,12 @@ export default function HomePage() {
             onClose={closeLeaveModal}
             onConfirm={handleLeaveEvent}
             title={`Quitter l'événement "${leaveModal.eventTitle}"`}
-            message="Êtes-vous sûr de vouloir quitter cet événement ? Cette action est irréversible."
-            confirmButtonText="Oui, quitter"
+            message={
+              leaveModal.isPublic
+                ? "Souhaitez-vous vraiment quitter cet événement ? Votre place sera libérée."
+                : "Êtes-vous sûr de vouloir quitter cet événement ? Cette action est irréversible."
+            }
+            confirmButtonText="Quitter l'événement"
             cancelButtonText="Annuler"
             error={leaveError}
           />

@@ -11,6 +11,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { EventList } from "@/components/event/EventList";
 import { useEvents, filterEventsByStatus, type EventType } from "@/hooks/useEvents";
 import { useEventPreferences } from "@/hooks/useEventPreferences";
+import { useJoinPublicEvent } from "@/hooks/useJoinPublicEvent";
 import ConfirmationModal from "@/components/ui/ConfirmationModal";
 
 const TAGS = [
@@ -26,8 +27,11 @@ export default function EventForm() {
   const { user, isLoading } = useUser();
   const router = useRouter();
 
-  const { events: userEvents, loading: eventsLoading, setEvents } = useEvents(user?.id);
+  const { events: userEvents, loading: eventsLoading, setEvents, refetch } = useEvents(user?.id);
   const { userEventPreferences } = useEventPreferences(user?.id);
+  const { joinEvent, joiningEventId } = useJoinPublicEvent(() => {
+    refetch?.();
+  });
   const [users, setUsers] = useState<{ id: string; name?: string; email?: string }[]>([]);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [step, setStep] = useState(1);
@@ -53,6 +57,7 @@ export default function EventForm() {
     isOpen: boolean;
     eventId: string;
     eventTitle: string;
+    isPublic?: boolean;
   } | null>(null);
   const [leaveError, setLeaveError] = useState<string | null>(null);
 
@@ -179,7 +184,18 @@ export default function EventForm() {
       isOpen: true,
       eventId: event.id,
       eventTitle: event.title,
+      isPublic: event.isPublic,
     });
+  };
+
+  const handleParticipate = async (event: EventType) => {
+    if (!user || !event.isPublic) return;
+    const isCreator =
+      (event.createdBy?.id && String(event.createdBy.id) === String(user.id)) ||
+      (event.isCreator ?? false);
+    if (isCreator || event.isParticipant) return;
+    const ok = await joinEvent(event.id, user.id);
+    if (ok) refetch();
   };
 
   const closeLeaveModal = () => {
@@ -200,7 +216,11 @@ export default function EventForm() {
       });
 
       if (response.ok) {
-        setEvents((prev) => prev.filter((event) => event.id !== leaveModal.eventId));
+        if (leaveModal.isPublic) {
+          refetch();
+        } else {
+          setEvents((prev) => prev.filter((event) => event.id !== leaveModal.eventId));
+        }
         closeLeaveModal();
       } else {
         const errorData = await response.json();
@@ -213,18 +233,7 @@ export default function EventForm() {
   };
 
   const handleFillPreferences = (event: EventType) => {
-    // ✅ Utiliser le nouveau système si l'événement a des questions configurées
-    // Sinon, utiliser l'ancien système
-    if (event.activityType) {
-      const { getQuestionsForActivityType } = require('@/lib/preferences/questionsConfig');
-      const questions = getQuestionsForActivityType(event.activityType);
-      if (questions.length > 0) {
-        router.push(`/event-preferences/${event.id}?eventTitle=${encodeURIComponent(event.title)}`);
-        return;
-      }
-    }
-    // Fallback sur l'ancien système
-    router.push(`/answer-event/${event.id}?eventTitle=${encodeURIComponent(event.title)}`);
+    router.push(`/event-preferences/${event.id}?eventTitle=${encodeURIComponent(event.title)}`);
   };
 
   const openShareModal = (eventId: string, eventTitle: string) => {
@@ -286,6 +295,8 @@ export default function EventForm() {
                 onShowAddEvent={() => router.push("/create-event")}
                 showAddButton={true}
                 onLeaveEvent={openLeaveModal}
+                onParticipate={handleParticipate}
+                joiningEventId={joiningEventId}
               />
             )}
           </section>
@@ -361,8 +372,12 @@ export default function EventForm() {
               onClose={closeLeaveModal}
               onConfirm={handleLeaveEvent}
               title={`Quitter l'événement "${leaveModal.eventTitle}"`}
-              message="Êtes-vous sûr de vouloir quitter cet événement ? Cette action est irréversible."
-              confirmButtonText="Oui, quitter"
+              message={
+                leaveModal.isPublic
+                  ? "Souhaitez-vous vraiment quitter cet événement ? Votre place sera libérée."
+                  : "Êtes-vous sûr de vouloir quitter cet événement ? Cette action est irréversible."
+              }
+              confirmButtonText="Quitter l'événement"
               cancelButtonText="Annuler"
               error={leaveError}
             />

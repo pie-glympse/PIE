@@ -41,6 +41,16 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    // Ajouter des points pour la participation à l'événement
+    const { addPoints, POINT_ACTIONS } = await import("@/lib/points-badges");
+    await addPoints(
+      BigInt(userId),
+      POINT_ACTIONS.EVENT_PARTICIPATION,
+      "event_participation",
+      `Participation à un événement`,
+      eventId
+    );
+
     return NextResponse.json({ message: "User linked to event successfully" });
   } catch (error) {
     console.error("Error linking user to event:", error);
@@ -60,8 +70,15 @@ export async function GET(req: NextRequest) {
       where: { id: eventId },
       select: {
         users: {
-          select: { id: true },
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            photoUrl: true,
+          },
         },
+        _count: { select: { users: true } },
       },
     });
 
@@ -74,7 +91,14 @@ export async function GET(req: NextRequest) {
 
     const userIds = event.users.map((u) => u.id.toString());
 
-    return NextResponse.json({ userIds });
+    return NextResponse.json({
+      userIds,
+      users: event.users.map((u) => ({
+        ...u,
+        id: u.id.toString(),
+      })),
+      participantCount: event._count.users,
+    });
   } catch (error) {
     console.error("Error fetching event users:", error);
     return NextResponse.json(

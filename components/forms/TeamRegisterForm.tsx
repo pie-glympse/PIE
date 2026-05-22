@@ -3,6 +3,7 @@ import { useState, FormEvent, useRef } from 'react';
 import type { FC, ReactNode, ChangeEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import MainButton from '@/components/ui/MainButton';
+import SimpleAutocomplete from '@/components/ui/SimpleAutocomplete';
 
 interface TeamRegisterFormProps {
     title: ReactNode;
@@ -24,6 +25,7 @@ const TeamRegisterForm: FC<TeamRegisterFormProps> = ({
     const [lastName, setLastName] = useState('');
     const [email, setEmail] = useState('');
     const [companyName, setCompanyName] = useState('');
+    const [companyAddress, setCompanyAddress] = useState('');
     const [csvFile, setCsvFile] = useState<File | null>(null);
     const [csvPreview, setCsvPreview] = useState<CSVRow[]>([]);
     const [errorMsg, setErrorMsg] = useState('');
@@ -109,6 +111,7 @@ const TeamRegisterForm: FC<TeamRegisterFormProps> = ({
             formData.append('lastName', lastName);
             formData.append('email', email);
             formData.append('companyName', companyName);
+            formData.append('companyAddress', companyAddress);
             formData.append('csvFile', csvFile);
 
             const response = await fetch('/api/register-team', {
@@ -195,6 +198,16 @@ const TeamRegisterForm: FC<TeamRegisterFormProps> = ({
                     placeholder="Nom de l'entreprise"
                     required
                     className="w-full px-5 py-2 text-base bg-white border-2 border-[var(--color-grey-two)] rounded placeholder:font-poppins placeholder:text-[#EAEAEF]"
+                />
+            </div>
+
+            {/* Adresse de l'entreprise */}
+            <div className="mb-4">
+                <label className="block mb-1 text-body-large font-poppins text-[var(--color-grey-three)]">Adresse de l'entreprise</label>
+                <SimpleAutocomplete
+                    value={companyAddress}
+                    onChange={setCompanyAddress}
+                    placeholder="Ex : 12 Rue de Rivoli, Paris"
                 />
             </div>
 

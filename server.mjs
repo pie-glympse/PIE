@@ -1,3 +1,6 @@
+import { patchBrokenNodeLocalStorage } from "./patch-localstorage.mjs";
+patchBrokenNodeLocalStorage();
+
 import Pyroscope from "@pyroscope/nodejs";
 import next from "next";
 import http from "http";

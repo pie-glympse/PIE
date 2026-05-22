@@ -238,6 +238,7 @@ const CreateGroupsPage = () => {
           onConfirm={handleAddUsers}
           users={users}
           teamName={selectedTeam.name}
+          currentMemberCount={selectedTeam.users.length}
           isAdding={isAddingUsers}
         />
       )}

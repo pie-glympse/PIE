@@ -1,76 +1,47 @@
 "use client";
 
-import { useParams, useRouter, useSearchParams } from 'next/navigation';
-import { useState, useEffect } from 'react';
-import { useUser } from '@/context/UserContext';
-import MainButton from '@/components/ui/MainButton';
-import BackArrow from '@/components/ui/BackArrow';
-import ChoiceLi from '@/components/ui/ChoiceLi';
-import { StepperIndicator } from '@/components/forms/StepperIndicator';
-import { getQuestionsForActivityType, type Question } from '@/lib/preferences/questionsConfig';
+import { useParams, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useUser } from "@/context/UserContext";
+import BackArrow from "@/components/ui/BackArrow";
+import MainButton from "@/components/ui/MainButton";
 
-interface EventData {
+type EventTheme = { id: string; displayName?: string | null; techName: string };
+type EventData = {
   id: string;
   title: string;
-  activityType?: string;
   state?: string;
-}
+  isSpecificPlace?: boolean;
+  selectedGoogleTags: EventTheme[];
+};
 
 export default function EventPreferencesPage() {
   const router = useRouter();
   const params = useParams();
-  const searchParams = useSearchParams();
   const { user, isLoading } = useUser();
-  
   const eventId = params.id as string;
-  const eventTitle = searchParams.get('eventTitle') || 'Événement';
-  
-  const [currentStep, setCurrentStep] = useState(1);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const [eventData, setEventData] = useState<EventData | null>(null);
   const [loadingEvent, setLoadingEvent] = useState(true);
-  const [questions, setQuestions] = useState<Question[]>([]);
-  
-  // Stocker les réponses : { questionId: answerIds[] }
-  const [answers, setAnswers] = useState<Record<string, string[]>>({});
+  const [step, setStep] = useState(1);
+  const [selectedGoogleTagIds, setSelectedGoogleTagIds] = useState<string[]>([]);
+  const [preferredDate, setPreferredDate] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    if (!isLoading && !user) {
-      router.push("/login");
-    }
-  }, [user, isLoading, router]);
+    if (!isLoading && !user) router.push("/login");
+  }, [isLoading, user, router]);
 
-  useEffect(() => {
-    if (!eventId) {
-      router.push("/events");
-    }
-  }, [eventId, router]);
-
-  // Charger les données de l'événement
   useEffect(() => {
     const fetchEvent = async () => {
       if (!eventId) return;
-      
+      setLoadingEvent(true);
       try {
-        setLoadingEvent(true);
         const response = await fetch(`/api/events/${eventId}`);
-        if (response.ok) {
-          const data = await response.json();
-          const event = data.event || data;
-          setEventData({
-            id: event.id,
-            title: event.title,
-            activityType: event.activityType,
-            state: event.state,
-          });
-          
-          // Charger les questions selon le type d'activité
-          const eventQuestions = getQuestionsForActivityType(event.activityType);
-          setQuestions(eventQuestions);
-        }
-      } catch (error) {
-        console.error('Erreur lors du chargement de l\'événement:', error);
+        if (!response.ok) return;
+        const data = await response.json();
+        const event = data.event || data;
+        setEventData(event);
       } finally {
         setLoadingEvent(false);
       }
@@ -78,126 +49,37 @@ export default function EventPreferencesPage() {
     fetchEvent();
   }, [eventId]);
 
-  // Vérifier si l'utilisateur a déjà répondu
-  useEffect(() => {
-    const checkExistingPreferences = async () => {
-      if (!user || !eventId) return;
-      
-      try {
-        const response = await fetch(`/api/user-event-preferences?userId=${user.id}`);
-        if (response.ok) {
-          const preferences = await response.json();
-          const eventPreference = preferences.find(
-            (p: any) => p.event.id === eventId
-          );
-          
-          if (eventPreference) {
-            // L'utilisateur a déjà répondu, rediriger vers la page de détail
-            router.push(`/events/${eventId}`);
-          }
-        }
-      } catch (error) {
-        console.error('Erreur lors de la vérification des préférences:', error);
-      }
-    };
-    
-    if (user && eventId) {
-      checkExistingPreferences();
-    }
-  }, [user, eventId, router]);
-
-  // Vérifier si l'événement est déjà confirmé
-  useEffect(() => {
-    if (eventData?.state === 'confirmed') {
-      // Si l'événement est confirmé, rediriger vers la page de détail
-      router.push(`/events/${eventId}`);
-    }
-  }, [eventData, eventId, router]);
-
-  // Si pas de questions configurées, rediriger vers la home
-  useEffect(() => {
-    if (questions.length === 0 && !loadingEvent && eventData) {
-      router.push('/home');
-    }
-  }, [questions.length, loadingEvent, eventData, router]);
-
-  const handleAnswerChange = (questionId: string, selectedAnswerIds: string[]) => {
-    setAnswers(prev => ({
-      ...prev,
-      [questionId]: selectedAnswerIds,
-    }));
+  const toggleTheme = (id: string) => {
+    setSelectedGoogleTagIds((prev) =>
+      prev.includes(id) ? prev.filter((value) => value !== id) : [...prev, id],
+    );
   };
 
-  const submitPreferences = async () => {
-    if (!user || !eventId || !eventData) return;
+  const submit = async () => {
+    if (!user || !eventData) return;
+    if (!eventData.isSpecificPlace && selectedGoogleTagIds.length === 0) return;
+    if (!preferredDate) return;
 
     setIsSubmitting(true);
-
     try {
-      // Convertir les réponses en format pour l'API
-      const answersArray = Object.entries(answers).map(([questionId, answerIds]) => ({
-        questionId,
-        answerIds,
-      }));
-
       const response = await fetch(`/api/events/${eventId}/preferences`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           userId: user.id,
-          answers: answersArray,
-          activityType: eventData.activityType,
+          selectedGoogleTagIds,
+          preferredDate,
         }),
       });
-
       if (!response.ok) {
-        const errorData = await response.json();
-        console.error('Erreur API:', errorData);
-        const errorMessage = errorData.error || errorData.message || 'Erreur lors de l\'envoi des préférences';
-        const errorDetails = errorData.details ? `\nDétails: ${JSON.stringify(errorData.details, null, 2)}` : '';
-        throw new Error(`${errorMessage}${errorDetails}`);
+        const error = await response.json();
+        throw new Error(error?.message || "Erreur envoi préférences");
       }
-
-      setIsModalOpen(true);
+      router.push(`/events/${eventId}`);
     } catch (error) {
-      console.error('Erreur lors de l\'envoi des préférences:', error);
-      if (error instanceof Error) {
-        alert(`Erreur: ${error.message}`);
-      } else {
-        alert('Une erreur inconnue est survenue.');
-      }
+      alert(error instanceof Error ? error.message : "Erreur inconnue");
     } finally {
       setIsSubmitting(false);
-    }
-  };
-
-  const handleNext = () => {
-    if (currentStep < questions.length) {
-      setCurrentStep(currentStep + 1);
-    } else {
-      submitPreferences();
-    }
-  };
-
-  const handleBack = () => {
-    if (currentStep > 1) {
-      setCurrentStep(currentStep - 1);
-    } else {
-      router.back();
-    }
-  };
-
-  const canContinue = () => {
-    if (questions.length === 0) return false;
-    const currentQuestion = questions[currentStep - 1];
-    if (!currentQuestion) return false;
-    
-    const selectedAnswers = answers[currentQuestion.id] || [];
-    
-    if (currentQuestion.type === 'single') {
-      return selectedAnswers.length === 1;
-    } else {
-      return selectedAnswers.length > 0;
     }
   };
 
@@ -208,95 +90,77 @@ export default function EventPreferencesPage() {
       </div>
     );
   }
+  if (!user || !eventData) return null;
 
-  if (!user || !eventId || !eventData) return null;
-
-  // Afficher un message de chargement pendant la redirection si pas de questions
-  if (questions.length === 0 && !loadingEvent) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="text-center">
-          <p className="text-lg mb-4">
-            Aucune question de préférences configurée pour ce type d'événement.
-          </p>
-          <p className="text-sm text-gray-500">
-            Redirection en cours...
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  const currentQuestion = questions[currentStep - 1];
-  const displayTitle = eventData.title || eventTitle;
+  const showThemeStep = !eventData.isSpecificPlace;
+  const maxStep = showThemeStep ? 2 : 1;
+  const canContinue = step === 1
+    ? showThemeStep
+      ? selectedGoogleTagIds.length > 0
+      : preferredDate.length > 0
+    : preferredDate.length > 0;
 
   return (
-    <>
-      <section className="h-screen overflow-y-auto md:overflow-hidden pt-24 p-10 flex flex-col gap-8">
-        <div className="h-full w-full flex flex-col gap-6 items-start p-10">
-          <BackArrow onClick={handleBack} className="" />
-          
-          <StepperIndicator currentStep={currentStep} totalSteps={questions.length} />
+    <section className="h-screen overflow-y-auto pt-24 p-10 flex flex-col gap-8">
+      <div className="h-full w-full flex flex-col gap-6 items-start p-10">
+        <BackArrow onClick={() => (step > 1 ? setStep(step - 1) : router.back())} />
 
-          <div className="w-full flex flex-col">
-            <h1 className="text-h1 mb-4 text-left w-full font-urbanist">
-              {currentQuestion.text}
-            </h1>
-            
-            <p className="text-h3 mb-8 text-left md:w-2/3 w-full font-poppins text-[var(--color-grey-three)]">
-              Vos réponses nous permettront de cibler le lieu idéal pour l'évènement !
-            </p>
-
-            <div className="w-full">
-              <ChoiceLi
-                choices={currentQuestion.answers.map(answer => ({
-                  id: answer.id,
-                  text: answer.text,
-                }))}
-                selectedChoices={answers[currentQuestion.id] || []}
-                onSelectionChange={(selectedIds) => 
-                  handleAnswerChange(currentQuestion.id, selectedIds)
-                }
-                singleSelection={currentQuestion.type === 'single'}
+        <div className="w-full">
+          <h1 className="text-h1 mb-4 text-left w-full font-urbanist">
+            {eventData.title}
+          </h1>
+          {step === 1 && showThemeStep ? (
+            <>
+              <p className="text-h3 mb-4 font-poppins text-[var(--color-grey-three)]">
+                Choisissez les thèmes que vous préférez
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {eventData.selectedGoogleTags.map((tag) => (
+                  <button
+                    type="button"
+                    key={tag.id}
+                    onClick={() => toggleTheme(tag.id)}
+                    className={`px-3 py-2 rounded border ${
+                      selectedGoogleTagIds.includes(tag.id)
+                        ? "bg-[var(--color-main)] text-white border-[var(--color-main)]"
+                        : "bg-white border-[var(--color-grey-two)] text-[var(--color-text)]"
+                    }`}
+                  >
+                    {tag.displayName || tag.techName}
+                  </button>
+                ))}
+              </div>
+            </>
+          ) : (
+            <>
+              <p className="text-h3 mb-4 font-poppins text-[var(--color-grey-three)]">
+                Choisissez votre date préférée
+              </p>
+              <input
+                type="date"
+                value={preferredDate}
+                onChange={(e) => setPreferredDate(e.target.value)}
+                className="px-4 py-2 border-2 border-[var(--color-grey-two)] rounded"
               />
-            </div>
-          </div>
-          
-          <div className='w-1/6'>
-            <MainButton
-              text={currentStep === questions.length 
-                ? (isSubmitting ? "Envoi..." : "Finaliser") 
-                : "Continuer"}
-              onClick={handleNext}
-              disabled={!canContinue() || isSubmitting}
-              color="bg-[var(--color-text)] font-poppins text-body-large"
-            />
-          </div>
+            </>
+          )}
         </div>
-      </section>
 
-      {/* Modal de confirmation */}
-      {isModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 p-6">
-            <h3 className="text-xl font-bold font-urbanist text-[var(--color-text)] mb-4">
-              Félicitations !
-            </h3>
-            <p className="text-body-large font-poppins text-[var(--color-grey-three)] mb-6">
-              Vos préférences ont été enregistrées avec succès.
-            </p>
-            <button
-              onClick={() => {
-                setIsModalOpen(false);
-                router.push(`/events/${eventId}`);
-              }}
-              className="w-full px-6 py-3 bg-[var(--color-text)] text-white rounded-lg hover:opacity-90 transition font-poppins font-medium"
-            >
-              Retour à l'événement
-            </button>
-          </div>
+        <div className="w-1/6">
+          <MainButton
+            text={
+              step < maxStep
+                ? "Continuer"
+                : isSubmitting
+                  ? "Envoi..."
+                  : "Finaliser"
+            }
+            onClick={() => (step < maxStep ? setStep(step + 1) : submit())}
+            disabled={!canContinue || isSubmitting}
+            color="bg-[var(--color-text)] font-poppins text-body-large"
+          />
         </div>
-      )}
-    </>
+      </div>
+    </section>
   );
 }
