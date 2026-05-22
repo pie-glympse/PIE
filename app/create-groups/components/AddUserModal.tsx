@@ -7,10 +7,12 @@ interface AddUserModalProps {
   onConfirm: (userIds: string[]) => Promise<void>;
   users: User[];
   teamName: string;
+  currentMemberCount: number;
+  maxPersons?: number | null;
   isAdding: boolean;
 }
 
-export const AddUserModal = ({ isOpen, onClose, onConfirm, users, teamName, isAdding }: AddUserModalProps) => {
+export const AddUserModal = ({ isOpen, onClose, onConfirm, users, teamName, currentMemberCount, maxPersons, isAdding }: AddUserModalProps) => {
   const [selectedUsers, setSelectedUsers] = useState<Set<string>>(new Set());
   const [search, setSearch] = useState('');
 
@@ -24,11 +26,15 @@ export const AddUserModal = ({ isOpen, onClose, onConfirm, users, teamName, isAd
     (u.email || '').toLowerCase().includes(search.toLowerCase())
   );
 
+  const placesRestantes = maxPersons != null ? maxPersons - currentMemberCount : null;
+  const limitAtteinte = placesRestantes !== null && selectedUsers.size >= placesRestantes;
+
   const handleToggle = (userId: string) => {
     const newSelected = new Set(selectedUsers);
     if (newSelected.has(userId)) {
       newSelected.delete(userId);
     } else {
+      if (placesRestantes !== null && newSelected.size >= placesRestantes) return;
       newSelected.add(userId);
     }
     setSelectedUsers(newSelected);
@@ -55,6 +61,14 @@ export const AddUserModal = ({ isOpen, onClose, onConfirm, users, teamName, isAd
         <div className="p-6 border-b border-gray-200">
           <h2 className="text-xl font-bold text-gray-800">Ajouter un nouveau membre</h2>
           <p className="text-gray-600 mt-1">Sélectionnez les utilisateurs à ajouter à l&apos;équipe &quot;{teamName}&quot;</p>
+          {maxPersons != null && (
+            <p className={`text-sm mt-1 ${placesRestantes === 0 ? 'text-red-500 font-medium' : 'text-gray-500'}`}>
+              {placesRestantes === 0
+                ? 'Limite atteinte — aucune place disponible.'
+                : `${placesRestantes} place(s) disponible(s) sur ${maxPersons}`
+              }
+            </p>
+          )}
         </div>
 
         {/* Content */}
@@ -72,20 +86,26 @@ export const AddUserModal = ({ isOpen, onClose, onConfirm, users, teamName, isAd
             />
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Utilisateurs disponibles ({filteredUsers.length})
+              {placesRestantes !== null && (
+                <span className={`ml-2 text-xs font-normal ${limitAtteinte ? 'text-red-500' : 'text-gray-500'}`}>
+                  — {selectedUsers.size}/{placesRestantes} sélectionné(s)
+                </span>
+              )}
             </label>
             <div className="max-h-64 overflow-y-auto space-y-2 border border-gray-200 rounded-lg p-3">
               {filteredUsers.map((user) => (
                 <div
                   key={user.id}
                   className={`flex items-center space-x-3 p-2 rounded ${
-                    selectedUsers.has(user.id) ? 'bg-blue-50' : 'hover:bg-gray-50'
+                    selectedUsers.has(user.id) ? 'bg-blue-50' : limitAtteinte ? 'opacity-40 cursor-not-allowed' : 'hover:bg-gray-50'
                   }`}
                 >
                   <input
                     type="checkbox"
                     checked={selectedUsers.has(user.id)}
                     onChange={() => handleToggle(user.id)}
-                    className="w-4 h-4 text-[var(--color-main)] border-gray-300 rounded focus:ring-[var(--color-main)]"
+                    disabled={limitAtteinte && !selectedUsers.has(user.id)}
+                    className="w-4 h-4 text-[var(--color-main)] border-gray-300 rounded focus:ring-[var(--color-main)] disabled:cursor-not-allowed"
                   />
                   <div>
                     <p className="font-medium text-sm">

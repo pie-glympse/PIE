@@ -24,6 +24,7 @@ type UserSelectionStepProps = {
   currentUserId: string;
   selectedUserIds: string[];
   onUserToggle: (userId: string) => void;
+  maxPersons?: number | null;
 };
 
 export const UserSelectionStep = ({
@@ -32,6 +33,7 @@ export const UserSelectionStep = ({
   currentUserId,
   selectedUserIds,
   onUserToggle,
+  maxPersons,
 }: UserSelectionStepProps) => {
   const { user } = useUser();
   const [users, setUsers] = useState<User[]>([]);
@@ -104,6 +106,9 @@ export const UserSelectionStep = ({
     return emailMatch || firstNameMatch || lastNameMatch;
   });
 
+  // Le créateur est automatiquement inclus → 1 place réservée pour lui
+  const limiteInvites = maxPersons != null ? maxPersons - 1 : null;
+
   const handleImportUser = () => {
     // Fonctionnalité d'import à implémenter plus tard
     alert("Fonctionnalité d'import à venir");
@@ -121,10 +126,12 @@ export const UserSelectionStep = ({
       // Désélectionner toutes les équipes
       setSelectedTeams(new Set());
     } else {
-      // Sélectionner tous les utilisateurs de l'entreprise
+      // Sélectionner les utilisateurs dans la limite (créateur exclu)
+      let placesRestantes = limiteInvites != null ? limiteInvites - selectedUserIds.length : Infinity;
       filteredUsers.forEach(user => {
-        if (!selectedUserIds.includes(user.id)) {
+        if (!selectedUserIds.includes(user.id) && placesRestantes > 0) {
           onUserToggle(user.id);
+          placesRestantes--;
         }
       });
       // Sélectionner toutes les équipes
@@ -151,12 +158,13 @@ export const UserSelectionStep = ({
         }
       });
     } else {
-      // Sélectionner l'équipe
+      // Sélectionner l'équipe dans la limite (créateur exclu)
       newSelectedTeams.add(teamId);
-      // Sélectionner tous les utilisateurs de cette équipe
+      let placesRestantes = limiteInvites != null ? limiteInvites - selectedUserIds.length : Infinity;
       team.users.forEach(user => {
-        if (!selectedUserIds.includes(user.id)) {
+        if (!selectedUserIds.includes(user.id) && placesRestantes > 0) {
           onUserToggle(user.id);
+          placesRestantes--;
         }
       });
     }
@@ -213,6 +221,20 @@ export const UserSelectionStep = ({
       <h3 className="text-h3 mb-8 text-left md:w-2/3 w-full font-poppins text-[var(--color-grey-three)]">
         {subtitle}
       </h3>
+      {limiteInvites != null && (
+        <div className={`mb-4 inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-poppins font-medium ${
+          selectedUserIds.length >= limiteInvites
+            ? 'bg-red-100 text-red-600'
+            : 'bg-gray-100 text-gray-600'
+        }`}>
+          <span>
+            {selectedUserIds.length >= limiteInvites
+              ? `Limite atteinte — ${selectedUserIds.length}/${limiteInvites} invité(s)`
+              : `${selectedUserIds.length}/${limiteInvites} invité(s) sélectionné(s)`
+            }
+          </span>
+        </div>
+      )}
       {companyName && (
           <div className="flex items-center gap-4">
               <p className="font-semibold font-poppins text-[var(--color-text)] text-base">
@@ -316,12 +338,21 @@ export const UserSelectionStep = ({
           ) : (
             filteredUsers.map((user) => {
               const isSelected = selectedUserIds.includes(user.id);
+              const limitAtteinte = limiteInvites != null && selectedUserIds.length >= limiteInvites && !isSelected;
 
               return (
                 <div
                   key={user.id}
-                  className="flex justify-between items-center p-4 border-2 border-[var(--color-grey-two)] rounded-lg hover:border-[var(--color-main)] transition-all cursor-pointer"
-                  onClick={() => onUserToggle(user.id)}
+                  className={`flex justify-between items-center p-4 border-2 rounded-lg transition-all ${
+                    isSelected
+                      ? 'border-[var(--color-main)] cursor-pointer hover:border-[var(--color-main)]'
+                      : limitAtteinte
+                      ? 'border-[var(--color-grey-two)] opacity-40 cursor-not-allowed'
+                      : 'border-[var(--color-grey-two)] hover:border-[var(--color-main)] cursor-pointer'
+                  }`}
+                  onClick={() => {
+                    if (!limitAtteinte) onUserToggle(user.id);
+                  }}
                 >
                   <div className="flex items-center gap-3 flex-1">
                     <div className="w-12 h-12 rounded-full overflow-hidden bg-gray-300 flex-shrink-0">
