@@ -1,14 +1,19 @@
 import Image from "next/image";
 
+type ViewMode = 'grid' | 'list' | 'calendar';
+
 interface ViewModeToggleProps {
-  currentMode: 'grid' | 'list';
-  onModeChange: (mode: 'grid' | 'list') => void;
+  currentMode: ViewMode;
+  onModeChange: (mode: ViewMode) => void;
 }
 
 export const ViewModeToggle = ({ currentMode, onModeChange }: ViewModeToggleProps) => {
   return (
     <div className="hidden md:flex flex-row items-center gap-4">
-      <button className="cursor-pointer">
+      <button
+        className={`p-2 rounded cursor-pointer ${currentMode === 'calendar' ? 'bg-[var(--color-grey-one)]' : 'hover:bg-gray-100'}`}
+        onClick={() => onModeChange('calendar')}
+      >
         <Image src="/icons/calendar.svg" alt="Vue Calendrier" width={24} height={24} sizes="24px" />
       </button>
       <button

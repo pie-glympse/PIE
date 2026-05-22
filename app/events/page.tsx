@@ -13,6 +13,12 @@ import { useEvents, filterEventsByStatus, type EventType } from "@/hooks/useEven
 import { useEventPreferences } from "@/hooks/useEventPreferences";
 import { useJoinPublicEvent } from "@/hooks/useJoinPublicEvent";
 import ConfirmationModal from "@/components/ui/ConfirmationModal";
+import dynamic from "next/dynamic";
+
+const EventCalendar = dynamic(
+  () => import("@/components/event/EventCalendar").then((m) => m.EventCalendar),
+  { ssr: false }
+);
 
 const TAGS = [
   { id: 1, name: "Restauration" },
@@ -40,7 +46,7 @@ export default function EventForm() {
   const [selectedEvent, setSelectedEvent] = useState<EventType | null>(null);
   const [showPreferenceForm, setShowPreferenceForm] = useState(false);
   const [dropdownEvent, setDropdownEvent] = useState<string | null>(null);
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [viewMode, setViewMode] = useState<"grid" | "list" | "calendar">("grid");
   const [statusFilter, setStatusFilter] = useState<"all" | "past" | "upcoming" | "preparation">("all");
 
   const [shareModal, setShareModal] = useState<{
@@ -268,7 +274,9 @@ export default function EventForm() {
           <section>
             {fetchError && <p className="text-red-600 font-semibold">Erreur: {fetchError}</p>}
 
-            {filteredEvents.length === 0 ? (
+            {viewMode === "calendar" ? (
+              <EventCalendar events={filteredEvents} currentUserId={user.id} />
+            ) : filteredEvents.length === 0 ? (
               <EmptyState onButtonClick={() => router.push("/create-event")} />
             ) : (
               <EventList
