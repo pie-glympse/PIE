@@ -33,7 +33,6 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <AppShell>
           <div className="relative">
             {children}
-            {/* <DecorationImage /> */}
           </div>
         </AppShell>
       </body>
