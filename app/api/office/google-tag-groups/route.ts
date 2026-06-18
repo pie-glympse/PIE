@@ -94,15 +94,9 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ message: "id manquant" }, { status: 400 });
     }
 
-    await prisma.$transaction([
-      prisma.googleTag.updateMany({
-        where: { groupId: BigInt(groupId) },
-        data: { groupId: null },
-      }),
-      prisma.googleTagGroup.delete({
-        where: { id: BigInt(groupId) },
-      }),
-    ]);
+    await prisma.googleTagGroup.delete({
+      where: { id: BigInt(groupId) },
+    });
 
     return NextResponse.json({ message: "Groupe supprimé" });
   } catch (error) {
