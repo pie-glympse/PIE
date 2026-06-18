@@ -10,7 +10,12 @@ import GcardSkeleton from "@/components/GcardSkeleton";
 import ConfirmationModal from "@/components/ui/ConfirmationModal";
 import { EventsSection, type EventType } from "./EventsSection";
 import { useJoinPublicEvent } from "@/hooks/useJoinPublicEvent";
+import { useEventPreferences } from "@/hooks/useEventPreferences";
 import { useToast } from "@/context/ToastContext";
+import {
+    getEventIllustration,
+    formatEventCreatedAt,
+} from "@/lib/event-display";
 
 const GCalendar = dynamic(() => import("@/components/Gcalendar"), {
   ssr: false,
@@ -54,6 +59,7 @@ export default function HomePage() {
   const { user, isLoading } = useUser();
   const router = useRouter();
   const { showPointsToast } = useToast();
+  const { userEventPreferences } = useEventPreferences(user?.id);
   const [refreshEventsKey, setRefreshEventsKey] = useState(0);
   const [dropdownEvent, setDropdownEvent] = useState<string | null>(null);
   const [leaveModal, setLeaveModal] = useState<{
@@ -63,7 +69,10 @@ export default function HomePage() {
     isPublic?: boolean;
   } | null>(null);
   const [leaveError, setLeaveError] = useState<string | null>(null);
-  const [selectedBadge, setSelectedBadge] = useState<{ icon: string; name: string } | null>(null);
+  const [selectedBadge, setSelectedBadge] = useState<{
+    icon: string;
+    name: string;
+  } | null>(null);
 
   const [deleteModal, setDeleteModal] = useState<{
     isOpen: boolean;
@@ -72,12 +81,20 @@ export default function HomePage() {
   } | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
-  const handleFillPreferences = useCallback(async (event: EventType) => {
-    router.push(`/event-preferences/${event.id}?eventTitle=${encodeURIComponent(event.title)}`);
-  }, [router]);
+  const handleFillPreferences = useCallback(
+    async (event: EventType) => {
+      router.push(
+        `/event-preferences/${event.id}?eventTitle=${encodeURIComponent(event.title)}`,
+      );
+    },
+    [router],
+  );
 
   // Rafraîchir la liste des événements (Suspense refetch via refreshKey)
-  const refreshEvents = useCallback(() => setRefreshEventsKey((k) => k + 1), []);
+  const refreshEvents = useCallback(
+    () => setRefreshEventsKey((k) => k + 1),
+    [],
+  );
   const { joinEvent, joiningEventId } = useJoinPublicEvent(refreshEvents);
 
   // Récupérer le badge sélectionné
@@ -87,16 +104,19 @@ export default function HomePage() {
         .then((res) => res.json())
         .then((data) => {
           if (data.success && data.selectedBadgeId) {
-            const selected = data.badges.find((b: any) => b.id.toString() === data.selectedBadgeId.toString());
+            const selected = data.badges.find(
+              (b: any) => b.id.toString() === data.selectedBadgeId.toString(),
+            );
             if (selected) {
               setSelectedBadge({ icon: selected.icon, name: selected.name });
             }
           }
         })
-        .catch((err) => console.error("Erreur lors de la récupération du badge:", err));
+        .catch((err) =>
+          console.error("Erreur lors de la récupération du badge:", err),
+        );
     }
   }, [isLoading, user]);
-
 
   useEffect(() => {
     window.addEventListener("notificationsUpdated", refreshEvents);
@@ -107,25 +127,15 @@ export default function HomePage() {
     };
   }, [refreshEvents]);
 
-  const getBackgroundUrl = useCallback((tags: { id: string; techName: string }[] = []) => {
-    if (tags.some((tag) => tag.techName.includes("restaurant")))
-      return "/images/illustration/palm.svg";
-    if (tags.some((tag) => tag.techName.includes("bar")))
-      return "/images/illustration/stack.svg";
-    if (tags.some((tag) => tag.techName.includes("park")))
-      return "/images/illustration/roundstar.svg";
-    return "/images/illustration/roundstar.svg";
-  }, []);
-
-  const adaptEventForGcard = useCallback((event: EventType) => {
+  const adaptEventForGcard = useCallback((event: EventType, index: number) => {
     return {
       title: event.title,
-      date: event.date || new Date().toISOString(),
+      date: formatEventCreatedAt(event.createdAt) || new Date().toISOString(),
       participants: event.users || [],
-      backgroundUrl: getBackgroundUrl(event.selectedGoogleTags || []),
+      backgroundUrl: getEventIllustration(index),
       state: event.state,
     };
-  }, [getBackgroundUrl]);
+  }, []);
 
   const openDeleteModal = useCallback((eventId: string, eventTitle: string) => {
     setDeleteError(null);
@@ -180,7 +190,9 @@ export default function HomePage() {
   const handleParticipate = useCallback(
     async (event: EventType) => {
       if (!user?.id || !event.isPublic) return;
-      const isCreator = !!(event.createdBy?.id && String(event.createdBy.id) === String(user.id));
+      const isCreator = !!(
+        event.createdBy?.id && String(event.createdBy.id) === String(user.id)
+      );
       if (isCreator || event.isParticipant) return;
       const result = await joinEvent(event.id, user.id);
       if (result) showPointsToast(50, "avoir rejoint un événement");
@@ -224,45 +236,51 @@ export default function HomePage() {
     alert(`Partager l'événement: ${eventTitle}`);
   }, []);
 
-  const handleEditEvent = useCallback((eventId: string) => {
-    router.push(`/edit-event/${eventId}`);
-  }, [router]);
+  const handleEditEvent = useCallback(
+    (eventId: string) => {
+      router.push(`/edit-event/${eventId}`);
+    },
+    [router],
+  );
 
-  const handleCopyEvent = useCallback((event: EventType) => {
-    const formatDate = (dateString: string | undefined) => {
-      if (!dateString) return "";
-      const date = new Date(dateString);
-      return date.toISOString().split("T")[0];
-    };
+  const handleCopyEvent = useCallback(
+    (event: EventType) => {
+      const formatDate = (dateString: string | undefined) => {
+        if (!dateString) return "";
+        const date = new Date(dateString);
+        return date.toISOString().split("T")[0];
+      };
 
-    const formatTime = (timeString: string | undefined) => {
-      if (!timeString) return "";
-      const time = new Date(timeString);
-      return time.toTimeString().split(" ")[0].substring(0, 5);
-    };
+      const formatTime = (timeString: string | undefined) => {
+        if (!timeString) return "";
+        const time = new Date(timeString);
+        return time.toTimeString().split(" ")[0].substring(0, 5);
+      };
 
-    const params = new URLSearchParams();
-    params.set("copy", "true");
-    if (event.title) params.set("title", `${event.title}`);
-    if (event.startDate) params.set("startDate", formatDate(event.startDate));
-    if (event.endDate) params.set("endDate", formatDate(event.endDate));
-    if (event.startTime) params.set("startTime", formatTime(event.startTime));
-    if (event.endTime) params.set("endTime", formatTime(event.endTime));
-    if (event.maxPersons) params.set("maxPersons", event.maxPersons);
-    if (event.costPerPerson) params.set("costPerPerson", event.costPerPerson);
-    if (event.city) params.set("city", event.city);
-    if (event.maxDistance) params.set("maxDistance", event.maxDistance);
-    if (event.recurring !== undefined)
-      params.set("recurring", event.recurring.toString());
-    if (event.duration) params.set("duration", event.duration);
-    if (event.recurringRate) params.set("recurringRate", event.recurringRate);
+      const params = new URLSearchParams();
+      params.set("copy", "true");
+      if (event.title) params.set("title", `${event.title}`);
+      if (event.startDate) params.set("startDate", formatDate(event.startDate));
+      if (event.endDate) params.set("endDate", formatDate(event.endDate));
+      if (event.startTime) params.set("startTime", formatTime(event.startTime));
+      if (event.endTime) params.set("endTime", formatTime(event.endTime));
+      if (event.maxPersons) params.set("maxPersons", event.maxPersons);
+      if (event.costPerPerson) params.set("costPerPerson", event.costPerPerson);
+      if (event.city) params.set("city", event.city);
+      if (event.maxDistance) params.set("maxDistance", event.maxDistance);
+      if (event.recurring !== undefined)
+        params.set("recurring", event.recurring.toString());
+      if (event.duration) params.set("duration", event.duration);
+      if (event.recurringRate) params.set("recurringRate", event.recurringRate);
 
-    router.push(`/create-event?${params.toString()}`);
-  }, [router]);
+      router.push(`/create-event?${params.toString()}`);
+    },
+    [router],
+  );
 
-  const isAuthorized = useMemo(() => 
-    user ? ["ADMIN", "SUPER_ADMIN"].includes(user.role) : false,
-    [user]
+  const isAuthorized = useMemo(
+    () => (user ? ["ADMIN", "SUPER_ADMIN"].includes(user.role) : false),
+    [user],
   );
 
   if (isLoading) {
@@ -288,9 +306,12 @@ export default function HomePage() {
                 "invité"
               )}
             </p>
-            <Link href="/ranking" className="cursor-pointer hover:scale-110 transition-transform">
+            <Link
+              href="/ranking"
+              className="cursor-pointer hover:scale-110 transition-transform"
+            >
               {selectedBadge ? (
-                selectedBadge.icon.startsWith('/') ? (
+                selectedBadge.icon.startsWith("/") ? (
                   <Image
                     src={selectedBadge.icon}
                     alt={selectedBadge.name}
@@ -318,7 +339,7 @@ export default function HomePage() {
         <section>
           <GCalendar year={2025} />
           <div className="mt-4 text-sm text-gray-500">
-            Les jours avec événements sont affichés en gris.
+            Les jours avec événements sont affichés en couleur selon leur type.
           </div>
         </section>
 
@@ -330,126 +351,128 @@ export default function HomePage() {
               refreshKey={refreshEventsKey}
               fallback={<EventsSectionFallback />}
             >
-                {({ events, error }) => (
-                  <>
-                    <h2 className="text-xl font-bold text-gray-800 mb-4">
-                      {events.length > 0
-                        ? "Évènements à venir"
-                        : "Pas d'évènement à venir"}
-                    </h2>
-                    {error && (
-                      <p className="text-red-600 font-semibold mb-4">
-                        {error}
-                      </p>
+              {({ events, error }) => (
+                <>
+                  <h2 className="text-xl font-bold text-gray-800 mb-4">
+                    {events.length > 0
+                      ? "Évènements à venir"
+                      : "Pas d'évènement à venir"}
+                  </h2>
+                  {error && (
+                    <p className="text-red-600 font-semibold mb-4">{error}</p>
+                  )}
+                  <div className="flex flex-col md:flex-row gap-4 md:overflow-x-auto md:pb-2">
+                    {events.length === 0 && !error && (
+                      <p className="text-gray-500">Aucun événement trouvé.</p>
                     )}
-                    <div className="flex flex-col md:flex-row gap-4 md:overflow-x-auto md:pb-2">
-                      {events.length === 0 && !error && (
-                        <p className="text-gray-500">
-                          Aucun événement trouvé.
-                        </p>
-                      )}
-                      {events.slice(0, 3).map((event) => {
-                        const isCreator = !!(
-                          event.createdBy?.id &&
-                          String(event.createdBy.id) === String(user.id)
-                        );
-                        const isParticipant =
-                          event.users?.some(
-                            (u) => String(u.id) === String(user?.id)
-                          ) ?? false;
-                        const canLeave = !isCreator && isParticipant;
+                    {events.slice(0, 3).map((event, index) => {
+                      const isCreator = !!(
+                        event.createdBy?.id &&
+                        String(event.createdBy.id) === String(user.id)
+                      );
+                      const isParticipant =
+                        event.users?.some(
+                          (u) => String(u.id) === String(user?.id),
+                        ) ?? false;
+                      const canLeave = !isCreator && isParticipant;
 
-                        return (
-                          <Gcard
-                            key={event.id}
-                            eventId={event.id}
-                            {...adaptEventForGcard(event)}
-                            className="w-full md:w-100 h-60 md:flex-shrink-0"
-                            dropdownOpen={dropdownEvent === event.id}
-                            onDropdownToggle={() =>
-                              setDropdownEvent(
-                                dropdownEvent === event.id ? null : event.id
-                              )
-                            }
-                            isAuthorized={isAuthorized}
-                            onShare={() => handleShare(event.id, event.title)}
-                            onPreferences={() => handleFillPreferences(event)}
-                            onDelete={() =>
-                              openDeleteModal(event.id, event.title)
-                            }
-                            onCopy={() => handleCopyEvent(event)}
-                            onEdit={
-                              isCreator
-                                ? () => handleEditEvent(event.id)
-                                : undefined
-                            }
-                            canLeave={canLeave}
-                            onLeave={
-                              canLeave
-                                ? () => openLeaveModal(event)
-                                : undefined
-                            }
-                            isCreator={isCreator}
-                            showPreferencesButton={true}
-                            isPublic={event.isPublic}
-                            participantCount={event.participantCount ?? event.users?.length ?? 0}
-                            maxParticipants={
-                              event.maxParticipants ??
-                              (event.maxPersons ? Number(event.maxPersons) : null)
-                            }
-                            isParticipant={(event.isParticipant ?? isParticipant) || isCreator}
-                            isFull={event.isFull}
-                            joinLoading={joiningEventId === event.id}
-                            hideParticipateButton={isCreator}
-                            onParticipate={
-                              event.isPublic && !isCreator
-                                ? () => handleParticipate(event)
-                                : undefined
-                            }
-                          />
-                        );
-                      })}
+                      return (
+                        <Gcard
+                          key={event.id}
+                          eventId={event.id}
+                          {...adaptEventForGcard(event, index)}
+                          className="w-full md:w-100 h-60 md:flex-shrink-0"
+                          dropdownOpen={dropdownEvent === event.id}
+                          onDropdownToggle={() =>
+                            setDropdownEvent(
+                              dropdownEvent === event.id ? null : event.id,
+                            )
+                          }
+                          isAuthorized={isAuthorized}
+                          onShare={() => handleShare(event.id, event.title)}
+                          onPreferences={() => handleFillPreferences(event)}
+                          onDelete={() =>
+                            openDeleteModal(event.id, event.title)
+                          }
+                          onCopy={() => handleCopyEvent(event)}
+                          onEdit={
+                            isCreator
+                              ? () => handleEditEvent(event.id)
+                              : undefined
+                          }
+                          canLeave={canLeave}
+                          onLeave={
+                            canLeave ? () => openLeaveModal(event) : undefined
+                          }
+                          isCreator={isCreator}
+                          showPreferencesButton={
+                            !isCreator &&
+                            !userEventPreferences.has(event.id) &&
+                            event.state?.toLowerCase() !== "confirmed"
+                          }
+                          isPublic={event.isPublic}
+                          participantCount={
+                            event.participantCount ?? event.users?.length ?? 0
+                          }
+                          maxParticipants={
+                            event.maxParticipants ??
+                            (event.maxPersons ? Number(event.maxPersons) : null)
+                          }
+                          isParticipant={
+                            (event.isParticipant ?? isParticipant) || isCreator
+                          }
+                          isFull={event.isFull}
+                          joinLoading={joiningEventId === event.id}
+                          hideParticipateButton={isCreator}
+                          onParticipate={
+                            event.isPublic && !isCreator
+                              ? () => handleParticipate(event)
+                              : undefined
+                          }
+                        />
+                      );
+                    })}
 
-                      {/* Bouton Ajouter */}
-                      <Link
-                        href="/create-event"
-                        aria-label="Ajouter un évènement"
-                        className="w-full md:w-20 h-60 md:flex-shrink-0 flex items-center justify-center relative bg-white hover:bg-gray-50 transition group rounded-xl"
+                    {/* Bouton Ajouter */}
+                    <Link
+                      href="/create-event"
+                      aria-label="Ajouter un évènement"
+                      className="w-full md:w-20 h-60 md:flex-shrink-0 flex items-center justify-center relative bg-white hover:bg-gray-50 transition group rounded-xl"
+                    >
+                      <svg
+                        className="absolute inset-0 w-full h-full"
+                        xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 100 240"
+                        preserveAspectRatio="none"
                       >
-                        <svg
-                          className="absolute inset-0 w-full h-full"
-                          xmlns="http://www.w3.org/2000/svg"
-                          viewBox="0 0 100 240"
-                          preserveAspectRatio="none"
-                        >
-                          <rect
-                            x="2"
-                            y="2"
-                            width="96"
-                            height="236"
-                            rx="12"
-                            fill="none"
-                            stroke="#FCC638"
-                            strokeWidth="2"
-                            strokeDasharray="12 8"
-                          />
-                        </svg>
-                        <span className="relative z-10 text-6xl text-yellow-400 font-light">
-                          +
-                        </span>
-                      </Link>
-                    </div>
+                        <rect
+                          x="2"
+                          y="2"
+                          width="96"
+                          height="236"
+                          rx="12"
+                          fill="none"
+                          stroke="#FCC638"
+                          strokeWidth="2"
+                          strokeDasharray="12 8"
+                        />
+                      </svg>
+                      <span className="relative z-10 text-6xl text-yellow-400 font-light">
+                        +
+                      </span>
+                    </Link>
+                  </div>
 
-                    <div className="flex justify-end mt-4">
-                      <Link
-                        href="/events"
-                        className="text-body-large font-poppins text-black underline"
-                      >
-                        Tout voir →
-                      </Link>
-                    </div>
-                  </>
-                )}
+                  <div className="flex justify-end mt-4">
+                    <Link
+                      href="/events"
+                      className="text-body-large font-poppins text-black underline"
+                    >
+                      Tout voir →
+                    </Link>
+                  </div>
+                </>
+              )}
             </EventsSection>
           )}
 
@@ -458,7 +481,9 @@ export default function HomePage() {
               <h2 className="text-xl font-bold text-gray-800 mb-4">
                 Pas d&apos;évènement à venir
               </h2>
-              <p className="text-gray-500">Connectez-vous pour voir vos événements.</p>
+              <p className="text-gray-500">
+                Connectez-vous pour voir vos événements.
+              </p>
             </>
           )}
         </section>

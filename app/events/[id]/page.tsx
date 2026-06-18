@@ -1,15 +1,18 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import BackArrow from "@/components/ui/BackArrow";
 import ShareButton from "@/components/ui/ShareButton";
 import TabNavigation from "@/components/ui/TabNavigation";
 import EventInformations from "@/components/event/EventInformations";
 import EventParticipants from "@/components/event/EventParticipants";
-import EventDocuments from "@/components/event/EventDocuments";
+import EventDocuments, {
+    type EventDocumentsHandle,
+} from "@/components/event/EventDocuments";
 import { useUser } from "@/context/UserContext";
 import ConfirmationModal from "@/components/ui/ConfirmationModal";
+import { formatEventDateLong } from "@/lib/event-display";
 import PublicEventParticipateButton from "@/components/event/PublicEventParticipateButton";
 import { useJoinPublicEvent } from "@/hooks/useJoinPublicEvent";
 
@@ -28,8 +31,16 @@ type EventDetails = {
   state?: string;
   city?: string;
   maxDistance?: number;
-  selectedGoogleTags?: { id: string; techName: string; displayName?: string | null }[];
-  confirmedGoogleTag?: { id: string; techName: string; displayName?: string | null } | null;
+  selectedGoogleTags?: {
+    id: string;
+    techName: string;
+    displayName?: string | null;
+  }[];
+  confirmedGoogleTag?: {
+    id: string;
+    techName: string;
+    displayName?: string | null;
+  } | null;
   users: {
     id: string;
     firstName: string;
@@ -81,6 +92,7 @@ export default function SingleEventPage() {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const { joinEvent, joiningEventId } = useJoinPublicEvent();
+  const documentsRef = useRef<EventDocumentsHandle>(null);
 
   const tabs = [
     {
@@ -99,7 +111,9 @@ export default function SingleEventPage() {
   useEffect(() => {
     const fetchEvent = async () => {
       try {
-        const userQuery = user?.id ? `?userId=${encodeURIComponent(user.id)}` : "";
+        const userQuery = user?.id
+          ? `?userId=${encodeURIComponent(user.id)}`
+          : "";
         const response = await fetch(`/api/events/${id}${userQuery}`);
 
         if (!response.ok) {
@@ -125,6 +139,46 @@ export default function SingleEventPage() {
       fetchEvent();
     }
   }, [id, user?.id]);
+
+  useEffect(() => {
+    if (loading || !event || !user) return;
+
+    const isCreator =
+      event.isCreator ||
+      (event.createdBy?.id && String(event.createdBy.id) === String(user.id));
+    const isConfirmed = event.state?.toLowerCase() === "confirmed";
+    const isParticipant = event.users?.some(
+      (p) => String(p.id) === String(user.id),
+    );
+
+    if (isCreator || isConfirmed || !isParticipant) return;
+
+    const checkPreferences = async () => {
+      try {
+        const response = await fetch(
+          `/api/user-event-preferences?userId=${encodeURIComponent(user.id)}`,
+        );
+        if (!response.ok) return;
+
+        const preferences = await response.json();
+        type UserEventPreference = { event: { id: string } };
+        const hasPreferences = preferences.some(
+          (pref: UserEventPreference) =>
+            String(pref.event.id) === String(event.id),
+        );
+
+        if (!hasPreferences) {
+          router.replace(
+            `/event-preferences/${event.id}?eventTitle=${encodeURIComponent(event.title)}`,
+          );
+        }
+      } catch (err) {
+        console.error("Erreur lors de la vérification des préférences:", err);
+      }
+    };
+
+    void checkPreferences();
+  }, [loading, event, user, router]);
 
   const handleTabChange = (tabId: string) => {
     setActiveTab(tabId);
@@ -154,9 +208,11 @@ export default function SingleEventPage() {
 
   const handleEmailShare = () => {
     if (!event) return;
-    const subject = encodeURIComponent(`Invitation à l'événement: ${event.title}`);
+    const subject = encodeURIComponent(
+      `Invitation à l'événement: ${event.title}`,
+    );
     const body = encodeURIComponent(
-      `Bonjour ! Nous vous invitons à participer à l'événement "${event.title}". Vous pouvez voir tous les détails et vous inscrire via ce lien : ${window.location.href}`
+      `Bonjour ! Nous vous invitons à participer à l'événement "${event.title}". Vous pouvez voir tous les détails et vous inscrire via ce lien : ${window.location.href}`,
     );
     window.open(`mailto:?subject=${subject}&body=${body}`);
     setIsShareModalOpen(false);
@@ -168,7 +224,7 @@ export default function SingleEventPage() {
   };
 
   const handleUploadDocument = () => {
-    // TODO: Implémenter la logique d'upload de document
+    documentsRef.current?.openFilePicker();
   };
 
   const openLeaveModal = () => {
@@ -222,7 +278,9 @@ export default function SingleEventPage() {
         }
       } else {
         const errorData = await response.json();
-        setLeaveError(errorData.error || "Erreur lors du départ de l'événement.");
+        setLeaveError(
+          errorData.error || "Erreur lors du départ de l'événement.",
+        );
       }
     } catch (error) {
       console.error("Erreur réseau lors du départ de l'événement :", error);
@@ -257,10 +315,15 @@ export default function SingleEventPage() {
         router.push("/events"); // Rediriger vers la liste des événements
       } else {
         const errorData = await response.json();
-        setDeleteError(errorData.error || "Erreur lors de la suppression de l'événement.");
+        setDeleteError(
+          errorData.error || "Erreur lors de la suppression de l'événement.",
+        );
       }
     } catch (error) {
-      console.error("Erreur réseau lors de la suppression de l'événement :", error);
+      console.error(
+        "Erreur réseau lors de la suppression de l'événement :",
+        error,
+      );
       setDeleteError("Erreur réseau lors de la suppression de l'événement.");
     }
   };
@@ -292,9 +355,10 @@ export default function SingleEventPage() {
                 endDate: updatedEvent.endDate || prev.endDate,
                 startTime: updatedEvent.startTime || prev.startTime,
                 endTime: updatedEvent.endTime || prev.endTime,
-                confirmedGoogleTag: updatedEvent.confirmedGoogleTag || prev.confirmedGoogleTag,
+                confirmedGoogleTag:
+                  updatedEvent.confirmedGoogleTag || prev.confirmedGoogleTag,
               }
-            : null
+            : null,
         );
 
         setIsStateDropdownOpen(false);
@@ -308,17 +372,26 @@ export default function SingleEventPage() {
               setEvent(refreshedData.event || refreshedData);
             }
           } catch (refreshError) {
-            console.error("Erreur lors du rechargement des données:", refreshError);
+            console.error(
+              "Erreur lors du rechargement des données:",
+              refreshError,
+            );
           }
         }
       } else {
-        const errorData = await response.json().catch(() => ({ message: "Erreur inconnue" }));
+        const errorData = await response
+          .json()
+          .catch(() => ({ message: "Erreur inconnue" }));
         console.error("Erreur API:", errorData);
-        alert(`Erreur lors du changement d'état: ${errorData.message || errorData.error || "Erreur inconnue"}`);
+        alert(
+          `Erreur lors du changement d'état: ${errorData.message || errorData.error || "Erreur inconnue"}`,
+        );
       }
     } catch (error) {
       console.error("Erreur réseau lors du changement d'état :", error);
-      alert(`Erreur réseau lors du changement d'état: ${error instanceof Error ? error.message : "Erreur inconnue"}`);
+      alert(
+        `Erreur réseau lors du changement d'état: ${error instanceof Error ? error.message : "Erreur inconnue"}`,
+      );
     }
   };
 
@@ -359,7 +432,15 @@ export default function SingleEventPage() {
           />
         );
       case "documents":
-        return <EventDocuments />;
+        return (
+          <EventDocuments
+            ref={documentsRef}
+            eventId={event.id}
+            userId={user?.id}
+            canUpload={!!(isParticipant || isCreator)}
+            isCreator={!!isCreator}
+          />
+        );
       default:
         return <EventInformations event={event} />;
     }
@@ -377,7 +458,9 @@ export default function SingleEventPage() {
     return (
       <div className="flex h-screen items-center justify-center">
         <div className="text-center">
-          <p className="text-red-600 text-lg mb-4">{error || "Événement non trouvé"}</p>
+          <p className="text-red-600 text-lg mb-4">
+            {error || "Événement non trouvé"}
+          </p>
           <button
             onClick={() => router.push("/events")}
             className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
@@ -394,10 +477,14 @@ export default function SingleEventPage() {
 
   const organizer = event.createdBy || event.users?.[0];
   // Comparer les IDs en tant que strings pour éviter les problèmes de type
-  const isCreator = user && event.createdBy?.id && String(event.createdBy.id) === String(user.id);
-  const isParticipant = user && event.users?.some((p) => String(p.id) === String(user.id));
+  const isCreator =
+    user &&
+    event.createdBy?.id &&
+    String(event.createdBy.id) === String(user.id);
+  const isParticipant =
+    user && event.users?.some((p) => String(p.id) === String(user.id));
   const canLeaveEvent = !isCreator && isParticipant;
-  
+
   // ✅ Le créateur ou les admins peuvent changer l'état de l'événement
   const canChangeState = isCreator || isAuthorized;
 
@@ -410,9 +497,13 @@ export default function SingleEventPage() {
         {/* Header de l'événement */}
         <div className="flex justify-between items-start w-full">
           <div>
-            <h1 className="text-h1 font-urbanist text-[var(--color-text)] mb-2">{event.title}</h1>
+            <h1 className="text-h1 font-urbanist text-[var(--color-text)] mb-2">
+              {event.title}
+            </h1>
             <p className="text-body-large font-poppins text-[var(--color-text)]">
-              Organisé par {`${organizer?.firstName} ${organizer?.lastName}` || "Organisateur inconnu"}
+              Organisé par{" "}
+              {`${organizer?.firstName} ${organizer?.lastName}` ||
+                "Organisateur inconnu"}
             </p>
 
             {event.isPublic && (
@@ -423,7 +514,8 @@ export default function SingleEventPage() {
                 <p className="text-body-large font-poppins text-[var(--color-grey-three)]">
                   {event.participantCount ?? event.users?.length ?? 0}
                   {" / "}
-                  {event.maxParticipants ?? event.maxPersons ?? "—"} participants
+                  {event.maxParticipants ?? event.maxPersons ?? "—"}{" "}
+                  participants
                 </p>
               </div>
             )}
@@ -434,7 +526,12 @@ export default function SingleEventPage() {
                 <div className="flex items-start gap-4">
                   <div className="flex-shrink-0">
                     <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-                      <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg
+                        className="w-6 h-6 text-green-600"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
                         <path
                           strokeLinecap="round"
                           strokeLinejoin="round"
@@ -445,7 +542,9 @@ export default function SingleEventPage() {
                     </div>
                   </div>
                   <div className="flex-1">
-                    <h3 className="text-h3 font-urbanist font-semibold mb-3">Événement finalisé avec succès !</h3>
+                    <h3 className="text-h3 font-urbanist font-semibold mb-3">
+                      Événement finalisé avec succès !
+                    </h3>
                     <div className="space-y-3">
                       {event.confirmedGoogleTag && (
                         <div className="flex items-center gap-3">
@@ -455,12 +554,13 @@ export default function SingleEventPage() {
                               Préférence choisie :
                             </span>
                             <span className="ml-2 text-body-large font-poppins text-green-700 font-semibold">
-                              {event.confirmedGoogleTag.displayName || event.confirmedGoogleTag.techName}
+                              {event.confirmedGoogleTag.displayName ||
+                                event.confirmedGoogleTag.techName}
                             </span>
                           </div>
                         </div>
                       )}
-                      {(event.date || event.startDate) && (
+                      {(event.startDate || event.date) && (
                         <div className="flex items-center gap-3">
                           <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                           <div>
@@ -468,12 +568,9 @@ export default function SingleEventPage() {
                               Date retenue :
                             </span>
                             <span className="ml-2 text-body-large font-poppins text-green-700 font-semibold">
-                              {new Date(event.date || event.startDate!).toLocaleDateString("fr-FR", {
-                                weekday: "long",
-                                year: "numeric",
-                                month: "long",
-                                day: "numeric",
-                              })}
+                              {formatEventDateLong(
+                                event.startDate || event.date,
+                              )}
                             </span>
                           </div>
                         </div>
@@ -492,7 +589,9 @@ export default function SingleEventPage() {
           <div className="flex flex-col items-end gap-3">
             {event.isPublic && !isCreator && (
               <PublicEventParticipateButton
-                participantCount={event.participantCount ?? event.users?.length ?? 0}
+                participantCount={
+                  event.participantCount ?? event.users?.length ?? 0
+                }
                 maxParticipants={
                   event.maxParticipants ??
                   (event.maxPersons ? Number(event.maxPersons) : null)
@@ -518,7 +617,7 @@ export default function SingleEventPage() {
                 </button>
               )}
 
-              {activeTab === "documents" && (
+              {activeTab === "documents" && (isParticipant || isCreator) && (
                 <button
                   onClick={handleUploadDocument}
                   className="px-4 py-2 bg-white text-[var(--color-grey-four)] text-body-large  font-poppins hover:opacity-90 transition-opacity border-2 border-[var(--color-grey-three)] hover:border-[var(--color-main)]"
@@ -552,13 +651,15 @@ export default function SingleEventPage() {
               {/* ✅ Afficher le select d'état pour le créateur ou les admins */}
               {canChangeState && (
                 <div className="relative">
-                  <button 
-                    className="p-4" 
+                  <button
+                    className="p-4"
                     onClick={() => setIsStateDropdownOpen(!isStateDropdownOpen)}
                     title="Changer l'état de l'événement"
                   >
                     <div className="content-center w-fit flex align-center gap-2">
-                      <div className={`w-3 h-3 rounded-full ${getStateColor(event.state || "pending")}`}></div>
+                      <div
+                        className={`w-3 h-3 rounded-full ${getStateColor(event.state || "pending")}`}
+                      ></div>
                       <div className="flex items-center gap-2 rounded-full transition-all">
                         <svg
                           className={`w-4 h-4 text-black transition-transform ${
@@ -568,7 +669,12 @@ export default function SingleEventPage() {
                           stroke="currentColor"
                           viewBox="0 0 24 24"
                         >
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M19 9l-7 7-7-7"
+                          />
                         </svg>
                       </div>
                     </div>
@@ -580,15 +686,27 @@ export default function SingleEventPage() {
                       {availableStates.map((stateOption) => (
                         <button
                           key={stateOption.value}
-                          onClick={() => handleChangeEventState(stateOption.value)}
+                          onClick={() =>
+                            handleChangeEventState(stateOption.value)
+                          }
                           className={`w-full flex items-center gap-3 px-4 py-2 text-left hover:bg-gray-50 transition-colors ${
-                            event.state?.toLowerCase() === stateOption.value ? "bg-gray-100" : ""
+                            event.state?.toLowerCase() === stateOption.value
+                              ? "bg-gray-100"
+                              : ""
                           }`}
                         >
-                          <div className={`w-3 h-3 rounded-full ${stateOption.color}`}></div>
-                          <span className="text-gray-700">{stateOption.label}</span>
+                          <div
+                            className={`w-3 h-3 rounded-full ${stateOption.color}`}
+                          ></div>
+                          <span className="text-gray-700">
+                            {stateOption.label}
+                          </span>
                           {event.state?.toLowerCase() === stateOption.value && (
-                            <svg className="w-4 h-4 text-green-600 ml-auto" fill="currentColor" viewBox="0 0 20 20">
+                            <svg
+                              className="w-4 h-4 text-green-600 ml-auto"
+                              fill="currentColor"
+                              viewBox="0 0 20 20"
+                            >
                               <path
                                 fillRule="evenodd"
                                 d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
@@ -619,7 +737,9 @@ export default function SingleEventPage() {
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-white rounded-lg p-8 max-w-md w-full mx-4">
               <div className="text-center">
-                <h3 className="text-h3 font-urbanist mb-4">Partager l&apos;événement</h3>
+                <h3 className="text-h3 font-urbanist mb-4">
+                  Partager l&apos;événement
+                </h3>
                 <p className="text-body-large font-poppins text-[var(--color-grey-three)] mb-6">
                   Choisissez comment vous souhaitez partager cet événement
                 </p>
@@ -629,7 +749,12 @@ export default function SingleEventPage() {
                     onClick={handleCopyLink}
                     className="w-full flex items-center justify-center gap-3 p-4 border-2 border-[var(--color-grey-two)] rounded-lg hover:border-[var(--color-main)] transition-colors"
                   >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg
+                      className="w-5 h-5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
                       <path
                         strokeLinecap="round"
                         strokeLinejoin="round"
@@ -637,14 +762,21 @@ export default function SingleEventPage() {
                         d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
                       />
                     </svg>
-                    <span className="font-poppins text-body-large">Copier le lien</span>
+                    <span className="font-poppins text-body-large">
+                      Copier le lien
+                    </span>
                   </button>
 
                   <button
                     onClick={handleEmailShare}
                     className="w-full flex items-center justify-center gap-3 p-4 border-2 border-[var(--color-grey-two)] rounded-lg hover:border-[var(--color-main)] transition-colors"
                   >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg
+                      className="w-5 h-5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
                       <path
                         strokeLinecap="round"
                         strokeLinejoin="round"
@@ -652,7 +784,9 @@ export default function SingleEventPage() {
                         d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
                       />
                     </svg>
-                    <span className="font-poppins text-body-large">Partager par email</span>
+                    <span className="font-poppins text-body-large">
+                      Partager par email
+                    </span>
                   </button>
                 </div>
 

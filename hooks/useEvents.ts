@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
 
 export type EventType = {
   id: string;
@@ -15,8 +15,16 @@ export type EventType = {
   maxDistance?: number;
   isSpecificPlace?: boolean;
   createdById?: string;
-  selectedGoogleTags?: { id: string; techName: string; displayName?: string | null }[];
-  confirmedGoogleTag?: { id: string; techName: string; displayName?: string | null } | null;
+  selectedGoogleTags?: {
+    id: string;
+    techName: string;
+    displayName?: string | null;
+  }[];
+  confirmedGoogleTag?: {
+    id: string;
+    techName: string;
+    displayName?: string | null;
+  } | null;
   users: {
     id: string;
     firstName: string;
@@ -37,6 +45,7 @@ export type EventType = {
   isCreator?: boolean;
   canJoin?: boolean;
   isFull?: boolean;
+  createdAt?: string;
 };
 
 export const useEvents = (userId?: string) => {
@@ -51,11 +60,15 @@ export const useEvents = (userId?: string) => {
     }
 
     setLoading(true);
-    return fetch(`/api/events?userId=${encodeURIComponent(userId)}&_ts=${Date.now()}`, {
-      cache: "no-store",
-    })
+    return fetch(
+      `/api/events?userId=${encodeURIComponent(userId)}&_ts=${Date.now()}`,
+      {
+        cache: "no-store",
+      },
+    )
       .then((res) => {
-        if (!res.ok) throw new Error("Erreur lors de la récupération des événements");
+        if (!res.ok)
+          throw new Error("Erreur lors de la récupération des événements");
         return res.json();
       })
       .then((data) => {
@@ -72,7 +85,8 @@ export const useEvents = (userId?: string) => {
 
   useEffect(() => {
     const onUpdate = (e: Event) => {
-      const detail = (e as CustomEvent<{ eventId?: string; event?: EventType }>).detail;
+      const detail = (e as CustomEvent<{ eventId?: string; event?: EventType }>)
+        .detail;
       if (detail?.event?.id) {
         setEvents((prev) =>
           prev.map((ev) =>
@@ -101,25 +115,24 @@ export const useEvents = (userId?: string) => {
 
 export const filterEventsByStatus = (
   events: EventType[],
-  statusFilter: 'all' | 'past' | 'upcoming' | 'preparation'
+  statusFilter: "all" | "past" | "upcoming" | "preparation",
 ): EventType[] => {
   const now = new Date();
-  return events.filter(event => {
-    if (statusFilter === 'all') return true;
-    
-    const eventDate = new Date(event.startDate || '');
-    
-    if (statusFilter === 'past') {
+  return events.filter((event) => {
+    if (statusFilter === "all") return true;
+
+    const eventDate = new Date(event.startDate || "");
+
+    if (statusFilter === "past") {
       return eventDate < now;
     }
-    if (statusFilter === 'upcoming') {
-      return eventDate > now && event.state !== 'pending';
+    if (statusFilter === "upcoming") {
+      return eventDate > now && event.state !== "pending";
     }
-    if (statusFilter === 'preparation') {
-      return event.state === 'pending';
+    if (statusFilter === "preparation") {
+      return event.state === "pending";
     }
-    
+
     return true;
   });
 };
-
