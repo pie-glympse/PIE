@@ -65,9 +65,9 @@ export function EventVisibilityStep({
             role="tooltip"
             className="absolute left-0 top-full mt-2 z-20 max-w-md p-4 bg-white border-2 border-[var(--color-grey-two)] rounded-lg shadow-lg text-body-small font-poppins text-[var(--color-text)]"
           >
-            Un évènement public peut être rejoint par tous les membres de l&apos;entreprise
-            dans la limite des places disponibles. Un évènement privé vous permet
-            d&apos;en sélectionner les participants.
+            Un évènement public peut être rejoint par tous les membres de
+            l&apos;entreprise dans la limite des places disponibles. Un
+            évènement privé vous permet d&apos;en sélectionner les participants.
           </div>
         )}
       </div>
@@ -80,15 +80,21 @@ export function EventVisibilityStep({
               key={card.id}
               type="button"
               onClick={() => onChange(card.id)}
-              className={`relative text-left rounded-2xl border-2 p-6 transition-all ${card.bg} ${
+              className={`relative text-left rounded-lg border-2 p-6 transition-colors ${card.bg} ${
                 selected
-                  ? "border-[var(--color-main)] shadow-md"
+                  ? "border-[var(--color-main)]"
                   : "border-[var(--color-grey-two)] hover:border-[var(--color-main)]"
               }`}
             >
               {selected && (
                 <span className="absolute top-4 right-4 text-[var(--color-main)]">
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+                  <svg
+                    width="24"
+                    height="24"
+                    viewBox="0 0 24 24"
+                    fill="currentColor"
+                    aria-hidden
+                  >
                     <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 16.8l-6.2 4.5 2.4-7.4L2 9.4h7.6z" />
                   </svg>
                 </span>
@@ -121,4 +127,3 @@ export function EventVisibilityStep({
     </div>
   );
 }
-

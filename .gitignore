@@ -30,6 +30,8 @@ prisma/migrations/
 # misc
 .DS_Store
 *.pem
+.agents/
+.claude/
 
 # debug
 npm-debug.log*

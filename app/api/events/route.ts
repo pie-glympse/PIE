@@ -32,6 +32,7 @@ export async function POST(request: Request) {
       placeName,
       placeAddress,
       isSpecificPlace = false,
+      googleTagGroupIds = [],
       googleTagIds = [],
       recurring,
       duration,
@@ -47,19 +48,31 @@ export async function POST(request: Request) {
 
     if (isPublic && (!maxPersons || Number(maxPersons) <= 0)) {
       return NextResponse.json(
-        { error: "Le nombre maximum de participants est obligatoire pour un événement public" },
+        {
+          error:
+            "Le nombre maximum de participants est obligatoire pour un événement public",
+        },
         { status: 400 },
       );
     }
 
     const userIdBigInt = BigInt(userId);
+    const parsedGoogleTagGroupIds = Array.isArray(googleTagGroupIds)
+      ? googleTagGroupIds.map((id: string | number) => BigInt(id))
+      : Array.isArray(googleTagIds)
+        ? []
+        : [];
     const parsedGoogleTagIds = Array.isArray(googleTagIds)
       ? googleTagIds.map((id: string | number) => BigInt(id))
       : [];
 
-    if (!isSpecificPlace && parsedGoogleTagIds.length === 0) {
+    if (
+      !isSpecificPlace &&
+      parsedGoogleTagGroupIds.length === 0 &&
+      parsedGoogleTagIds.length === 0
+    ) {
       return NextResponse.json(
-        { error: "Au moins un thème est requis" },
+        { error: "Au moins un groupe d'activité est requis" },
         { status: 400 },
       );
     }
@@ -91,19 +104,40 @@ export async function POST(request: Request) {
         },
         ...(isSpecificPlace
           ? {}
-          : {
-              selectedGoogleTags: {
-                connect: parsedGoogleTagIds.map((id) => ({ id })),
-              },
-            }),
+          : parsedGoogleTagGroupIds.length > 0
+            ? {
+                selectedGoogleTagGroups: {
+                  connect: parsedGoogleTagGroupIds.map((id) => ({ id })),
+                },
+              }
+            : {
+                selectedGoogleTags: {
+                  connect: parsedGoogleTagIds.map((id) => ({ id })),
+                },
+              }),
       },
       include: {
+        selectedGoogleTagGroups: {
+          include: {
+            subGroups: {
+              where: { isActive: true },
+              orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+            },
+          },
+        },
         selectedGoogleTags: true,
         confirmedGoogleTag: true,
+        confirmedGoogleTagSubGroup: true,
         users: true,
         _count: { select: { users: true } },
         User_Event_createdByIdToUser: {
-          select: { id: true, firstName: true, lastName: true, email: true, companyId: true },
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            companyId: true,
+          },
         },
       },
     });
@@ -156,7 +190,9 @@ export async function POST(request: Request) {
       event.id,
     ).catch(() => {});
 
-    return NextResponse.json(toJson(enrichEventForClient(event, userId)), { status: 201 });
+    return NextResponse.json(toJson(enrichEventForClient(event, userId)), {
+      status: 201,
+    });
   } catch (error) {
     console.error("Erreur création event:", error);
     return NextResponse.json(
@@ -196,8 +232,17 @@ export async function GET(request: NextRequest) {
         ],
       },
       include: {
+        selectedGoogleTagGroups: {
+          include: {
+            subGroups: {
+              where: { isActive: true },
+              orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+            },
+          },
+        },
         selectedGoogleTags: true,
         confirmedGoogleTag: true,
+        confirmedGoogleTagSubGroup: true,
         users: {
           select: {
             id: true,

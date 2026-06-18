@@ -64,7 +64,10 @@ export default function ProfilePage() {
         if (!response.ok) {
           const errorData = await response.json();
           console.error("Erreur API:", errorData);
-          throw new Error(errorData.error || "Erreur lors de la récupération des données utilisateur");
+          throw new Error(
+            errorData.error ||
+              "Erreur lors de la récupération des données utilisateur",
+          );
         }
 
         const userData = await response.json();
@@ -158,7 +161,11 @@ export default function ProfilePage() {
         }
       } catch (error) {
         console.error("Error uploading banner:", error);
-        alert(error instanceof Error ? error.message : "Erreur lors de l'upload de la bannière");
+        alert(
+          error instanceof Error
+            ? error.message
+            : "Erreur lors de l'upload de la bannière",
+        );
         // En cas d'erreur, remettre l'ancienne bannière
         setBanner(savedUserInfo.bannerUrl || null);
       }
@@ -217,7 +224,11 @@ export default function ProfilePage() {
         }
       } catch (error) {
         console.error("Error uploading avatar:", error);
-        alert(error instanceof Error ? error.message : "Erreur lors de l'upload de la photo de profil");
+        alert(
+          error instanceof Error
+            ? error.message
+            : "Erreur lors de l'upload de la photo de profil",
+        );
         // En cas d'erreur, remettre l'ancien avatar
         setAvatar(savedUserInfo.photoUrl || null);
       }
@@ -267,7 +278,11 @@ export default function ProfilePage() {
       const updatedUser = await response.json();
 
       // Sauvegarder les modifications
-      setSavedUserInfo({ ...userInfo, photoUrl: savedUserInfo.photoUrl, bannerUrl: savedUserInfo.bannerUrl });
+      setSavedUserInfo({
+        ...userInfo,
+        photoUrl: savedUserInfo.photoUrl,
+        bannerUrl: savedUserInfo.bannerUrl,
+      });
       setIsEditing(false);
 
       // Update user context
@@ -286,7 +301,7 @@ export default function ProfilePage() {
           firstName: updatedUser.firstName,
           lastName: updatedUser.lastName,
           email: updatedUser.email,
-        })
+        }),
       );
     } catch (error) {
       console.error("Erreur lors de la sauvegarde:", error);
@@ -303,7 +318,11 @@ export default function ProfilePage() {
   };
 
   if (isLoading || loading) {
-    return <div className="flex items-center justify-center h-screen">Chargement...</div>;
+    return (
+      <div className="flex items-center justify-center h-screen">
+        Chargement...
+      </div>
+    );
   }
 
   if (!user) {
@@ -312,12 +331,10 @@ export default function ProfilePage() {
 
   const handleLogout = async () => {
     try {
-      await fetch("/api/logout", { method: "POST" });
-      logout();
+      await logout();
       router.push("/login");
     } catch (error) {
       console.error("Erreur lors de la déconnexion:", error);
-      logout();
       router.push("/login");
     }
   };
@@ -326,12 +343,26 @@ export default function ProfilePage() {
     <div className="mt-24 p-10 max-w-7xl mx-auto">
       {/* Bannière */}
       <div className="relative h-48 rounded-lg bg-gray-200 group/banner cursor-pointer">
-        {banner && <Image src={banner} alt="Bannière" fill className="object-cover rounded-lg" sizes="(max-width: 1280px) 100vw, 1280px" quality={85} />}
+        {banner && (
+          <Image
+            src={banner}
+            alt="Bannière"
+            fill
+            className="object-cover rounded-lg"
+            sizes="(max-width: 1280px) 100vw, 1280px"
+            quality={85}
+          />
+        )}
         {/* Overlay avec icône caméra - visible seulement au hover */}
         <div className="absolute inset-0 rounded-lg bg-black/30 opacity-0 group-hover/banner:opacity-100 transition-opacity duration-200 flex items-center justify-center">
           <label className="cursor-pointer p-3 bg-white/20 rounded-full hover:bg-white/30 transition-colors">
             <Camera size={24} className="text-white" />
-            <input type="file" className="hidden" onChange={handleBannerChange} accept="image/*" />
+            <input
+              type="file"
+              className="hidden"
+              onChange={handleBannerChange}
+              accept="image/*"
+            />
           </label>
         </div>
 
@@ -339,7 +370,14 @@ export default function ProfilePage() {
         <div className="absolute -bottom-12 left-6 bg-amber-400 rounded-full">
           <div className="relative w-24 h-24 rounded-full border-4 border-white overflow-hidden group/avatar cursor-pointer">
             {avatar ? (
-              <Image src={avatar} alt="Avatar" fill className="object-cover" sizes="96px" quality={75} />
+              <Image
+                src={avatar}
+                alt="Avatar"
+                fill
+                className="object-cover"
+                sizes="96px"
+                quality={75}
+              />
             ) : (
               <div className="w-full h-full bg-gray-300" />
             )}
@@ -347,7 +385,12 @@ export default function ProfilePage() {
             <div className="absolute inset-0 bg-black/30 opacity-0 group-hover/avatar:opacity-100 transition-opacity duration-200 flex items-center justify-center rounded-full">
               <label className="cursor-pointer p-2 bg-white/20 rounded-full hover:bg-white/30 transition-colors">
                 <Camera size={16} className="text-white" />
-                <input type="file" className="hidden" onChange={handleAvatarChange} accept="image/*" />
+                <input
+                  type="file"
+                  className="hidden"
+                  onChange={handleAvatarChange}
+                  accept="image/*"
+                />
               </label>
             </div>
           </div>
@@ -360,7 +403,9 @@ export default function ProfilePage() {
           {savedUserInfo.firstName} {savedUserInfo.lastName}
         </h2>
         <p className="font-poppins font-medium">
-          {savedUserInfo.teamName ? `Équipe ${savedUserInfo.teamName}` : "Pas d'équipe définie"}
+          {savedUserInfo.teamName
+            ? `Équipe ${savedUserInfo.teamName}`
+            : "Pas d'équipe définie"}
         </p>
 
         {/* Boutons */}
@@ -396,7 +441,9 @@ export default function ProfilePage() {
 
       {/* Formulaire */}
       <div className="mt-10 p-6">
-        <h3 className="text-xl font-semibold text-gray-900 mb-6">Informations personnelles</h3>
+        <h3 className="text-xl font-semibold text-gray-900 mb-6">
+          Informations personnelles
+        </h3>
 
         <div className="space-y-4 text-[var(--color-grey-three)] font-poppins text-body-large">
           {/* First Row: First Name and Last Name */}
@@ -409,7 +456,9 @@ export default function ProfilePage() {
                 onChange={(e) => handleInputChange("firstName", e.target.value)}
                 disabled={!isEditing}
                 className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all ${
-                  !isEditing ? "bg-gray-100 cursor-not-allowed text-[var(--color-grey-three)]" : "bg-white"
+                  !isEditing
+                    ? "bg-gray-100 cursor-not-allowed text-[var(--color-grey-three)]"
+                    : "bg-white"
                 }`}
               />
             </div>
@@ -421,7 +470,9 @@ export default function ProfilePage() {
                 onChange={(e) => handleInputChange("lastName", e.target.value)}
                 disabled={!isEditing}
                 className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all ${
-                  !isEditing ? "bg-gray-100 cursor-not-allowed text-[var(--color-grey-three)]" : "bg-white"
+                  !isEditing
+                    ? "bg-gray-100 cursor-not-allowed text-[var(--color-grey-three)]"
+                    : "bg-white"
                 }`}
               />
             </div>
@@ -437,7 +488,9 @@ export default function ProfilePage() {
                 onChange={(e) => handleInputChange("email", e.target.value)}
                 disabled={!isEditing}
                 className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all ${
-                  !isEditing ? "bg-gray-100 cursor-not-allowed text-[var(--color-grey-three)]" : "bg-white"
+                  !isEditing
+                    ? "bg-gray-100 cursor-not-allowed text-[var(--color-grey-three)]"
+                    : "bg-white"
                 }`}
               />
             </div>
@@ -447,11 +500,15 @@ export default function ProfilePage() {
                 <input
                   type={showPassword ? "text" : "password"}
                   value={userInfo.password}
-                  onChange={(e) => handleInputChange("password", e.target.value)}
+                  onChange={(e) =>
+                    handleInputChange("password", e.target.value)
+                  }
                   placeholder="Laissez vide pour conserver le mot de passe actuel"
                   disabled={!isEditing}
                   className={`w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all ${
-                    !isEditing ? "bg-gray-100 cursor-not-allowed text-[var(--color-grey-three)]" : "bg-white"
+                    !isEditing
+                      ? "bg-gray-100 cursor-not-allowed text-[var(--color-grey-three)]"
+                      : "bg-white"
                   }`}
                 />
                 <button

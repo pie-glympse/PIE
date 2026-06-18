@@ -1,13 +1,18 @@
 import { NextResponse, NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { generateETag, isNotModified, addCacheHeaders, CACHE_STRATEGIES } from "@/lib/cache-utils";
+import {
+    generateETag,
+    isNotModified,
+    addCacheHeaders,
+    CACHE_STRATEGIES,
+} from "@/lib/cache-utils";
 import { enrichEventForClient } from "@/lib/event-public";
 
 function safeJson(obj: unknown) {
   return JSON.parse(
     JSON.stringify(obj, (_, value) =>
-      typeof value === "bigint" ? value.toString() : value
-    )
+      typeof value === "bigint" ? value.toString() : value,
+    ),
   );
 }
 
@@ -22,7 +27,7 @@ function getEventIdFromUrl(req: Request): number | null {
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const resolvedParams = await params;
@@ -32,8 +37,25 @@ export async function GET(
     const event = await prisma.event.findUnique({
       where: { id: eventId },
       include: {
+        selectedGoogleTagGroups: {
+          include: {
+            subGroups: {
+              where: { isActive: true },
+              orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+            },
+          },
+        },
         selectedGoogleTags: true,
         confirmedGoogleTag: true,
+        confirmedGoogleTagSubGroup: {
+          include: {
+            tags: {
+              where: { isActive: true },
+              orderBy: [{ sortOrder: "asc" }, { techName: "asc" }],
+              take: 8,
+            },
+          },
+        },
         users: {
           select: {
             id: true,
@@ -65,7 +87,10 @@ export async function GET(
     });
 
     if (!event) {
-      return NextResponse.json({ error: "Événement non trouvé" }, { status: 404 });
+      return NextResponse.json(
+        { error: "Événement non trouvé" },
+        { status: 404 },
+      );
     }
 
     const eventObj = enrichEventForClient(event, userId ?? undefined);
@@ -80,14 +105,14 @@ export async function GET(
     }
 
     // Créer la réponse avec les headers de cache (semi-statique car peut changer)
-    const response = NextResponse.json(
-      { event: eventJson },
-      { status: 200 }
-    );
+    const response = NextResponse.json({ event: eventJson }, { status: 200 });
     return addCacheHeaders(response, CACHE_STRATEGIES.SEMI_STATIC, etag);
   } catch (error) {
     console.error("Erreur récupération event:", error);
-    return NextResponse.json({ error: "Erreur récupération event" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Erreur récupération event" },
+      { status: 500 },
+    );
   }
 }
 
@@ -116,7 +141,7 @@ export async function PATCH(req: Request) {
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const resolvedParams = await params;
@@ -132,7 +157,7 @@ export async function PUT(
     if (!existingEvent) {
       return NextResponse.json(
         { message: "Événement non trouvé" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -140,26 +165,47 @@ export async function PUT(
     if (body.userId && existingEvent.createdById !== BigInt(body.userId)) {
       return NextResponse.json(
         { message: "Vous n'êtes pas autorisé à modifier cet événement" },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
     // Préparer les données à mettre à jour
     const updateData: any = {};
-    
+
     if (body.title !== undefined) updateData.title = body.title;
-    if (body.startDate !== undefined) updateData.startDate = body.startDate ? new Date(body.startDate) : null;
-    if (body.endDate !== undefined) updateData.endDate = body.endDate ? new Date(body.endDate) : null;
-    if (body.startTime !== undefined) updateData.startTime = body.startTime ? new Date(body.startTime) : null;
-    if (body.endTime !== undefined) updateData.endTime = body.endTime ? new Date(body.endTime) : null;
+    if (body.startDate !== undefined)
+      updateData.startDate = body.startDate ? new Date(body.startDate) : null;
+    if (body.endDate !== undefined)
+      updateData.endDate = body.endDate ? new Date(body.endDate) : null;
+    if (body.startTime !== undefined)
+      updateData.startTime = body.startTime ? new Date(body.startTime) : null;
+    if (body.endTime !== undefined)
+      updateData.endTime = body.endTime ? new Date(body.endTime) : null;
     if (body.city !== undefined) updateData.city = body.city;
 
     const updatedEvent = await prisma.event.update({
       where: { id: eventId },
       data: updateData,
       include: {
+        selectedGoogleTagGroups: {
+          include: {
+            subGroups: {
+              where: { isActive: true },
+              orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+            },
+          },
+        },
         selectedGoogleTags: true,
         confirmedGoogleTag: true,
+        confirmedGoogleTagSubGroup: {
+          include: {
+            tags: {
+              where: { isActive: true },
+              orderBy: [{ sortOrder: "asc" }, { techName: "asc" }],
+              take: 8,
+            },
+          },
+        },
         users: {
           select: {
             id: true,
@@ -172,12 +218,15 @@ export async function PUT(
       },
     });
 
-    return NextResponse.json({ event: safeJson(updatedEvent) }, { status: 200 });
+    return NextResponse.json(
+      { event: safeJson(updatedEvent) },
+      { status: 200 },
+    );
   } catch (error) {
     console.error("Erreur lors de la modification de l'événement:", error);
     return NextResponse.json(
       { message: "Erreur lors de la modification de l'événement" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -207,14 +256,17 @@ export async function DELETE(req: Request) {
     });
 
     if (!event) {
-      return NextResponse.json({ error: "Événement non trouvé" }, { status: 404 });
+      return NextResponse.json(
+        { error: "Événement non trouvé" },
+        { status: 404 },
+      );
     }
 
     // Vérifier que l'utilisateur est le créateur
     if (event.createdById?.toString() !== userId) {
       return NextResponse.json(
         { error: "Seul le créateur de l'événement peut le supprimer" },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -228,7 +280,7 @@ export async function DELETE(req: Request) {
     console.error("Erreur lors de la suppression de l'événement:", error);
     return NextResponse.json(
       { error: "Erreur lors de la suppression de l'événement" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
