@@ -4,6 +4,7 @@ import {
     getEventIllustration,
     formatEventCreatedAt,
 } from "@/lib/event-display";
+import { canShowEventPreferencesVote } from "@/lib/event-public";
 
 interface EventListProps {
   events: EventType[];
@@ -69,6 +70,8 @@ export const EventList = ({
               (user) => String(user.id) === String(currentUserId),
             ) || false;
           const canLeave = !isCreator && isParticipant;
+          const userIsParticipant =
+            (event.isParticipant ?? isParticipant) || isCreator;
 
           return (
             <div key={event.id}>
@@ -92,11 +95,12 @@ export const EventList = ({
                     : undefined
                 }
                 isCreator={isCreator}
-                showPreferencesButton={
-                  !isCreator &&
-                  !userEventPreferences.has(event.id) &&
-                  event.state?.toLowerCase() !== "confirmed"
-                }
+                showPreferencesButton={canShowEventPreferencesVote({
+                  isParticipant: userIsParticipant,
+                  isCreator,
+                  hasPreferences: userEventPreferences.has(event.id),
+                  state: event.state,
+                })}
                 isPublic={event.isPublic}
                 participantCount={
                   event.participantCount ?? event.users?.length ?? 0
@@ -105,9 +109,7 @@ export const EventList = ({
                   event.maxParticipants ??
                   (event.maxPersons ? Number(event.maxPersons) : null)
                 }
-                isParticipant={
-                  (event.isParticipant ?? isParticipant) || isCreator
-                }
+                isParticipant={userIsParticipant}
                 isFull={event.isFull}
                 joinLoading={joiningEventId === event.id}
                 hideParticipateButton={isCreator}
@@ -167,6 +169,8 @@ export const EventList = ({
             (user) => String(user.id) === String(currentUserId),
           ) || false;
         const canLeave = !isCreator && isParticipant;
+        const userIsParticipant =
+          (event.isParticipant ?? isParticipant) || isCreator;
 
         return (
           <div key={event.id}>
@@ -186,11 +190,12 @@ export const EventList = ({
                 canLeave && onLeaveEvent ? () => onLeaveEvent(event) : undefined
               }
               isCreator={isCreator}
-              showPreferencesButton={
-                !isCreator &&
-                !userEventPreferences.has(event.id) &&
-                event.state?.toLowerCase() !== "confirmed"
-              }
+              showPreferencesButton={canShowEventPreferencesVote({
+                isParticipant: userIsParticipant,
+                isCreator,
+                hasPreferences: userEventPreferences.has(event.id),
+                state: event.state,
+              })}
               isPublic={event.isPublic}
               participantCount={
                 event.participantCount ?? event.users?.length ?? 0
@@ -199,9 +204,7 @@ export const EventList = ({
                 event.maxParticipants ??
                 (event.maxPersons ? Number(event.maxPersons) : null)
               }
-              isParticipant={
-                (event.isParticipant ?? isParticipant) || isCreator
-              }
+              isParticipant={userIsParticipant}
               isFull={event.isFull}
               joinLoading={joiningEventId === event.id}
               hideParticipateButton={isCreator}

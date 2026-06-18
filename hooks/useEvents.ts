@@ -20,10 +20,19 @@ export type EventType = {
     techName: string;
     displayName?: string | null;
   }[];
+  selectedGoogleTagGroups?: {
+    id: string;
+    name: string;
+    subGroups?: { id: string; name: string }[];
+  }[];
   confirmedGoogleTag?: {
     id: string;
     techName: string;
     displayName?: string | null;
+  } | null;
+  confirmedGoogleTagSubGroup?: {
+    id: string;
+    name: string;
   } | null;
   users: {
     id: string;

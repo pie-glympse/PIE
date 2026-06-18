@@ -5,11 +5,12 @@ import type { FC, ReactNode, ChangeEvent } from "react";
 import { useUser } from "@/context/UserContext";
 import MainButton from "@/components/ui/MainButton";
 import SimpleAutocomplete from "@/components/ui/SimpleAutocomplete";
+import { PrincipalGroupPicker } from "@/components/event/ThemeGroupPicker";
 
-type ThemeOption = {
+type PrincipalGroup = {
   id: string;
-  techName: string;
-  displayName: string;
+  name: string;
+  sortOrder: number;
 };
 
 interface EventFormProps {
@@ -32,9 +33,11 @@ interface EventFormProps {
     duration?: string;
     recurringRate?: string;
     isSpecificPlace?: boolean;
+    googleTagGroupIds?: string[];
     googleTagIds?: string[];
   };
   requireMaxPersons?: boolean;
+  isSubmitting?: boolean;
   onSubmit: (formData: {
     title: string;
     startDate: string;
@@ -51,6 +54,7 @@ interface EventFormProps {
     duration: string;
     recurringRate: string;
     isSpecificPlace: boolean;
+    googleTagGroupIds: string[];
     googleTagIds: string[];
   }) => void;
 }
@@ -61,6 +65,7 @@ const EventForm: FC<EventFormProps> = ({
   buttonText,
   initialData,
   requireMaxPersons = false,
+  isSubmitting = false,
   onSubmit,
 }) => {
   const { user } = useUser();
@@ -70,28 +75,40 @@ const EventForm: FC<EventFormProps> = ({
   const [startTime, setStartTime] = useState(initialData?.startTime || "");
   const [endTime, setEndTime] = useState(initialData?.endTime || "");
   const [maxPersons, setMaxPersons] = useState(initialData?.maxPersons || "");
-  const [costPerPerson, setCostPerPerson] = useState(initialData?.costPerPerson || "");
+  const [costPerPerson, setCostPerPerson] = useState(
+    initialData?.costPerPerson || "",
+  );
   const [city, setCity] = useState(initialData?.city || "");
-  const [maxDistance, setMaxDistance] = useState(initialData?.maxDistance || "");
+  const [maxDistance, setMaxDistance] = useState(
+    initialData?.maxDistance || "",
+  );
   const [placeName, setPlaceName] = useState(initialData?.placeName || "");
-  const [placeAddress, setPlaceAddress] = useState(initialData?.placeAddress || "");
+  const [placeAddress, setPlaceAddress] = useState(
+    initialData?.placeAddress || "",
+  );
   const [isSpecificPlace, setIsSpecificPlace] = useState(
     initialData?.isSpecificPlace || false,
   );
-  const [selectedGoogleTagIds, setSelectedGoogleTagIds] = useState<string[]>(
-    initialData?.googleTagIds || [],
+  const [selectedGoogleTagGroupIds, setSelectedGoogleTagGroupIds] = useState<
+    string[]
+  >(initialData?.googleTagGroupIds || []);
+  const [principalGroups, setPrincipalGroups] = useState<PrincipalGroup[]>([]);
+  const [isRecurring, setIsRecurring] = useState(
+    initialData?.recurring || false,
   );
-  const [googleTags, setGoogleTags] = useState<ThemeOption[]>([]);
-  const [isRecurring, setIsRecurring] = useState(initialData?.recurring || false);
   const [duration, setDuration] = useState(initialData?.duration || "");
-  const [recurringRate, setRecurringRate] = useState(initialData?.recurringRate || "");
+  const [recurringRate, setRecurringRate] = useState(
+    initialData?.recurringRate || "",
+  );
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
   useEffect(() => {
     if (city || !user?.id) return;
     fetch(`/api/company?userId=${user.id}`)
       .then((res) => (res.ok ? res.json() : null))
-      .then((data) => { if (data?.companyAddress) setCity(data.companyAddress); })
+      .then((data) => {
+        if (data?.companyAddress) setCity(data.companyAddress);
+      })
       .catch(() => {});
   }, [user?.id]);
 
@@ -101,7 +118,7 @@ const EventForm: FC<EventFormProps> = ({
         const response = await fetch("/api/google-tags");
         if (!response.ok) return;
         const data = await response.json();
-        setGoogleTags(data);
+        setPrincipalGroups(Array.isArray(data?.groups) ? data.groups : []);
       } catch (error) {
         console.error("Erreur chargement thèmes:", error);
       }
@@ -109,10 +126,17 @@ const EventForm: FC<EventFormProps> = ({
     fetchTags();
   }, []);
 
-  const toggleGoogleTag = (id: string) => {
-    setSelectedGoogleTagIds((prev) =>
+  const toggleGoogleTagGroup = (id: string) => {
+    setSelectedGoogleTagGroupIds((prev) =>
       prev.includes(id) ? prev.filter((value) => value !== id) : [...prev, id],
     );
+    setErrors((prev) => ({ ...prev, googleTagGroupIds: "" }));
+  };
+
+  const scrollToField = (fieldId: string) => {
+    document
+      .getElementById(fieldId)
+      ?.scrollIntoView({ behavior: "smooth", block: "center" });
   };
 
   const timeOptions = [];
@@ -124,7 +148,10 @@ const EventForm: FC<EventFormProps> = ({
     }
   }
 
-  const validateDatesAndTimes = () => {
+  const validateDatesAndTimes = (): {
+    valid: boolean;
+    errors: { [key: string]: string };
+  } => {
     const newErrors: { [key: string]: string } = {};
     const today = new Date().toISOString().split("T")[0];
     const now = new Date();
@@ -134,16 +161,31 @@ const EventForm: FC<EventFormProps> = ({
       .padStart(2, "0")}`;
 
     if (startDate && startDate < today) {
-      newErrors.startDate = "La date de début ne peut pas être antérieure à aujourd'hui";
+      newErrors.startDate =
+        "La date de début ne peut pas être antérieure à aujourd'hui";
     }
-    if (startDate && startDate === today && startTime && startTime < currentTime) {
-      newErrors.startTime = "L'heure de début ne peut pas être antérieure à l'heure actuelle";
+    if (
+      startDate &&
+      startDate === today &&
+      startTime &&
+      startTime < currentTime
+    ) {
+      newErrors.startTime =
+        "L'heure de début ne peut pas être antérieure à l'heure actuelle";
     }
     if (!isRecurring && endDate && startDate && endDate < startDate) {
-      newErrors.endDate = "La date de fin ne peut pas être antérieure à la date de début";
+      newErrors.endDate =
+        "La date de fin ne peut pas être antérieure à la date de début";
     }
-    if (!isRecurring && startDate === endDate && startTime && endTime && endTime <= startTime) {
-      newErrors.endTime = "L'heure de fin doit être postérieure à l'heure de début";
+    if (
+      !isRecurring &&
+      startDate === endDate &&
+      startTime &&
+      endTime &&
+      endTime <= startTime
+    ) {
+      newErrors.endTime =
+        "L'heure de fin doit être postérieure à l'heure de début";
     }
     if (isRecurring && (!duration || parseInt(duration, 10) <= 0)) {
       newErrors.duration = "La durée doit être supérieure à 0";
@@ -151,12 +193,23 @@ const EventForm: FC<EventFormProps> = ({
     if (isRecurring && !recurringRate) {
       newErrors.recurringRate = "Veuillez sélectionner une récurrence";
     }
-    if (!isSpecificPlace && selectedGoogleTagIds.length === 0) {
-      newErrors.googleTagIds = "Sélectionnez au moins un thème";
+    if (!isSpecificPlace && selectedGoogleTagGroupIds.length === 0) {
+      newErrors.googleTagGroupIds =
+        "Sélectionnez au moins un groupe d'activité";
     }
 
     setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    return { valid: Object.keys(newErrors).length === 0, errors: newErrors };
+  };
+
+  const fieldIdsByErrorKey: Record<string, string> = {
+    googleTagGroupIds: "googleTagGroupIds",
+    startDate: "startDate",
+    startTime: "startTime",
+    endDate: "endDate",
+    endTime: "endTime",
+    duration: "duration",
+    recurringRate: "recurringRate",
   };
 
   const handleStartDateChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -172,20 +225,68 @@ const EventForm: FC<EventFormProps> = ({
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
 
+    if (!eventTitle.trim()) {
+      alert("Le nom de l'événement est obligatoire");
+      scrollToField("eventTitle");
+      return;
+    }
+
+    if (!startDate) {
+      alert("La date de début est obligatoire");
+      scrollToField("startDate");
+      return;
+    }
+
+    if (!startTime) {
+      alert("L'heure de début est obligatoire");
+      scrollToField("startTime");
+      return;
+    }
+
+    if (!endTime) {
+      alert("L'heure de fin est obligatoire");
+      scrollToField("endTime");
+      return;
+    }
+
+    if (isRecurring) {
+      if (!duration || parseInt(duration, 10) <= 0) {
+        alert("La durée doit être supérieure à 0");
+        scrollToField("duration");
+        return;
+      }
+      if (!recurringRate) {
+        alert("Veuillez sélectionner une récurrence");
+        scrollToField("recurringRate");
+        return;
+      }
+    }
+
     if (isSpecificPlace) {
       if (!placeName || !placeAddress) {
         alert("Le nom et l'adresse du lieu sont obligatoires");
+        scrollToField(!placeName ? "placeName" : "placeAddress");
         return;
       }
     } else if (!city) {
       alert("La ville est obligatoire");
+      scrollToField("city");
       return;
     }
 
-    if (!validateDatesAndTimes()) return;
+    const validation = validateDatesAndTimes();
+    if (!validation.valid) {
+      const [errorKey, message] = Object.entries(validation.errors)[0];
+      alert(message);
+      scrollToField(fieldIdsByErrorKey[errorKey] ?? errorKey);
+      return;
+    }
 
     if (requireMaxPersons && (!maxPersons || parseInt(maxPersons, 10) <= 0)) {
-      alert("Le nombre maximum de participants est obligatoire pour un événement public");
+      alert(
+        "Le nombre maximum de participants est obligatoire pour un événement public",
+      );
+      scrollToField("maxPersons");
       return;
     }
 
@@ -212,13 +313,16 @@ const EventForm: FC<EventFormProps> = ({
       duration: duration || "",
       recurringRate: recurringRate || "",
       isSpecificPlace,
-      googleTagIds: isSpecificPlace ? [] : selectedGoogleTagIds,
+      googleTagGroupIds: isSpecificPlace ? [] : selectedGoogleTagGroupIds,
+      googleTagIds: [],
     });
   };
 
   return (
-    <form onSubmit={handleSubmit} className="w-full mx-auto">
-      <h1 className="text-h1 mb-4 text-left md:w-2/3 w-full font-urbanist">{title}</h1>
+    <form noValidate onSubmit={handleSubmit} className="w-full mx-auto">
+      <h1 className="text-h1 mb-4 text-left md:w-2/3 w-full font-urbanist">
+        {title}
+      </h1>
       {subtitle && (
         <h2 className="text-h3 mb-8 text-left md:w-2/3 w-full font-poppins text-[var(--color-grey-three)]">
           {subtitle}
@@ -238,36 +342,6 @@ const EventForm: FC<EventFormProps> = ({
           </span>
         </label>
       </div>
-
-      {!isSpecificPlace && (
-        <div className="mb-6">
-          <label className="block mb-2 text-body-large font-poppins text-[var(--color-grey-three)]">
-            Thèmes
-          </label>
-          <div className="flex flex-wrap gap-2">
-            {googleTags.map((tag) => {
-              const isSelected = selectedGoogleTagIds.includes(tag.id);
-              return (
-                <button
-                  type="button"
-                  key={tag.id}
-                  onClick={() => toggleGoogleTag(tag.id)}
-                  className={`px-3 py-2 rounded border ${
-                    isSelected
-                      ? "bg-[var(--color-main)] text-white border-[var(--color-main)]"
-                      : "bg-white text-[var(--color-text)] border-[var(--color-grey-two)]"
-                  }`}
-                >
-                  {tag.displayName}
-                </button>
-              );
-            })}
-          </div>
-          {errors.googleTagIds && (
-            <p className="text-red-500 text-sm mt-1 font-poppins">{errors.googleTagIds}</p>
-          )}
-        </div>
-      )}
 
       <div className="mb-6">
         <label className="flex items-center cursor-pointer">
@@ -291,7 +365,10 @@ const EventForm: FC<EventFormProps> = ({
       </div>
 
       <div className="mb-4">
-        <label htmlFor="eventTitle" className="block mb-1 text-body-large font-poppins text-[var(--color-grey-three)]">
+        <label
+          htmlFor="eventTitle"
+          className="block mb-1 text-body-large font-poppins text-[var(--color-grey-three)]"
+        >
           Nom de l&apos;événement
         </label>
         <input
@@ -307,7 +384,10 @@ const EventForm: FC<EventFormProps> = ({
 
       <div className="flex flex-col md:flex-row gap-4 mb-4">
         <div className="flex-1">
-          <label htmlFor="startDate" className="block mb-1 text-body-large font-poppins text-[var(--color-grey-three)]">
+          <label
+            htmlFor="startDate"
+            className="block mb-1 text-body-large font-poppins text-[var(--color-grey-three)]"
+          >
             Date de début
           </label>
           <input
@@ -322,7 +402,10 @@ const EventForm: FC<EventFormProps> = ({
         </div>
         {!isRecurring ? (
           <div className="flex-1">
-            <label htmlFor="endDate" className="block mb-1 text-body-large font-poppins text-[var(--color-grey-three)]">
+            <label
+              htmlFor="endDate"
+              className="block mb-1 text-body-large font-poppins text-[var(--color-grey-three)]"
+            >
               Date de fin
             </label>
             <input
@@ -336,7 +419,10 @@ const EventForm: FC<EventFormProps> = ({
           </div>
         ) : (
           <div className="flex-1">
-            <label htmlFor="duration" className="block mb-1 text-body-large font-poppins text-[var(--color-grey-three)]">
+            <label
+              htmlFor="duration"
+              className="block mb-1 text-body-large font-poppins text-[var(--color-grey-three)]"
+            >
               Durée (en jours)
             </label>
             <input
@@ -354,7 +440,10 @@ const EventForm: FC<EventFormProps> = ({
 
       {isRecurring && (
         <div className="mb-4">
-          <label htmlFor="recurringRate" className="block mb-1 text-body-large font-poppins text-[var(--color-grey-three)]">
+          <label
+            htmlFor="recurringRate"
+            className="block mb-1 text-body-large font-poppins text-[var(--color-grey-three)]"
+          >
             Récurrence
           </label>
           <select
@@ -375,7 +464,10 @@ const EventForm: FC<EventFormProps> = ({
 
       <div className="flex flex-col md:flex-row gap-4 mb-4">
         <div className="flex-1">
-          <label htmlFor="startTime" className="block mb-1 text-body-large font-poppins text-[var(--color-grey-three)]">
+          <label
+            htmlFor="startTime"
+            className="block mb-1 text-body-large font-poppins text-[var(--color-grey-three)]"
+          >
             Heure de début
           </label>
           <select
@@ -394,7 +486,10 @@ const EventForm: FC<EventFormProps> = ({
           </select>
         </div>
         <div className="flex-1">
-          <label htmlFor="endTime" className="block mb-1 text-body-large font-poppins text-[var(--color-grey-three)]">
+          <label
+            htmlFor="endTime"
+            className="block mb-1 text-body-large font-poppins text-[var(--color-grey-three)]"
+          >
             Heure de fin
           </label>
           <select
@@ -416,7 +511,10 @@ const EventForm: FC<EventFormProps> = ({
 
       <div className="flex flex-col md:flex-row gap-4 mb-4">
         <div className="flex-1">
-          <label htmlFor="maxPersons" className="block mb-1 text-body-large font-poppins text-[var(--color-grey-three)]">
+          <label
+            htmlFor="maxPersons"
+            className="block mb-1 text-body-large font-poppins text-[var(--color-grey-three)]"
+          >
             Places maximum{requireMaxPersons ? " *" : ""}
           </label>
           <input
@@ -430,7 +528,10 @@ const EventForm: FC<EventFormProps> = ({
           />
         </div>
         <div className="flex-1">
-          <label htmlFor="costPerPerson" className="block mb-1 text-body-large font-poppins text-[var(--color-grey-three)]">
+          <label
+            htmlFor="costPerPerson"
+            className="block mb-1 text-body-large font-poppins text-[var(--color-grey-three)]"
+          >
             Coût par personne (€)
           </label>
           <input
@@ -447,7 +548,10 @@ const EventForm: FC<EventFormProps> = ({
       {isSpecificPlace ? (
         <div className="flex flex-col md:flex-row gap-4 mb-6">
           <div className="flex-1">
-            <label htmlFor="placeName" className="block mb-1 text-body-large font-poppins text-[var(--color-grey-three)]">
+            <label
+              htmlFor="placeName"
+              className="block mb-1 text-body-large font-poppins text-[var(--color-grey-three)]"
+            >
               Nom du lieu
             </label>
             <input
@@ -460,7 +564,10 @@ const EventForm: FC<EventFormProps> = ({
             />
           </div>
           <div className="flex-1">
-            <label htmlFor="placeAddress" className="block mb-1 text-body-large font-poppins text-[var(--color-grey-three)]">
+            <label
+              htmlFor="placeAddress"
+              className="block mb-1 text-body-large font-poppins text-[var(--color-grey-three)]"
+            >
               Adresse du lieu
             </label>
             <SimpleAutocomplete
@@ -472,14 +579,24 @@ const EventForm: FC<EventFormProps> = ({
         </div>
       ) : (
         <div className="flex flex-col md:flex-row gap-4 mb-6">
-          <div className="flex-1">
-            <label htmlFor="city" className="block mb-1 text-body-large font-poppins text-[var(--color-grey-three)]">
+          <div id="city" className="flex-1">
+            <label
+              htmlFor="city"
+              className="block mb-1 text-body-large font-poppins text-[var(--color-grey-three)]"
+            >
               Ville
             </label>
-            <SimpleAutocomplete value={city} onChange={setCity} placeholder="Ville" />
+            <SimpleAutocomplete
+              value={city}
+              onChange={setCity}
+              placeholder="Ville"
+            />
           </div>
           <div className="flex-1">
-            <label htmlFor="maxDistance" className="block mb-1 text-body-large font-poppins text-[var(--color-grey-three)]">
+            <label
+              htmlFor="maxDistance"
+              className="block mb-1 text-body-large font-poppins text-[var(--color-grey-three)]"
+            >
               Distance max (km)
             </label>
             <input
@@ -495,11 +612,30 @@ const EventForm: FC<EventFormProps> = ({
         </div>
       )}
 
+      {!isSpecificPlace && (
+        <div id="googleTagGroupIds" className="mb-6">
+          <label className="block mb-2 text-body-large font-poppins text-[var(--color-grey-three)]">
+            Groupes d&apos;activité *
+          </label>
+          <PrincipalGroupPicker
+            groups={principalGroups}
+            selectedIds={selectedGoogleTagGroupIds}
+            onToggle={toggleGoogleTagGroup}
+          />
+          {errors.googleTagGroupIds && (
+            <p className="text-red-500 text-sm mt-1 font-poppins">
+              {errors.googleTagGroupIds}
+            </p>
+          )}
+        </div>
+      )}
+
       <div className="md:w-1/5 w-full mb-8">
         <MainButton
           color="bg-[var(--color-text)] font-poppins text-body-large"
-          text={buttonText}
+          text={isSubmitting ? "Création..." : buttonText}
           type="submit"
+          disabled={isSubmitting}
         />
       </div>
     </form>

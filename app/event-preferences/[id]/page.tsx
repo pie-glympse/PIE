@@ -1,18 +1,36 @@
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useUser } from "@/context/UserContext";
 import BackArrow from "@/components/ui/BackArrow";
 import MainButton from "@/components/ui/MainButton";
+import SubGroupPicker, {
+    buildSubGroupSectionsFromEventGroups,
+} from "@/components/event/ThemeGroupPicker";
 
-type EventTheme = { id: string; displayName?: string | null; techName: string };
+type EventSubGroup = {
+  id: string;
+  name: string;
+  sortOrder?: number;
+};
+
+type EventGroup = {
+  id: string;
+  name: string;
+  sortOrder?: number;
+  subGroups: EventSubGroup[];
+};
+
 type EventData = {
   id: string;
   title: string;
   state?: string;
   isSpecificPlace?: boolean;
-  selectedGoogleTags: EventTheme[];
+  isParticipant?: boolean;
+  isCreator?: boolean;
+  isPublic?: boolean;
+  selectedGoogleTagGroups: EventGroup[];
 };
 
 export default function EventPreferencesPage() {
@@ -24,9 +42,11 @@ export default function EventPreferencesPage() {
   const [eventData, setEventData] = useState<EventData | null>(null);
   const [loadingEvent, setLoadingEvent] = useState(true);
   const [step, setStep] = useState(1);
-  const [selectedGoogleTagIds, setSelectedGoogleTagIds] = useState<string[]>([]);
+  const [selectedGoogleTagSubGroupIds, setSelectedGoogleTagSubGroupIds] =
+    useState<string[]>([]);
   const [preferredDate, setPreferredDate] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [accessDenied, setAccessDenied] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isLoading && !user) router.push("/login");
@@ -34,30 +54,63 @@ export default function EventPreferencesPage() {
 
   useEffect(() => {
     const fetchEvent = async () => {
-      if (!eventId) return;
+      if (!eventId || !user?.id) return;
       setLoadingEvent(true);
+      setAccessDenied(null);
       try {
-        const response = await fetch(`/api/events/${eventId}`);
+        const response = await fetch(
+          `/api/events/${eventId}?userId=${encodeURIComponent(user.id)}`,
+        );
         if (!response.ok) return;
         const data = await response.json();
         const event = data.event || data;
+
+        const canAccess =
+          event.isCreator ||
+          event.isParticipant ||
+          event.users?.some(
+            (participant: { id: string }) =>
+              String(participant.id) === String(user.id),
+          );
+
+        if (!canAccess) {
+          setAccessDenied(
+            event.isPublic
+              ? "Rejoignez l'événement avec « Participer » avant de voter vos préférences."
+              : "Acceptez l'invitation à l'événement avant de voter vos préférences.",
+          );
+          setEventData(null);
+          return;
+        }
+
         setEventData(event);
       } finally {
         setLoadingEvent(false);
       }
     };
     fetchEvent();
-  }, [eventId]);
+  }, [eventId, user?.id]);
 
-  const toggleTheme = (id: string) => {
-    setSelectedGoogleTagIds((prev) =>
+  const subGroupSections = useMemo(
+    () =>
+      eventData?.selectedGoogleTagGroups
+        ? buildSubGroupSectionsFromEventGroups(
+            eventData.selectedGoogleTagGroups,
+          )
+        : [],
+    [eventData?.selectedGoogleTagGroups],
+  );
+
+  const toggleSubGroup = (id: string) => {
+    setSelectedGoogleTagSubGroupIds((prev) =>
       prev.includes(id) ? prev.filter((value) => value !== id) : [...prev, id],
     );
   };
 
   const submit = async () => {
     if (!user || !eventData) return;
-    if (!eventData.isSpecificPlace && selectedGoogleTagIds.length === 0) return;
+    if (!eventData.isSpecificPlace && selectedGoogleTagSubGroupIds.length === 0)
+      return;
     if (!preferredDate) return;
 
     setIsSubmitting(true);
@@ -67,7 +120,7 @@ export default function EventPreferencesPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           userId: user.id,
-          selectedGoogleTagIds,
+          selectedGoogleTagSubGroupIds,
           preferredDate,
         }),
       });
@@ -75,7 +128,8 @@ export default function EventPreferencesPage() {
         const error = await response.json();
         throw new Error(error?.message || "Erreur envoi préférences");
       }
-      router.push(`/events/${eventId}`);
+      window.dispatchEvent(new Event("preferencesUpdated"));
+      router.push("/home");
     } catch (error) {
       alert(error instanceof Error ? error.message : "Erreur inconnue");
     } finally {
@@ -90,20 +144,37 @@ export default function EventPreferencesPage() {
       </div>
     );
   }
-  if (!user || !eventData) return null;
+  if (!user || !eventData) {
+    if (accessDenied) {
+      return (
+        <section className="h-screen overflow-y-auto pt-24 p-10 flex flex-col gap-8">
+          <div className="h-full w-full flex flex-col gap-6 items-start p-10">
+            <BackArrow onClick={() => router.back()} />
+            <p className="text-body-large font-poppins text-[var(--color-grey-three)]">
+              {accessDenied}
+            </p>
+          </div>
+        </section>
+      );
+    }
+    return null;
+  }
 
   const showThemeStep = !eventData.isSpecificPlace;
   const maxStep = showThemeStep ? 2 : 1;
-  const canContinue = step === 1
-    ? showThemeStep
-      ? selectedGoogleTagIds.length > 0
-      : preferredDate.length > 0
-    : preferredDate.length > 0;
+  const canContinue =
+    step === 1
+      ? showThemeStep
+        ? selectedGoogleTagSubGroupIds.length > 0
+        : preferredDate.length > 0
+      : preferredDate.length > 0;
 
   return (
     <section className="h-screen overflow-y-auto pt-24 p-10 flex flex-col gap-8">
       <div className="h-full w-full flex flex-col gap-6 items-start p-10">
-        <BackArrow onClick={() => (step > 1 ? setStep(step - 1) : router.back())} />
+        <BackArrow
+          onClick={() => (step > 1 ? setStep(step - 1) : router.back())}
+        />
 
         <div className="w-full">
           <h1 className="text-h1 mb-4 text-left w-full font-urbanist">
@@ -112,24 +183,13 @@ export default function EventPreferencesPage() {
           {step === 1 && showThemeStep ? (
             <>
               <p className="text-h3 mb-4 font-poppins text-[var(--color-grey-three)]">
-                Choisissez les thèmes que vous préférez
+                Choisissez les sous-groupes que vous préférez
               </p>
-              <div className="flex flex-wrap gap-2">
-                {eventData.selectedGoogleTags.map((tag) => (
-                  <button
-                    type="button"
-                    key={tag.id}
-                    onClick={() => toggleTheme(tag.id)}
-                    className={`px-3 py-2 rounded border ${
-                      selectedGoogleTagIds.includes(tag.id)
-                        ? "bg-[var(--color-main)] text-white border-[var(--color-main)]"
-                        : "bg-white border-[var(--color-grey-two)] text-[var(--color-text)]"
-                    }`}
-                  >
-                    {tag.displayName || tag.techName}
-                  </button>
-                ))}
-              </div>
+              <SubGroupPicker
+                sections={subGroupSections}
+                selectedIds={selectedGoogleTagSubGroupIds}
+                onToggle={toggleSubGroup}
+              />
             </>
           ) : (
             <>

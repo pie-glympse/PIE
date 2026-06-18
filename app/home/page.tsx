@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { Suspense, useState, useEffect, useCallback, useMemo } from "react";
 import { useUser } from "../../context/UserContext";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import dynamic from "next/dynamic";
@@ -16,6 +16,7 @@ import {
     getEventIllustration,
     formatEventCreatedAt,
 } from "@/lib/event-display";
+import { canShowEventPreferencesVote } from "@/lib/event-public";
 
 const GCalendar = dynamic(() => import("@/components/Gcalendar"), {
   ssr: false,
@@ -28,36 +29,54 @@ const Gcard = dynamic(() => import("@/components/Gcard"), {
   ssr: false,
 });
 
+function EventActionsColumn() {
+  return (
+    <div className="flex flex-col gap-2 w-full md:flex-1 md:min-w-0 h-60">
+      <Link
+        href="/events"
+        className="flex-1 flex items-center justify-center rounded-xl bg-[var(--color-tertiary)] text-white font-poppins text-body-small font-medium shadow-md hover:opacity-90 transition"
+      >
+        Tous les événements
+      </Link>
+      <Link
+        href="/create-event"
+        className="flex-1 flex items-center justify-center rounded-xl bg-[var(--color-main)] text-[var(--color-text)] font-poppins text-body-small font-medium shadow-md hover:opacity-90 transition"
+      >
+        Créer un événement
+      </Link>
+    </div>
+  );
+}
+
 function EventsSectionFallback() {
   return (
     <>
       <h2 className="text-xl font-bold text-gray-800 mb-4">
         Évènements à venir
       </h2>
-      <div className="flex flex-col md:flex-row gap-4 md:overflow-x-auto md:pb-2">
+      <div className="flex flex-col md:flex-row gap-4 md:pb-2 w-full">
         <GcardSkeleton className="w-full md:w-100 h-60 md:flex-shrink-0" />
         <GcardSkeleton className="w-full md:w-100 h-60 md:flex-shrink-0" />
         <GcardSkeleton className="w-full md:w-100 h-60 md:flex-shrink-0" />
-        <Link
-          href="/create-event"
-          aria-label="Ajouter un évènement"
-          className="w-full md:w-20 h-60 md:flex-shrink-0 flex items-center justify-center relative bg-white hover:bg-gray-50 transition group rounded-xl border border-dashed border-gray-300"
-        >
-          <span className="text-6xl text-gray-300 font-light">+</span>
-        </Link>
-      </div>
-      <div className="flex justify-end mt-4">
-        <span className="text-body-large font-poppins text-black underline">
-          Tout voir →
-        </span>
+        <EventActionsColumn />
       </div>
     </>
   );
 }
 
 export default function HomePage() {
+  return (
+    <Suspense fallback={<EventsSectionFallback />}>
+      <HomePageContent />
+    </Suspense>
+  );
+}
+
+function HomePageContent() {
   const { user, isLoading } = useUser();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const newEventId = searchParams.get("newEvent");
   const { showPointsToast } = useToast();
   const { userEventPreferences } = useEventPreferences(user?.id);
   const [refreshEventsKey, setRefreshEventsKey] = useState(0);
@@ -126,6 +145,22 @@ export default function HomePage() {
       window.removeEventListener("eventsUpdated", refreshEvents);
     };
   }, [refreshEvents]);
+
+  useEffect(() => {
+    if (!newEventId) return;
+    const scrollTimer = window.setTimeout(() => {
+      document
+        .getElementById(`event-card-${newEventId}`)
+        ?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 400);
+    const cleanTimer = window.setTimeout(() => {
+      router.replace("/home", { scroll: false });
+    }, 4000);
+    return () => {
+      window.clearTimeout(scrollTimer);
+      window.clearTimeout(cleanTimer);
+    };
+  }, [newEventId, router]);
 
   const adaptEventForGcard = useCallback((event: EventType, index: number) => {
     return {
@@ -361,7 +396,7 @@ export default function HomePage() {
                   {error && (
                     <p className="text-red-600 font-semibold mb-4">{error}</p>
                   )}
-                  <div className="flex flex-col md:flex-row gap-4 md:overflow-x-auto md:pb-2">
+                  <div className="flex flex-col md:flex-row gap-4 md:pb-2 w-full">
                     {events.length === 0 && !error && (
                       <p className="text-gray-500">Aucun événement trouvé.</p>
                     )}
@@ -375,101 +410,72 @@ export default function HomePage() {
                           (u) => String(u.id) === String(user?.id),
                         ) ?? false;
                       const canLeave = !isCreator && isParticipant;
+                      const userIsParticipant =
+                        (event.isParticipant ?? isParticipant) || isCreator;
 
                       return (
-                        <Gcard
-                          key={event.id}
-                          eventId={event.id}
-                          {...adaptEventForGcard(event, index)}
-                          className="w-full md:w-100 h-60 md:flex-shrink-0"
-                          dropdownOpen={dropdownEvent === event.id}
-                          onDropdownToggle={() =>
-                            setDropdownEvent(
-                              dropdownEvent === event.id ? null : event.id,
-                            )
-                          }
-                          isAuthorized={isAuthorized}
-                          onShare={() => handleShare(event.id, event.title)}
-                          onPreferences={() => handleFillPreferences(event)}
-                          onDelete={() =>
-                            openDeleteModal(event.id, event.title)
-                          }
-                          onCopy={() => handleCopyEvent(event)}
-                          onEdit={
-                            isCreator
-                              ? () => handleEditEvent(event.id)
-                              : undefined
-                          }
-                          canLeave={canLeave}
-                          onLeave={
-                            canLeave ? () => openLeaveModal(event) : undefined
-                          }
-                          isCreator={isCreator}
-                          showPreferencesButton={
-                            !isCreator &&
-                            !userEventPreferences.has(event.id) &&
-                            event.state?.toLowerCase() !== "confirmed"
-                          }
-                          isPublic={event.isPublic}
-                          participantCount={
-                            event.participantCount ?? event.users?.length ?? 0
-                          }
-                          maxParticipants={
-                            event.maxParticipants ??
-                            (event.maxPersons ? Number(event.maxPersons) : null)
-                          }
-                          isParticipant={
-                            (event.isParticipant ?? isParticipant) || isCreator
-                          }
-                          isFull={event.isFull}
-                          joinLoading={joiningEventId === event.id}
-                          hideParticipateButton={isCreator}
-                          onParticipate={
-                            event.isPublic && !isCreator
-                              ? () => handleParticipate(event)
-                              : undefined
-                          }
-                        />
+                        <div key={event.id} id={`event-card-${event.id}`}>
+                          <Gcard
+                            eventId={event.id}
+                            {...adaptEventForGcard(event, index)}
+                            className="w-full md:w-100 h-60 md:flex-shrink-0"
+                            dropdownOpen={dropdownEvent === event.id}
+                            onDropdownToggle={() =>
+                              setDropdownEvent(
+                                dropdownEvent === event.id ? null : event.id,
+                              )
+                            }
+                            isAuthorized={isAuthorized}
+                            onShare={() => handleShare(event.id, event.title)}
+                            onPreferences={() => handleFillPreferences(event)}
+                            onDelete={() =>
+                              openDeleteModal(event.id, event.title)
+                            }
+                            onCopy={() => handleCopyEvent(event)}
+                            onEdit={
+                              isCreator
+                                ? () => handleEditEvent(event.id)
+                                : undefined
+                            }
+                            canLeave={canLeave}
+                            onLeave={
+                              canLeave ? () => openLeaveModal(event) : undefined
+                            }
+                            isCreator={isCreator}
+                            showPreferencesButton={canShowEventPreferencesVote({
+                              isParticipant: userIsParticipant,
+                              isCreator,
+                              hasPreferences: userEventPreferences.has(
+                                event.id,
+                              ),
+                              state: event.state,
+                            })}
+                            isNew={newEventId === event.id}
+                            isPublic={event.isPublic}
+                            participantCount={
+                              event.participantCount ?? event.users?.length ?? 0
+                            }
+                            maxParticipants={
+                              event.maxParticipants ??
+                              (event.maxPersons
+                                ? Number(event.maxPersons)
+                                : null)
+                            }
+                            isParticipant={userIsParticipant}
+                            isFull={event.isFull}
+                            joinLoading={joiningEventId === event.id}
+                            hideParticipateButton={isCreator}
+                            onParticipate={
+                              event.isPublic && !isCreator
+                                ? () => handleParticipate(event)
+                                : undefined
+                            }
+                          />
+                        </div>
                       );
                     })}
 
-                    {/* Bouton Ajouter */}
-                    <Link
-                      href="/create-event"
-                      aria-label="Ajouter un évènement"
-                      className="w-full md:w-20 h-60 md:flex-shrink-0 flex items-center justify-center relative bg-white hover:bg-gray-50 transition group rounded-xl"
-                    >
-                      <svg
-                        className="absolute inset-0 w-full h-full"
-                        xmlns="http://www.w3.org/2000/svg"
-                        viewBox="0 0 100 240"
-                        preserveAspectRatio="none"
-                      >
-                        <rect
-                          x="2"
-                          y="2"
-                          width="96"
-                          height="236"
-                          rx="12"
-                          fill="none"
-                          stroke="#FCC638"
-                          strokeWidth="2"
-                          strokeDasharray="12 8"
-                        />
-                      </svg>
-                      <span className="relative z-10 text-6xl text-yellow-400 font-light">
-                        +
-                      </span>
-                    </Link>
-                  </div>
-
-                  <div className="flex justify-end mt-4">
-                    <Link
-                      href="/events"
-                      className="text-body-large font-poppins text-black underline"
-                    >
-                      Tout voir →
-                    </Link>
+                    <EventActionsColumn />
                   </div>
                 </>
               )}

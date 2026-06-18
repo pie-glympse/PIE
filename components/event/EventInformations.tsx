@@ -44,6 +44,10 @@ interface EventInformationsProps {
       techName: string;
       displayName?: string | null;
     } | null;
+    confirmedGoogleTagSubGroup?: {
+      id: string;
+      name: string;
+    } | null;
     maxDistance?: number;
     users?: {
       id: string;
@@ -291,6 +295,7 @@ const EventInformations = ({ event }: EventInformationsProps) => {
 
       {/* Section Recommandations d'activités */}
       <NearbyActivities
+        key={`${event.state}-${event.confirmedGoogleTag?.id ?? "none"}-${event.confirmedGoogleTagSubGroup?.id ?? "none"}`}
         city={event.city}
         maxDistance={event.maxDistance || 5}
         eventId={event.id}

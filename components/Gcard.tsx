@@ -42,6 +42,7 @@ interface EventCardProps {
   joinLoading?: boolean;
   onParticipate?: () => void;
   hideParticipateButton?: boolean;
+  isNew?: boolean;
 }
 
 export default function EventCard({
@@ -72,6 +73,7 @@ export default function EventCard({
   joinLoading = false,
   onParticipate,
   hideParticipateButton = false,
+  isNew = false,
 }: EventCardProps) {
   const router = useRouter();
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -97,7 +99,9 @@ export default function EventCard({
   }, [dropdownOpen, onDropdownToggle]);
 
   const needsVote =
-    showPreferencesButton && state?.toLowerCase() !== "confirmed";
+    (isParticipant || isCreator) &&
+    showPreferencesButton &&
+    state?.toLowerCase() !== "confirmed";
 
   const handleCardClick = () => {
     if (needsVote) {
@@ -133,9 +137,11 @@ export default function EventCard({
 
   return (
     <div
-      className={`group relative rounded-xl border border-gray-200 bg-white p-6 transition-shadow duration-200 overflow-hidden ${
-        needsVote ? "cursor-default" : "cursor-pointer hover:shadow-lg"
-      } ${className}`}
+      className={`group relative rounded-xl border bg-white p-6 transition-all duration-300 overflow-hidden ${
+        needsVote
+          ? "cursor-pointer border-[var(--color-secondary)] event-card-needs-vote"
+          : "cursor-pointer border-gray-200 hover:shadow-lg"
+      } ${isNew ? "event-card-spawn" : ""} ${className}`}
       onClick={handleCardClick}
     >
       {needsVote && (
@@ -151,8 +157,8 @@ export default function EventCard({
 
       {/* Contenu principal */}
       <div
-        className={`relative z-10 transition-opacity duration-200 ${
-          needsVote ? "group-hover:opacity-30" : ""
+        className={`relative z-10 transition-all duration-300 ${
+          needsVote ? "group-hover:opacity-25 group-hover:scale-[0.98]" : ""
         }`}
       >
         <div className="flex">
@@ -249,21 +255,31 @@ export default function EventCard({
       </div>
 
       {needsVote && (
-        <div className="absolute inset-0 z-20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
-          <button
-            type="button"
-            onClick={handlePreferencesClick}
-            className="px-6 py-3 bg-[var(--color-text)] text-white font-poppins text-body-large rounded-lg shadow-lg hover:opacity-90 transition-opacity cursor-pointer pointer-events-auto"
-          >
-            Préférences
-          </button>
-        </div>
+        <>
+          <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-2 pointer-events-none md:opacity-0 md:group-hover:opacity-100 opacity-100 transition-all duration-300">
+            <button
+              type="button"
+              onClick={handlePreferencesClick}
+              className="vote-action-button px-6 py-3 bg-[var(--color-text)] text-white font-poppins text-body-large rounded-lg shadow-lg hover:bg-[var(--color-secondary)] hover:scale-105 transition-all duration-200 cursor-pointer pointer-events-auto"
+            >
+              Voter mes préférences
+            </button>
+            <span className="text-xs font-poppins text-[var(--color-grey-three)] md:hidden">
+              Obligatoire avant de consulter l&apos;événement
+            </span>
+          </div>
+          <div className="absolute inset-x-0 bottom-3 z-20 hidden md:block opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
+            <p className="text-center text-xs font-poppins text-[var(--color-grey-three)]">
+              Cliquez pour voter vos préférences
+            </p>
+          </div>
+        </>
       )}
 
       {/* Container pour l'image d'arrière-plan avec overflow-hidden */}
       <div
-        className={`absolute inset-0 overflow-hidden rounded-xl pointer-events-none transition-opacity duration-200 ${
-          needsVote ? "group-hover:opacity-30" : ""
+        className={`absolute inset-0 overflow-hidden rounded-xl pointer-events-none transition-all duration-300 ${
+          needsVote ? "group-hover:opacity-20 group-hover:scale-105" : ""
         }`}
         style={{ zIndex: 1 }}
       >

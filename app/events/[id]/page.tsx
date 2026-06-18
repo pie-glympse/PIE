@@ -36,10 +36,19 @@ type EventDetails = {
     techName: string;
     displayName?: string | null;
   }[];
+  selectedGoogleTagGroups?: {
+    id: string;
+    name: string;
+    subGroups?: { id: string; name: string }[];
+  }[];
   confirmedGoogleTag?: {
     id: string;
     techName: string;
     displayName?: string | null;
+  } | null;
+  confirmedGoogleTagSubGroup?: {
+    id: string;
+    name: string;
   } | null;
   users: {
     id: string;
@@ -91,6 +100,11 @@ export default function SingleEventPage() {
   // État pour la modal de suppression
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [votingStatus, setVotingStatus] = useState<{
+    participantCount: number;
+    votedCount: number;
+    allVoted: boolean;
+  } | null>(null);
   const { joinEvent, joiningEventId } = useJoinPublicEvent();
   const documentsRef = useRef<EventDocumentsHandle>(null);
 
@@ -140,6 +154,32 @@ export default function SingleEventPage() {
     }
   }, [id, user?.id]);
 
+  const fetchVotingStatus = async (eventId: string) => {
+    try {
+      const response = await fetch(
+        `/api/events/${eventId}/voting-status?_ts=${Date.now()}`,
+      );
+      if (!response.ok) return;
+      const data = await response.json();
+      setVotingStatus(data);
+    } catch (err) {
+      console.error("Erreur voting-status:", err);
+    }
+  };
+
+  useEffect(() => {
+    if (!event?.id) return;
+    void fetchVotingStatus(event.id);
+
+    const onPreferencesUpdated = () => {
+      void fetchVotingStatus(event.id);
+    };
+    window.addEventListener("preferencesUpdated", onPreferencesUpdated);
+    return () => {
+      window.removeEventListener("preferencesUpdated", onPreferencesUpdated);
+    };
+  }, [event?.id]);
+
   useEffect(() => {
     if (loading || !event || !user) return;
 
@@ -151,7 +191,7 @@ export default function SingleEventPage() {
       (p) => String(p.id) === String(user.id),
     );
 
-    if (isCreator || isConfirmed || !isParticipant) return;
+    if (isConfirmed || !isParticipant) return;
 
     const checkPreferences = async () => {
       try {
@@ -332,6 +372,13 @@ export default function SingleEventPage() {
   const handleChangeEventState = async (newState: string) => {
     if (!event) return;
 
+    if (newState === "confirmed" && votingStatus && !votingStatus.allVoted) {
+      alert(
+        `Tous les participants doivent voter avant de confirmer (${votingStatus.votedCount}/${votingStatus.participantCount} ont répondu).`,
+      );
+      return;
+    }
+
     try {
       const response = await fetch(`/api/events/${event.id}/state`, {
         method: "PATCH",
@@ -344,7 +391,6 @@ export default function SingleEventPage() {
       if (response.ok) {
         const updatedEvent = await response.json();
 
-        // ✅ Mise à jour complète de l'événement sans rechargement
         setEvent((prev) =>
           prev
             ? {
@@ -356,17 +402,27 @@ export default function SingleEventPage() {
                 startTime: updatedEvent.startTime || prev.startTime,
                 endTime: updatedEvent.endTime || prev.endTime,
                 confirmedGoogleTag:
-                  updatedEvent.confirmedGoogleTag || prev.confirmedGoogleTag,
+                  updatedEvent.confirmedGoogleTag ?? prev.confirmedGoogleTag,
+                confirmedGoogleTagSubGroup:
+                  updatedEvent.confirmedGoogleTagSubGroup ??
+                  prev.confirmedGoogleTagSubGroup,
               }
             : null,
         );
 
         setIsStateDropdownOpen(false);
+        window.dispatchEvent(new Event("eventsUpdated"));
 
-        // ✅ Si confirmé, recharger les données complètes pour s'assurer d'avoir tout
         if (newState === "confirmed") {
+          setActiveTab("informations");
           try {
-            const refreshResponse = await fetch(`/api/events/${event.id}`);
+            const userQuery = user?.id
+              ? `?userId=${encodeURIComponent(user.id)}&_ts=${Date.now()}`
+              : `?_ts=${Date.now()}`;
+            const refreshResponse = await fetch(
+              `/api/events/${event.id}${userQuery}`,
+              { cache: "no-store" },
+            );
             if (refreshResponse.ok) {
               const refreshedData = await refreshResponse.json();
               setEvent(refreshedData.event || refreshedData);
@@ -477,10 +533,11 @@ export default function SingleEventPage() {
 
   const organizer = event.createdBy || event.users?.[0];
   // Comparer les IDs en tant que strings pour éviter les problèmes de type
-  const isCreator =
+  const isCreator = !!(
     user &&
-    event.createdBy?.id &&
-    String(event.createdBy.id) === String(user.id);
+    (event.isCreator ||
+      (event.createdBy?.id && String(event.createdBy.id) === String(user.id)))
+  );
   const isParticipant =
     user && event.users?.some((p) => String(p.id) === String(user.id));
   const canLeaveEvent = !isCreator && isParticipant;
@@ -520,6 +577,18 @@ export default function SingleEventPage() {
               </div>
             )}
 
+            {event.state?.toLowerCase() !== "confirmed" &&
+              votingStatus &&
+              canChangeState && (
+                <p className="mt-3 text-body-small font-poppins text-[var(--color-grey-three)]">
+                  Préférences : {votingStatus.votedCount}/
+                  {votingStatus.participantCount} participant
+                  {votingStatus.participantCount > 1 ? "s" : ""} ont voté
+                  {!votingStatus.allVoted &&
+                    " — confirmez une fois que tout le monde a répondu"}
+                </p>
+              )}
+
             {/* ✅ Afficher les résultats des votes si l'événement est confirmé */}
             {event.state?.toLowerCase() === "confirmed" && (
               <div className="mt-6 p-6 rounded-lg shadow-sm">
@@ -546,7 +615,8 @@ export default function SingleEventPage() {
                       Événement finalisé avec succès !
                     </h3>
                     <div className="space-y-3">
-                      {event.confirmedGoogleTag && (
+                      {(event.confirmedGoogleTagSubGroup ||
+                        event.confirmedGoogleTag) && (
                         <div className="flex items-center gap-3">
                           <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                           <div>
@@ -554,8 +624,9 @@ export default function SingleEventPage() {
                               Préférence choisie :
                             </span>
                             <span className="ml-2 text-body-large font-poppins text-green-700 font-semibold">
-                              {event.confirmedGoogleTag.displayName ||
-                                event.confirmedGoogleTag.techName}
+                              {event.confirmedGoogleTagSubGroup?.name ||
+                                event.confirmedGoogleTag?.displayName ||
+                                event.confirmedGoogleTag?.techName}
                             </span>
                           </div>
                         </div>
@@ -682,40 +753,56 @@ export default function SingleEventPage() {
 
                   {/* Dropdown des états - sorti du bouton pour éviter l'imbrication */}
                   {isStateDropdownOpen && (
-                    <div className="absolute top-full mt-2 right-0 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50 min-w-48">
-                      {availableStates.map((stateOption) => (
-                        <button
-                          key={stateOption.value}
-                          onClick={() =>
-                            handleChangeEventState(stateOption.value)
-                          }
-                          className={`w-full flex items-center gap-3 px-4 py-2 text-left hover:bg-gray-50 transition-colors ${
-                            event.state?.toLowerCase() === stateOption.value
-                              ? "bg-gray-100"
-                              : ""
-                          }`}
-                        >
-                          <div
-                            className={`w-3 h-3 rounded-full ${stateOption.color}`}
-                          ></div>
-                          <span className="text-gray-700">
-                            {stateOption.label}
-                          </span>
-                          {event.state?.toLowerCase() === stateOption.value && (
-                            <svg
-                              className="w-4 h-4 text-green-600 ml-auto"
-                              fill="currentColor"
-                              viewBox="0 0 20 20"
-                            >
-                              <path
-                                fillRule="evenodd"
-                                d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                                clipRule="evenodd"
-                              />
-                            </svg>
-                          )}
-                        </button>
-                      ))}
+                    <div className="absolute top-full mt-2 right-0 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50 min-w-56">
+                      {availableStates.map((stateOption) => {
+                        const isCurrentState =
+                          event.state?.toLowerCase() === stateOption.value;
+                        const isConfirmDisabled =
+                          stateOption.value === "confirmed" &&
+                          votingStatus !== null &&
+                          !votingStatus.allVoted;
+
+                        return (
+                          <button
+                            key={stateOption.value}
+                            type="button"
+                            disabled={isConfirmDisabled}
+                            onClick={() =>
+                              handleChangeEventState(stateOption.value)
+                            }
+                            title={
+                              isConfirmDisabled
+                                ? `En attente des votes (${votingStatus?.votedCount}/${votingStatus?.participantCount})`
+                                : undefined
+                            }
+                            className={`w-full flex items-center gap-3 px-4 py-2 text-left transition-colors ${
+                              isConfirmDisabled
+                                ? "opacity-40 cursor-not-allowed"
+                                : "hover:bg-gray-50 cursor-pointer"
+                            } ${isCurrentState ? "bg-gray-100" : ""}`}
+                          >
+                            <div
+                              className={`w-3 h-3 rounded-full ${stateOption.color}`}
+                            ></div>
+                            <span className="text-gray-700">
+                              {stateOption.label}
+                            </span>
+                            {isCurrentState && (
+                              <svg
+                                className="w-4 h-4 text-green-600 ml-auto"
+                                fill="currentColor"
+                                viewBox="0 0 20 20"
+                              >
+                                <path
+                                  fillRule="evenodd"
+                                  d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                  clipRule="evenodd"
+                                />
+                              </svg>
+                            )}
+                          </button>
+                        );
+                      })}
                     </div>
                   )}
                 </div>

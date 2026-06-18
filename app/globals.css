@@ -19,21 +19,21 @@
   --font-weight-body-large: 500;
   --font-weight-body-small: 500;
 
-  --color-main: #FCC638;
-  --color-main-text: #B8941F;
-  --color-secondary: #FF5B5B;
-  --color-tertiary: #F78AFF;
-  --color-validate: #2B983F;
-  --color-grey-one: #F4F4F4;
-  --color-grey-two: #EAEAEF;
-  --color-grey-three: #707070; 
-  --color-grey-four: #707070; 
+  --color-main: #fcc638;
+  --color-main-text: #b8941f;
+  --color-secondary: #ff5b5b;
+  --color-tertiary: #f78aff;
+  --color-validate: #2b983f;
+  --color-grey-one: #f4f4f4;
+  --color-grey-two: #eaeaef;
+  --color-grey-three: #707070;
+  --color-grey-four: #707070;
   --color-text: #191919;
-  
-  --color-calendar-green: #57B454;
-    --color-calendar-green-hover: #4b9948;
-    --color-calendar-grey: #686868;
-    --color-calendar-grey-hover: #414141;
+
+  --color-calendar-green: #57b454;
+  --color-calendar-green-hover: #4b9948;
+  --color-calendar-grey: #686868;
+  --color-calendar-grey-hover: #414141;
   --background: #ffffff;
   --foreground: #171717;
   --color-background: var(--background);
@@ -91,18 +91,18 @@ body {
 }
 
 .custom-scroll::-webkit-scrollbar {
-  width: 6px;     /* Épaisseur verticale */
-  height: 6px;    /* Épaisseur horizontale */
+  width: 6px; /* Épaisseur verticale */
+  height: 6px; /* Épaisseur horizontale */
 }
 
-.custom-scroll::-webkit-scrollbar-track { 
-  background: transparent; 
+.custom-scroll::-webkit-scrollbar-track {
+  background: transparent;
 }
 
 .custom-scroll::-webkit-scrollbar-thumb {
   background-color: #cbd5e1; /* slate-300, plus clair */
-  border-radius: 9999px;     /* Arrondi maximal */
-  border: none;              /* Supprime l’espace intérieur */
+  border-radius: 9999px; /* Arrondi maximal */
+  border: none; /* Supprime l’espace intérieur */
 }
 
 .custom-scroll:hover::-webkit-scrollbar-thumb {
@@ -132,13 +132,14 @@ body {
   background-color: #e6b330;
 }
 .bg-red {
-  background-color: #FF5B5B;
+  background-color: #ff5b5b;
 }
 
 /* Changer la couleur des icônes de calendrier et horloge dans les inputs date et time */
 input[type="date"]::-webkit-calendar-picker-indicator,
 input[type="time"]::-webkit-calendar-picker-indicator {
-  filter: invert(67%) sepia(0%) saturate(0%) hue-rotate(180deg) brightness(93%) contrast(86%);
+  filter: invert(67%) sepia(0%) saturate(0%) hue-rotate(180deg) brightness(93%)
+    contrast(86%);
   cursor: pointer;
 }
 
@@ -161,4 +162,57 @@ input[type="checkbox"]:focus:checked {
 
 input[type="checkbox"]:focus {
   --tw-ring-color: var(--color-secondary) !important;
+}
+
+@keyframes event-card-spawn {
+  0% {
+    opacity: 0;
+    transform: scale(0.88) translateY(20px);
+  }
+  55% {
+    transform: scale(1.03) translateY(-6px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.event-card-spawn {
+  animation: event-card-spawn 0.75s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+@keyframes vote-ring-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 91, 91, 0.45);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(255, 91, 91, 0);
+  }
+}
+
+.event-card-needs-vote {
+  animation: vote-ring-pulse 2s ease-in-out infinite;
+}
+
+@keyframes vote-button-pop {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.04);
+  }
+}
+
+.event-card-needs-vote .vote-action-button {
+  animation: vote-button-pop 1.6s ease-in-out infinite;
+}
+
+@media (hover: hover) {
+  .event-card-needs-vote:hover .vote-action-button {
+    animation: none;
+    transform: scale(1.06);
+  }
 }

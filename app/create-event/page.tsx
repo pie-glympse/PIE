@@ -1,19 +1,16 @@
 "use client";
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
-import dynamic from "next/dynamic";
 import MainButton from "@/components/ui/MainButton";
 import BackArrow from "../../components/ui/BackArrow";
 import EventForm from "@/components/forms/EventForm";
 import { UserSelectionStep } from "@/components/forms/UserSelectionStep";
 import {
-  EventVisibilityStep,
-  type EventVisibility,
+    EventVisibilityStep,
+    type EventVisibility,
 } from "@/components/forms/EventVisibilityStep";
 import { useUser } from "@/context/UserContext";
 import { useToast } from "@/context/ToastContext";
-
-const Modal = dynamic(() => import("@/components/layout/Modal"), { ssr: false });
 
 const CreateEventPage = () => {
   const router = useRouter();
@@ -21,7 +18,6 @@ const CreateEventPage = () => {
   const { showPointsToast } = useToast();
   const [currentStep, setCurrentStep] = useState(1);
   const [visibility, setVisibility] = useState<EventVisibility>("public");
-  const [isModalOpen, setIsModalOpen] = useState(false);
 
   type EventFormData = {
     title: string;
@@ -39,12 +35,12 @@ const CreateEventPage = () => {
     duration: string;
     recurringRate: string;
     isSpecificPlace: boolean;
+    googleTagGroupIds: string[];
     googleTagIds: string[];
   };
 
   const [formData, setFormData] = useState<EventFormData | null>(null);
   const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
-  const [createdEventId, setCreatedEventId] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const isPublic = visibility === "public";
@@ -74,7 +70,9 @@ const CreateEventPage = () => {
       const eventData = {
         ...payload,
         maxPersons: payload.maxPersons ? Number(payload.maxPersons) : null,
-        costPerPerson: payload.costPerPerson ? Number(payload.costPerPerson) : null,
+        costPerPerson: payload.costPerPerson
+          ? Number(payload.costPerPerson)
+          : null,
         maxDistance: payload.maxDistance ? Number(payload.maxDistance) : null,
         duration: payload.duration ? Number(payload.duration) : null,
         recurringRate: payload.recurringRate || null,
@@ -92,14 +90,15 @@ const CreateEventPage = () => {
 
       if (response.ok) {
         const createdEvent = await response.json();
-        setCreatedEventId(createdEvent.id);
-        setIsModalOpen(true);
         window.dispatchEvent(new Event("eventsUpdated"));
         showPointsToast(30, "avoir créé un événement");
+        router.push(`/home?newEvent=${createdEvent.id}`);
       } else {
         const error = await response.json();
         alert(error?.error || "Erreur lors de la création de l'événement");
       }
+    } catch {
+      alert("Erreur réseau lors de la création de l'événement");
     } finally {
       setIsSubmitting(false);
     }
@@ -108,7 +107,11 @@ const CreateEventPage = () => {
   const canContinuePrivateInvite = () => selectedUserIds.length > 0;
 
   if (isLoading) {
-    return <div className="flex items-center justify-center min-h-screen">Chargement...</div>;
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        Chargement...
+      </div>
+    );
   }
   if (!user) return null;
 
@@ -124,24 +127,26 @@ const CreateEventPage = () => {
           />
 
           <div className="flex items-center gap-4 mb-4">
-            {Array.from({ length: totalSteps }, (_, i) => i + 1).map((step, index) => (
-              <div key={step}>
-                <div
-                  className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
-                    currentStep >= step
-                      ? "bg-[var(--color-main)] text-white"
-                      : "bg-gray-200 text-gray-500"
-                  }`}
-                >
-                  {step}
-                </div>
-                {index < totalSteps - 1 && (
+            {Array.from({ length: totalSteps }, (_, i) => i + 1).map(
+              (step, index) => (
+                <div key={step}>
                   <div
-                    className={`w-8 h-1 ${currentStep > step ? "bg-[var(--color-main)]" : "bg-gray-200"}`}
-                  />
-                )}
-              </div>
-            ))}
+                    className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
+                      currentStep >= step
+                        ? "bg-[var(--color-main)] text-white"
+                        : "bg-gray-200 text-gray-500"
+                    }`}
+                  >
+                    {step}
+                  </div>
+                  {index < totalSteps - 1 && (
+                    <div
+                      className={`w-8 h-1 ${currentStep > step ? "bg-[var(--color-main)]" : "bg-gray-200"}`}
+                    />
+                  )}
+                </div>
+              ),
+            )}
           </div>
 
           <div className="w-full flex flex-col">
@@ -159,6 +164,7 @@ const CreateEventPage = () => {
                 subtitle="Entrez les informations générales de l'événement"
                 buttonText={isPublic ? "Créer l'événement" : "Continuer"}
                 requireMaxPersons={isPublic}
+                isSubmitting={isSubmitting}
                 initialData={formData || undefined}
                 onSubmit={handleFormSubmit}
               />
@@ -193,31 +199,6 @@ const CreateEventPage = () => {
           )}
         </div>
       </section>
-
-      <Modal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onButtonClick={() =>
-          createdEventId ? router.push(`/events/${createdEventId}`) : router.push("/home")
-        }
-        showSteppers={false}
-        title="Événement créé avec succès !"
-        text={
-          isPublic
-            ? "Votre événement public est visible par toute l'entreprise."
-            : "Votre événement a été créé et est maintenant disponible."
-        }
-        buttonText="Voir l'événement"
-        stepContents={[
-          {
-            title: "Félicitations !",
-            text: "Votre événement a été créé avec succès.",
-            buttonText: "Voir l'événement",
-            image: "/images/mascotte/joy.png",
-            imagePosition: "center" as const,
-          },
-        ]}
-      />
     </>
   );
 };
