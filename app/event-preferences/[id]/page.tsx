@@ -8,6 +8,8 @@ import MainButton from "@/components/ui/MainButton";
 import SubGroupPicker, {
     buildSubGroupSectionsFromEventGroups,
 } from "@/components/event/ThemeGroupPicker";
+import { FormSection } from "@/components/ui/form/FormSection";
+import { DateQuickPicker } from "@/components/ui/form/DateQuickPicker";
 
 type EventSubGroup = {
   id: string;
@@ -176,33 +178,40 @@ export default function EventPreferencesPage() {
           onClick={() => (step > 1 ? setStep(step - 1) : router.back())}
         />
 
-        <div className="w-full">
-          <h1 className="text-h1 mb-4 text-left w-full font-urbanist">
+        <div className="w-full max-w-2xl">
+          <h1 className="text-h1 mb-2 text-left font-urbanist">
             {eventData.title}
           </h1>
+          <p className="text-body-small font-poppins text-[var(--color-grey-three)] mb-6">
+            Étape {step} / {maxStep}
+          </p>
+
           {step === 1 && showThemeStep ? (
-            <>
-              <p className="text-h3 mb-4 font-poppins text-[var(--color-grey-three)]">
-                Choisissez les sous-groupes que vous préférez
-              </p>
+            <FormSection
+              title="Vos activités préférées"
+              description="Sélectionnez un ou plusieurs sous-groupes"
+              variant="main"
+            >
               <SubGroupPicker
                 sections={subGroupSections}
                 selectedIds={selectedGoogleTagSubGroupIds}
                 onToggle={toggleSubGroup}
               />
-            </>
+            </FormSection>
           ) : (
-            <>
-              <p className="text-h3 mb-4 font-poppins text-[var(--color-grey-three)]">
-                Choisissez votre date préférée
-              </p>
-              <input
-                type="date"
+            <FormSection
+              title="Votre date préférée"
+              description="Quand souhaitez-vous participer ?"
+              variant="sky"
+            >
+              <DateQuickPicker
+                label="Date souhaitée"
                 value={preferredDate}
-                onChange={(e) => setPreferredDate(e.target.value)}
-                className="px-4 py-2 border-2 border-[var(--color-grey-two)] rounded"
+                onChange={setPreferredDate}
+                min={new Date().toISOString().split("T")[0]}
+                hint="Les dates proposées par l'organisateur peuvent être ajustées après vote collectif."
               />
-            </>
+            </FormSection>
           )}
         </div>
 

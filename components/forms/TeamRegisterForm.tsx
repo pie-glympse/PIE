@@ -5,6 +5,9 @@ import { useRouter } from "next/navigation";
 import MainButton from "@/components/ui/MainButton";
 import SimpleAutocomplete from "@/components/ui/SimpleAutocomplete";
 import { parseTeamCSV, type TeamMemberInput } from "@/lib/register-team";
+import { FormField, formInputClass } from "@/components/ui/form/FormField";
+import { FormSection } from "@/components/ui/form/FormSection";
+import { formHintClass } from "@/components/ui/form/form-styles";
 
 interface TeamRegisterFormProps {
   title: ReactNode;
@@ -17,6 +20,8 @@ const emptyManualMember = (): TeamMemberInput => ({
   email: "",
   teamName: "",
 });
+
+const formFileInputClass = `${formInputClass} file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-poppins file:bg-[#7BA7E8] file:text-white hover:file:opacity-90`;
 
 const TeamRegisterForm: FC<TeamRegisterFormProps> = ({ title, buttonText }) => {
   const router = useRouter();
@@ -180,300 +185,290 @@ const TeamRegisterForm: FC<TeamRegisterFormProps> = ({ title, buttonText }) => {
     }
   };
 
-  const inputClassName =
-    "w-full px-3 py-2 text-sm bg-white border-2 border-[var(--color-grey-two)] rounded placeholder:font-poppins placeholder:text-[#EAEAEF]";
-
   return (
-    <form onSubmit={handleSubmit} className="w-full mx-auto">
-      <h1 className="text-h1 mb-8 text-left md:w-2/3 w-full font-urbanist">
-        {title}
-      </h1>
+    <form onSubmit={handleSubmit} className="w-full max-w-2xl mx-auto">
+      <h1 className="text-h1 mb-6 text-left font-urbanist">{title}</h1>
 
-      <div className="flex flex-row gap-4 mb-4">
-        <div className="flex-1">
-          <label
-            htmlFor="firstname"
-            className="block mb-1 text-body-large font-poppins text-[var(--color-grey-three)]"
-          >
-            Votre prénom
-          </label>
-          <input
-            id="firstname"
-            type="text"
-            value={firstName}
-            onChange={(e) => setFirstName(e.target.value)}
-            placeholder="Prénom"
-            required
-            className="w-full px-5 py-2 text-base bg-white border-2 border-[var(--color-grey-two)] rounded placeholder:font-poppins placeholder:text-[#EAEAEF]"
-          />
+      <FormSection
+        step={1}
+        variant="main"
+        title="Votre profil"
+        description="Identité du responsable du compte"
+      >
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <FormField id="firstname" label="Prénom" required>
+            <input
+              id="firstname"
+              type="text"
+              value={firstName}
+              onChange={(e) => setFirstName(e.target.value)}
+              placeholder="Prénom"
+              required
+              className={formInputClass}
+            />
+          </FormField>
+          <FormField id="lastname" label="Nom" required>
+            <input
+              id="lastname"
+              type="text"
+              value={lastName}
+              onChange={(e) => setLastName(e.target.value)}
+              placeholder="Nom"
+              required
+              className={formInputClass}
+            />
+          </FormField>
         </div>
-        <div className="flex-1">
-          <label
-            htmlFor="lastname"
-            className="block mb-1 text-body-large font-poppins text-[var(--color-grey-three)]"
-          >
-            Votre nom
-          </label>
+        <FormField id="email" label="Adresse e-mail" required>
           <input
-            id="lastname"
-            type="text"
-            value={lastName}
-            onChange={(e) => setLastName(e.target.value)}
-            placeholder="Nom"
+            id="email"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="ex : nomprenom@societe.com"
             required
-            className="w-full px-5 py-2 text-base bg-white border-2 border-[var(--color-grey-two)] rounded placeholder:font-poppins placeholder:text-[#EAEAEF]"
+            className={formInputClass}
           />
-        </div>
-      </div>
+        </FormField>
+      </FormSection>
 
-      <div className="mb-4">
-        <label
-          htmlFor="email"
-          className="block mb-1 text-body-large font-poppins text-[var(--color-grey-three)]"
-        >
-          Votre adresse e-mail
-        </label>
-        <input
-          id="email"
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder="ex : nomprenom@societe.com"
-          required
-          className="w-full px-5 py-2 text-base bg-white border-2 border-[var(--color-grey-two)] rounded placeholder:font-poppins placeholder:text-[#EAEAEF]"
-        />
-      </div>
+      <FormSection
+        step={2}
+        variant="sky"
+        title="Entreprise"
+        description="Informations de votre organisation"
+      >
+        <FormField id="companyName" label="Nom de l'entreprise" required>
+          <input
+            id="companyName"
+            type="text"
+            value={companyName}
+            onChange={(e) => setCompanyName(e.target.value)}
+            placeholder="Nom de l'entreprise"
+            required
+            className={formInputClass}
+          />
+        </FormField>
+        <FormField id="companyAddress" label="Adresse de l'entreprise">
+          <SimpleAutocomplete
+            value={companyAddress}
+            onChange={setCompanyAddress}
+            placeholder="Ex : 12 Rue de Rivoli, Paris"
+          />
+        </FormField>
+      </FormSection>
 
-      <div className="mb-4">
-        <label
-          htmlFor="companyName"
-          className="block mb-1 text-body-large font-poppins text-[var(--color-grey-three)]"
-        >
-          Nom de l&apos;entreprise
-        </label>
-        <input
-          id="companyName"
-          type="text"
-          value={companyName}
-          onChange={(e) => setCompanyName(e.target.value)}
-          placeholder="Nom de l'entreprise"
-          required
-          className="w-full px-5 py-2 text-base bg-white border-2 border-[var(--color-grey-two)] rounded placeholder:font-poppins placeholder:text-[#EAEAEF]"
-        />
-      </div>
-
-      <div className="mb-4">
-        <label className="block mb-1 text-body-large font-poppins text-[var(--color-grey-three)]">
-          Adresse de l&apos;entreprise
-        </label>
-        <SimpleAutocomplete
-          value={companyAddress}
-          onChange={setCompanyAddress}
-          placeholder="Ex : 12 Rue de Rivoli, Paris"
-        />
-      </div>
-
-      <div className="mb-4">
-        <label
-          htmlFor="csvFile"
-          className="block mb-1 text-body-large font-poppins text-[var(--color-grey-three)]"
-        >
-          Fichier CSV de votre équipe
-        </label>
-        <div className="flex flex-col gap-2">
+      <FormSection
+        step={3}
+        variant="tertiary"
+        title="Votre équipe"
+        description="Importez ou ajoutez vos collaborateurs"
+      >
+        <FormField id="csvFile" label="Fichier CSV de votre équipe">
           <input
             ref={fileInputRef}
             id="csvFile"
             type="file"
             accept=".csv"
             onChange={handleFileChange}
-            className="w-full px-5 py-2 text-base bg-white border-2 border-[var(--color-grey-two)] rounded file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-poppins file:bg-[var(--color-text)] file:text-white hover:file:bg-[var(--color-text)]/90"
+            className={formFileInputClass}
           />
-          <p className="text-body-small font-poppins text-[var(--color-grey-three)]">
+          <p className={formHintClass}>
             Format attendu: email, prénom, nom, équipe (optionnel, une ligne par
             employé)
           </p>
-        </div>
-      </div>
+        </FormField>
 
-      {csvPreview.length > 0 && (
-        <div className="mb-4 p-4 bg-gray-50 rounded border border-[var(--color-grey-two)]">
-          <p className="text-body-small font-poppins text-[var(--color-grey-three)] mb-2">
-            <strong>{csvPreview.length}</strong> employé(s) trouvé(s) dans le
-            CSV:
-          </p>
-          <div className="max-h-40 overflow-y-auto">
-            <table className="w-full text-body-small">
-              <thead>
-                <tr className="border-b">
-                  <th className="text-left p-2">Mail</th>
-                  <th className="text-left p-2">Prénom</th>
-                  <th className="text-left p-2">Nom</th>
-                  <th className="text-left p-2">Équipe</th>
-                </tr>
-              </thead>
-              <tbody>
-                {csvPreview.slice(0, 10).map((row, index) => (
-                  <tr key={index} className="border-b">
-                    <td className="p-2">{row.email}</td>
-                    <td className="p-2">{row.firstName}</td>
-                    <td className="p-2">{row.lastName}</td>
-                    <td className="p-2">{row.teamName || "—"}</td>
+        {csvPreview.length > 0 && (
+          <div className="p-4 bg-white rounded-lg border border-[#7BA7E8]/40">
+            <p className="text-body-small font-poppins text-[var(--color-grey-three)] mb-2">
+              <strong>{csvPreview.length}</strong> employé(s) trouvé(s) dans le
+              CSV:
+            </p>
+            <div className="max-h-40 overflow-y-auto">
+              <table className="w-full text-body-small font-poppins">
+                <thead>
+                  <tr className="border-b border-[var(--color-grey-two)]">
+                    <th className="text-left p-2">Mail</th>
+                    <th className="text-left p-2">Prénom</th>
+                    <th className="text-left p-2">Nom</th>
+                    <th className="text-left p-2">Équipe</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-            {csvPreview.length > 10 && (
-              <p className="text-body-small text-[var(--color-grey-three)] mt-2">
-                ... et {csvPreview.length - 10} autre(s)
-              </p>
-            )}
+                </thead>
+                <tbody>
+                  {csvPreview.slice(0, 10).map((row, index) => (
+                    <tr
+                      key={index}
+                      className="border-b border-[var(--color-grey-two)]"
+                    >
+                      <td className="p-2">{row.email}</td>
+                      <td className="p-2">{row.firstName}</td>
+                      <td className="p-2">{row.lastName}</td>
+                      <td className="p-2">{row.teamName || "—"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {csvPreview.length > 10 && (
+                <p className="text-body-small text-[var(--color-grey-three)] mt-2">
+                  ... et {csvPreview.length - 10} autre(s)
+                </p>
+              )}
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      <div className="mb-4">
-        <p className="text-body-large font-poppins text-[var(--color-grey-three)] mb-3">
-          Ou ajoutez vos membres manuellement
-        </p>
-        <div className="flex flex-row gap-2 items-end">
-          <div className="flex-1 min-w-0">
-            <label className="block mb-1 text-body-small font-poppins text-[var(--color-grey-three)]">
-              Prénom
-            </label>
-            <input
-              type="text"
-              value={manualMember.firstName}
-              onChange={(e) =>
-                setManualMember((prev) => ({
-                  ...prev,
-                  firstName: e.target.value,
-                }))
-              }
-              placeholder="Prénom"
-              className={inputClassName}
-            />
-          </div>
-          <div className="flex-1 min-w-0">
-            <label className="block mb-1 text-body-small font-poppins text-[var(--color-grey-three)]">
-              Nom
-            </label>
-            <input
-              type="text"
-              value={manualMember.lastName}
-              onChange={(e) =>
-                setManualMember((prev) => ({
-                  ...prev,
-                  lastName: e.target.value,
-                }))
-              }
-              placeholder="Nom"
-              className={inputClassName}
-            />
-          </div>
-          <div className="flex-1 min-w-0">
-            <label className="block mb-1 text-body-small font-poppins text-[var(--color-grey-three)]">
-              Mail
-            </label>
-            <input
-              type="email"
-              value={manualMember.email}
-              onChange={(e) =>
-                setManualMember((prev) => ({ ...prev, email: e.target.value }))
-              }
-              placeholder="mail@exemple.com"
-              className={inputClassName}
-            />
-          </div>
-          <div className="flex-1 min-w-0">
-            <label className="block mb-1 text-body-small font-poppins text-[var(--color-grey-three)]">
-              Équipe
-            </label>
-            <input
-              type="text"
-              value={manualMember.teamName}
-              onChange={(e) =>
-                setManualMember((prev) => ({
-                  ...prev,
-                  teamName: e.target.value,
-                }))
-              }
-              placeholder="Équipe"
-              className={inputClassName}
-            />
-          </div>
-          <button
-            type="button"
-            onClick={handleAddManualMember}
-            className="shrink-0 bg-[var(--color-secondary)] text-white w-10 h-10 rounded-full hover:opacity-90 transition flex items-center justify-center text-xl font-bold"
-            aria-label="Ajouter ce membre"
-          >
-            +
-          </button>
-        </div>
-      </div>
-
-      {manualMembers.length > 0 && (
-        <div className="mb-4 p-4 bg-gray-50 rounded border border-[var(--color-grey-two)]">
-          <p className="text-body-small font-poppins text-[var(--color-grey-three)] mb-2">
-            <strong>{manualMembers.length}</strong> membre(s) ajouté(s)
-            manuellement:
+        <div>
+          <p className="text-body-small font-poppins font-medium text-[var(--color-text)] mb-3">
+            Ou ajoutez vos membres manuellement
           </p>
-          <div className="max-h-48 overflow-y-auto">
-            <table className="w-full text-body-small">
-              <thead>
-                <tr className="border-b">
-                  <th className="text-left p-2">Prénom</th>
-                  <th className="text-left p-2">Nom</th>
-                  <th className="text-left p-2">Mail</th>
-                  <th className="text-left p-2">Équipe</th>
-                  <th className="text-left p-2"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {manualMembers.map((member, index) => (
-                  <tr key={`${member.email}-${index}`} className="border-b">
-                    <td className="p-2">{member.firstName}</td>
-                    <td className="p-2">{member.lastName}</td>
-                    <td className="p-2">{member.email}</td>
-                    <td className="p-2">{member.teamName || "—"}</td>
-                    <td className="p-2">
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveManualMember(index)}
-                        className="text-[var(--color-secondary)] underline"
-                      >
-                        Retirer
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="flex flex-row gap-2 items-end">
+            <FormField
+              id="manualFirstName"
+              label="Prénom"
+              className="flex-1 min-w-0"
+            >
+              <input
+                id="manualFirstName"
+                type="text"
+                value={manualMember.firstName}
+                onChange={(e) =>
+                  setManualMember((prev) => ({
+                    ...prev,
+                    firstName: e.target.value,
+                  }))
+                }
+                placeholder="Prénom"
+                className={formInputClass}
+              />
+            </FormField>
+            <FormField
+              id="manualLastName"
+              label="Nom"
+              className="flex-1 min-w-0"
+            >
+              <input
+                id="manualLastName"
+                type="text"
+                value={manualMember.lastName}
+                onChange={(e) =>
+                  setManualMember((prev) => ({
+                    ...prev,
+                    lastName: e.target.value,
+                  }))
+                }
+                placeholder="Nom"
+                className={formInputClass}
+              />
+            </FormField>
+            <FormField id="manualEmail" label="Mail" className="flex-1 min-w-0">
+              <input
+                id="manualEmail"
+                type="email"
+                value={manualMember.email}
+                onChange={(e) =>
+                  setManualMember((prev) => ({
+                    ...prev,
+                    email: e.target.value,
+                  }))
+                }
+                placeholder="mail@exemple.com"
+                className={formInputClass}
+              />
+            </FormField>
+            <FormField
+              id="manualTeam"
+              label="Équipe"
+              className="flex-1 min-w-0"
+            >
+              <input
+                id="manualTeam"
+                type="text"
+                value={manualMember.teamName}
+                onChange={(e) =>
+                  setManualMember((prev) => ({
+                    ...prev,
+                    teamName: e.target.value,
+                  }))
+                }
+                placeholder="Équipe"
+                className={formInputClass}
+              />
+            </FormField>
+            <button
+              type="button"
+              onClick={handleAddManualMember}
+              className="shrink-0 bg-[#7BA7E8] text-white w-10 h-10 rounded-lg hover:opacity-90 transition flex items-center justify-center text-xl font-bold mb-0.5"
+              aria-label="Ajouter ce membre"
+            >
+              +
+            </button>
           </div>
         </div>
-      )}
 
-      {errorMsg && (
-        <div className="mb-4 text-red-600 text-body-small font-poppins">
+        {manualMembers.length > 0 && (
+          <div className="p-4 bg-white rounded-lg border border-[#7BA7E8]/40">
+            <p className="text-body-small font-poppins text-[var(--color-grey-three)] mb-2">
+              <strong>{manualMembers.length}</strong> membre(s) ajouté(s)
+              manuellement:
+            </p>
+            <div className="max-h-48 overflow-y-auto">
+              <table className="w-full text-body-small font-poppins">
+                <thead>
+                  <tr className="border-b border-[var(--color-grey-two)]">
+                    <th className="text-left p-2">Prénom</th>
+                    <th className="text-left p-2">Nom</th>
+                    <th className="text-left p-2">Mail</th>
+                    <th className="text-left p-2">Équipe</th>
+                    <th className="text-left p-2"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {manualMembers.map((member, index) => (
+                    <tr
+                      key={`${member.email}-${index}`}
+                      className="border-b border-[var(--color-grey-two)]"
+                    >
+                      <td className="p-2">{member.firstName}</td>
+                      <td className="p-2">{member.lastName}</td>
+                      <td className="p-2">{member.email}</td>
+                      <td className="p-2">{member.teamName || "—"}</td>
+                      <td className="p-2">
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveManualMember(index)}
+                          className="text-[var(--color-secondary)] underline"
+                        >
+                          Retirer
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+      </FormSection>
+
+      {errorMsg ? (
+        <p className="mb-4 text-[var(--color-secondary)] text-body-small font-poppins">
           {errorMsg}
-        </div>
-      )}
+        </p>
+      ) : null}
 
-      {successMsg && (
-        <div className="mb-4 text-green-600 text-body-small font-poppins">
+      {successMsg ? (
+        <p className="mb-4 text-green-600 text-body-small font-poppins">
           {successMsg}
-        </div>
-      )}
+        </p>
+      ) : null}
 
-      <div className="md:w-1/5 w-full mb-8">
-        <MainButton
-          color="bg-[var(--color-text)] font-poppins text-body-large"
-          text={isSubmitting ? "Inscription en cours..." : buttonText}
-          type="submit"
-          disabled={isSubmitting}
-        />
-      </div>
+      <MainButton
+        color="bg-[var(--color-text)] font-poppins text-body-large w-full md:w-auto min-w-[200px]"
+        text={isSubmitting ? "Inscription en cours..." : buttonText}
+        type="submit"
+        disabled={isSubmitting}
+      />
     </form>
   );
 };
