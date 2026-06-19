@@ -23,7 +23,7 @@ import type { FC } from "react";
                 <button
                     type="button"
                     onClick={onClick}
-                    className={`bg-[var(--color-text)] rounded-md w-10 h-10 flex justify-center items-center mb-8 cursor-pointer ${className}`}
+                    className={`bg-[var(--color-text)] rounded-md w-10 h-10 shrink-0 flex justify-center items-center mb-8 cursor-pointer ${className}`}
                     aria-label={ariaLabel}
                 >
                     <Image
