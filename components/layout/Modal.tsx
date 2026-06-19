@@ -5,6 +5,7 @@ import type { FC } from 'react';
 interface StepContent {
     title: string;
     text: string;
+    subtext?: string;
     buttonText?: string;
     image?: string;
     imagePosition?: 'center' | 'right';
@@ -67,15 +68,15 @@ const Modal: FC<ModalProps> = ({
 
     return (
         <div
-            className="fixed inset-0 flex items-center justify-center bg-black/20 backdrop-blur-[2px] z-50"
+            className="fixed inset-0 flex items-center justify-center bg-black/20 backdrop-blur-[2px] z-50 p-4"
             onClick={onClose}
         >
             <div
-                className="bg-white rounded-4xl shadow-lg w-full max-w-xl p-6"
+                className="bg-white rounded-4xl shadow-lg w-full max-w-xl p-6 max-h-[90vh] overflow-y-auto"
                 onClick={e => e.stopPropagation()}
             >
                 {/* Top rounded div */}
-                <div className={`w-full h-[279px] bg-[#E9F1FE] rounded-2xl flex items-end mb-4 ${
+                <div className={`w-full h-[200px] sm:h-[279px] bg-[#E9F1FE] rounded-2xl flex items-end mb-4 ${
                     currentContent.imagePosition === 'right' ? 'justify-end pr-8' : 'justify-center'
                 }`}>
                     {currentContent.image ? (
@@ -102,7 +103,12 @@ const Modal: FC<ModalProps> = ({
                 </div>
                 
                 {/* Text div */}
-                <div className="mb-6 text-center text-body-small font-poppins">{currentContent.text}</div>
+                <div className="mb-6 text-center font-poppins">
+                    <p className="text-body-small">{currentContent.text}</p>
+                    {currentContent.subtext && (
+                        <p className="text-xs text-[var(--color-grey-three)] mt-3">{currentContent.subtext}</p>
+                    )}
+                </div>
                 
                 {/* Button div */}
                 <div className="flex justify-center">

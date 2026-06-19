@@ -4,6 +4,9 @@ import { useState, useEffect } from "react";
 import { useUser } from "@/context/UserContext";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/context/ToastContext";
+import Modal from "@/components/layout/Modal";
+import { FcGoogle } from "react-icons/fc";
+import { FaApple, FaWindows } from "react-icons/fa";
 
 type Tab = "compte" | "legal" | "aide";
 type LegalDoc = "privacy" | "cgu" | "security" | "mentions" | null;
@@ -49,13 +52,13 @@ function SettingRow({
     <button
       type="button"
       onClick={onClick}
-      className="w-full flex items-center justify-between py-4 border-b border-[var(--color-grey-two)] text-left hover:bg-[var(--color-grey-one)] px-2 rounded transition-colors"
+      className="w-full flex items-center justify-between gap-3 py-4 border-b border-[var(--color-grey-two)] text-left hover:bg-[var(--color-grey-one)] px-2 rounded transition-colors"
     >
       <span className="text-body-small font-poppins text-[var(--color-text)]">
         {label}
       </span>
       {value && (
-        <span className="text-body-small font-poppins text-[var(--color-grey-three)] flex items-center gap-1">
+        <span className="shrink-0 text-body-small font-poppins text-[var(--color-grey-three)] flex items-center gap-1">
           {value}
           <svg
             width="16"
@@ -930,29 +933,154 @@ function DocList({ items }: { items: string[] }) {
 
 // ─── Tabs ─────────────────────────────────────────────────────────────────────
 
+const COUNTRIES = [
+  "Afghanistan", "Afrique du Sud", "Albanie", "Algérie", "Allemagne", "Andorre", "Angola",
+  "Antigua-et-Barbuda", "Arabie Saoudite", "Argentine", "Arménie", "Australie", "Autriche",
+  "Azerbaïdjan", "Bahamas", "Bahreïn", "Bangladesh", "Barbade", "Bélarus", "Belgique",
+  "Belize", "Bénin", "Bhoutan", "Bolivie", "Bosnie-Herzégovine", "Botswana", "Brésil",
+  "Brunéi", "Bulgarie", "Burkina Faso", "Burundi", "Cabo Verde", "Cambodge", "Cameroun",
+  "Canada", "Centrafrique", "Chili", "Chine", "Chypre", "Colombie", "Comores", "Congo",
+  "Corée du Nord", "Corée du Sud", "Costa Rica", "Côte d'Ivoire", "Croatie", "Cuba",
+  "Danemark", "Djibouti", "Dominique", "Égypte", "Émirats arabes unis", "Équateur",
+  "Érythrée", "Espagne", "Eswatini", "Estonie", "Éthiopie", "Fidji", "Finlande", "France",
+  "Gabon", "Gambie", "Géorgie", "Ghana", "Grèce", "Grenade", "Guatemala", "Guinée",
+  "Guinée-Bissau", "Guinée équatoriale", "Guyana", "Haïti", "Honduras", "Hongrie", "Inde",
+  "Indonésie", "Irak", "Iran", "Irlande", "Islande", "Israël", "Italie", "Jamaïque",
+  "Japon", "Jordanie", "Kazakhstan", "Kenya", "Kirghizistan", "Kiribati", "Kosovo",
+  "Koweït", "Laos", "Lesotho", "Lettonie", "Liban", "Liberia", "Libye", "Liechtenstein",
+  "Lituanie", "Luxembourg", "Macédoine du Nord", "Madagascar", "Malaisie", "Malawi",
+  "Maldives", "Mali", "Malte", "Maroc", "Marshall", "Maurice", "Mauritanie", "Mexique",
+  "Micronésie", "Moldavie", "Monaco", "Mongolie", "Monténégro", "Mozambique", "Myanmar",
+  "Namibie", "Nauru", "Népal", "Nicaragua", "Niger", "Nigéria", "Norvège",
+  "Nouvelle-Zélande", "Oman", "Ouganda", "Ouzbékistan", "Pakistan", "Palaos", "Palestine",
+  "Panama", "Papouasie-Nouvelle-Guinée", "Paraguay", "Pays-Bas", "Pérou", "Philippines",
+  "Pologne", "Portugal", "Qatar", "République démocratique du Congo", "République dominicaine",
+  "République tchèque", "Roumanie", "Royaume-Uni", "Russie", "Rwanda",
+  "Saint-Christophe-et-Niévès", "Saint-Marin", "Saint-Vincent-et-les-Grenadines",
+  "Sainte-Lucie", "Salvador", "Samoa", "São Tomé-et-Príncipe", "Sénégal", "Serbie",
+  "Seychelles", "Sierra Leone", "Singapour", "Slovaquie", "Slovénie", "Somalie", "Soudan",
+  "Soudan du Sud", "Sri Lanka", "Suède", "Suisse", "Suriname", "Syrie", "Tadjikistan",
+  "Tanzanie", "Tchad", "Thaïlande", "Timor oriental", "Togo", "Tonga",
+  "Trinité-et-Tobago", "Tunisie", "Turkménistan", "Turquie", "Tuvalu", "Ukraine",
+  "Uruguay", "Vanuatu", "Vatican", "Venezuela", "Vietnam", "Yémen", "Zambie", "Zimbabwe",
+];
+
+function SelectRow({ label, value, onChange, options }: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  options: { value: string; label: string }[];
+}) {
+  return (
+    <div className="flex items-center justify-between py-4 border-b border-[var(--color-grey-two)] last:border-b-0">
+      <span className="font-poppins text-body-small text-[var(--color-text)]">{label}</span>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="font-poppins text-body-small text-[var(--color-text)] bg-transparent border border-[var(--color-grey-two)] rounded-lg px-3 py-1.5 cursor-pointer focus:outline-none focus:border-[var(--color-text)] transition max-w-[200px]"
+      >
+        {options.map((opt) => (
+          <option key={opt.value} value={opt.value}>{opt.label}</option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
+function CalendarSyncModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
+  if (!isOpen) return null;
+
+  const providers = [
+    { name: "Google Calendar",     icon: <FcGoogle size={22} /> },
+    { name: "Calendrier Outlook",  icon: <FaWindows size={22} color="#00A4EF" /> },
+    { name: "Apple Calendrier",    icon: <FaApple size={22} color="#191919" /> },
+  ];
+
+  return (
+    <div
+      className="fixed inset-0 flex items-center justify-center bg-black/20 backdrop-blur-[2px] z-50 p-4"
+      onClick={onClose}
+    >
+      <div
+        className="bg-white rounded-4xl shadow-lg w-full max-w-xl p-6 max-h-[90vh] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="w-full h-[180px] sm:h-[220px] bg-[#E9F1FE] rounded-2xl flex items-end justify-center mb-4">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/images/mascotte/hardwork.png" alt="Synchroniser le calendrier" width={200} height={220} className="object-contain" />
+        </div>
+
+        <h2 className="text-h2 font-poppins text-center text-[var(--color-text)] mb-2">Synchroniser votre calendrier</h2>
+        <p className="font-poppins text-body-small text-center text-[var(--color-grey-three)] mb-5">
+          Afin de ne rater aucun évènement !<br />Choisissez le calendrier à connecter :
+        </p>
+
+        <div className="flex flex-col gap-3 mb-4">
+          {providers.map((p) => (
+            <button
+              key={p.name}
+              type="button"
+              onClick={onClose}
+              className="flex items-center gap-4 w-full px-5 py-3.5 border border-[var(--color-grey-two)] rounded-xl font-poppins text-body-small text-[var(--color-text)] hover:bg-[var(--color-grey-one)] transition cursor-pointer"
+            >
+              {p.icon}
+              {p.name}
+            </button>
+          ))}
+        </div>
+
+        <button
+          type="button"
+          onClick={onClose}
+          className="w-full py-3 bg-[var(--color-grey-one)] text-[var(--color-grey-three)] font-poppins text-body-small rounded-xl hover:bg-[var(--color-grey-two)] transition cursor-pointer"
+        >
+          Passer
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function TabCompte({ onDeleteAccount }: { onDeleteAccount: () => void }) {
   const [syncCalendar, setSyncCalendar] = useState(false);
+  const [showCalendarModal, setShowCalendarModal] = useState(false);
   const [receiveNotifications, setReceiveNotifications] = useState(false);
+  const [langue, setLangue] = useState("fr");
+  const [region, setRegion] = useState("France");
+
+  function handleCalendarToggle(val: boolean) {
+    setSyncCalendar(val);
+    if (val) setShowCalendarModal(true);
+  }
 
   return (
     <div>
-      <h1 className="text-h2 font-poppins text-[var(--color-text)] mb-6">
-        Votre Compte
-      </h1>
+      <CalendarSyncModal isOpen={showCalendarModal} onClose={() => setShowCalendarModal(false)} />
+
+      <h1 className="text-h2 font-poppins text-[var(--color-text)] mb-6">Votre Compte</h1>
 
       <SectionTitle title="Informations du compte" />
       <div className="border-t border-[var(--color-grey-two)]">
-        <SettingRow label="Région" value="France" />
-        <SettingRow label="Langue" value="Français" />
+        <SelectRow
+          label="Langue"
+          value={langue}
+          onChange={setLangue}
+          options={[
+            { value: "fr", label: "Français" },
+            { value: "en", label: "English" },
+          ]}
+        />
+        <SelectRow
+          label="Région"
+          value={region}
+          onChange={setRegion}
+          options={COUNTRIES.map((c) => ({ value: c, label: c }))}
+        />
       </div>
 
       <SectionTitle title="Synchronisation" />
       <div className="border-t border-[var(--color-grey-two)]">
-        <ToggleRow
-          label="Synchroniser votre calendrier"
-          enabled={syncCalendar}
-          onChange={setSyncCalendar}
-        />
+        <ToggleRow label="Synchroniser votre calendrier" enabled={syncCalendar} onChange={handleCalendarToggle} />
       </div>
 
       <SectionTitle title="Vos Préférences" />
@@ -968,7 +1096,7 @@ function TabCompte({ onDeleteAccount }: { onDeleteAccount: () => void }) {
         <button
           type="button"
           onClick={onDeleteAccount}
-          className="px-5 py-2.5 bg-[var(--color-secondary)] text-white font-poppins text-body-small rounded-lg hover:opacity-90 transition cursor-pointer"
+          className="px-5 py-2 bg-[var(--color-secondary)] text-white font-poppins text-body-small rounded-lg hover:opacity-90 transition cursor-pointer"
         >
           Supprimer le compte
         </button>
@@ -978,7 +1106,12 @@ function TabCompte({ onDeleteAccount }: { onDeleteAccount: () => void }) {
 }
 
 function TabLegal() {
+  const { user } = useUser();
+  const { showToast } = useToast();
   const [openDoc, setOpenDoc] = useState<LegalDoc>(null);
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [showExportSuccess, setShowExportSuccess] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
   if (openDoc === "privacy")
     return <DocPrivacy onBack={() => setOpenDoc(null)} />;
@@ -988,11 +1121,57 @@ function TabLegal() {
   if (openDoc === "mentions")
     return <DocMentions onBack={() => setOpenDoc(null)} />;
 
+  const userEmail = user?.email ?? "votre adresse e-mail";
+
+  async function handleExport() {
+    if (!user?.id || exporting) return;
+    setExporting(true);
+    try {
+      const res = await fetch("/api/export-data", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: user.id }),
+      });
+      if (!res.ok) throw new Error("Erreur serveur");
+      setShowExportModal(false);
+      setShowExportSuccess(true);
+    } catch {
+      showToast({ title: "Erreur", body: "Impossible de générer l'archive. Réessayez plus tard." });
+    } finally {
+      setExporting(false);
+    }
+  }
+
   return (
     <div>
-      <h1 className="text-h2 font-poppins text-[var(--color-text)] mb-6">
-        Légal et Sécurité
-      </h1>
+      <Modal
+        isOpen={showExportModal}
+        onClose={() => setShowExportModal(false)}
+        onButtonClick={handleExport}
+        stepContents={[{
+          title: "Exporter mes données",
+          text: "Vous pouvez télécharger l'ensemble des données personnelles liées à votre compte (profil, événements créés, préférences enregistrées). Le fichier sera généré automatiquement au format .zip contenant un dossier .json lisible.",
+          subtext: "Cette fonctionnalité vous permet de reprendre le contrôle sur vos données, conformément à la réglementation en vigueur.",
+          buttonText: "Générer mon archive",
+          image: "/images/mascotte/data.png",
+          imagePosition: "center",
+        }]}
+      />
+
+      <Modal
+        isOpen={showExportSuccess}
+        onClose={() => setShowExportSuccess(false)}
+        onButtonClick={() => setShowExportSuccess(false)}
+        stepContents={[{
+          title: "Exporter mes données",
+          text: `Votre demande a bien été enregistrée. Un lien de téléchargement vous sera envoyé par e-mail à ${userEmail} sous 24 heures.`,
+          buttonText: "Fermer",
+          image: "/images/mascotte/data.png",
+          imagePosition: "center",
+        }]}
+      />
+
+      <h1 className="text-h2 font-poppins text-[var(--color-text)] mb-6">Légal et Sécurité</h1>
 
       <div className="border-t border-[var(--color-grey-two)]">
         <SettingRow
@@ -1018,16 +1197,17 @@ function TabLegal() {
       </div>
 
       <SectionTitle title="Mes données" />
-      <div className="flex gap-3 mt-2">
+      <div className="flex flex-wrap gap-3 mt-2">
         <button
           type="button"
-          className="px-5 py-2.5 border border-[var(--color-grey-two)] text-[var(--color-grey-three)] font-poppins text-body-small rounded-lg hover:bg-[var(--color-grey-one)] transition cursor-pointer"
+          onClick={() => setShowExportModal(true)}
+          className="px-5 py-2 border border-[var(--color-grey-two)] text-[var(--color-grey-three)] font-poppins text-body-small rounded-lg hover:bg-[var(--color-grey-one)] transition cursor-pointer"
         >
           Exporter mes données
         </button>
         <button
           type="button"
-          className="px-5 py-2.5 bg-[var(--color-secondary)] text-white font-poppins text-body-small rounded-lg hover:opacity-90 transition cursor-pointer"
+          className="px-5 py-2 bg-[var(--color-secondary)] text-white font-poppins text-body-small rounded-lg hover:opacity-90 transition cursor-pointer"
         >
           Supprimer mes données
         </button>
@@ -1036,8 +1216,202 @@ function TabLegal() {
   );
 }
 
+const FAQ_ITEMS: { question: string; answer: string }[] = [
+  {
+    question: "Comment créer un événement ?",
+    answer: `Rendez-vous dans votre menu et cliquez sur "Créer un événement", ou sur le "+" au niveau de votre tableau de bord.\nAjoutez un nom, sélectionnez les collaborateurs concernés, définissez une plage de dates et d'heures disponibles. L'application se charge d'envoyer automatiquement un lien personnalisé à chaque participant.`,
+  },
+  {
+    question: "Mes collaborateurs ne reçoivent pas l’e-mail, que faire ?",
+    answer: `Demandez-leur de vérifier leurs spams ou courriers indésirables.\nVous pouvez renvoyer le lien manuellement depuis l’espace "Informations Supplémentaires" de l’événement en cours.`,
+  },
+  {
+    question: "Comment sont générées les suggestions d’activités ?",
+    answer: `Une fois toutes les réponses reçues, notre algorithme analyse les préférences (type de sortie, date, heure, contraintes alimentaires ou d’accessibilité) et vous propose 3 activités qui conviennent au plus grand nombre.`,
+  },
+  {
+    question: "Puis-je modifier mon abonnement ?",
+    answer: `Oui ! Si vous êtes Superadmin, dans la section Paramètres > Abonnement, vous pouvez passer d’un abonnement mensuel à semestriel ou annuel, ou changer votre moyen de paiement.\nLa modification prendra effet à la prochaine date de facturation.`,
+  },
+  {
+    question: "Puis-je supprimer mon compte ?",
+    answer: `Oui, vous pouvez demander la suppression de votre compte depuis Paramètres > Mon compte > Supprimer mon compte.\nToutes vos données seront supprimées dans un délai de 30 jours, conformément au RGPD.`,
+  },
+  {
+    question: "Où puis-je consulter les factures ?",
+    answer: `Si vous êtes superadmin, vos factures sont accessibles à tout moment depuis Paramètres > Abonnement & facturation > Mes factures.\nVous pouvez les télécharger en PDF.`,
+  },
+  {
+    question: "Mes données sont-elles en sécurité ?",
+    answer: `Absolument. Vos données sont hébergées en Europe et sécurisées.\nNous ne vendons ni ne partageons vos données sans votre consentement. Plus de détails dans notre Politique de confidentialité.`,
+  },
+];
+
+function FaqAccordion() {
+  const [openIndex, setOpenIndex] = useState<number | null>(0);
+
+  return (
+    <div>
+      {FAQ_ITEMS.map((item, index) => {
+        const isOpen = openIndex === index;
+        return (
+          <div key={index} className="border-b border-[var(--color-grey-two)]">
+            <button
+              type="button"
+              onClick={() => setOpenIndex(isOpen ? null : index)}
+              className="w-full flex items-center justify-between py-4 px-2 text-left hover:bg-[var(--color-grey-one)] transition-colors cursor-pointer"
+            >
+              <span className={`text-body-small font-poppins ${isOpen ? "font-semibold text-[var(--color-text)]" : "text-[var(--color-text)]"}`}>
+                {item.question}
+              </span>
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className={`flex-shrink-0 text-[var(--color-grey-three)] transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
+              >
+                <path d="M6 9l6 6 6-6" />
+              </svg>
+            </button>
+
+            {isOpen && item.answer && (
+              <div className="px-2 pb-5 pt-1">
+                {item.answer.split("\n").map((line, i) => (
+                  <p key={i} className="text-body-small font-poppins text-[var(--color-text)] mt-1">
+                    {line}
+                  </p>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function DocFAQ({ onBack }: { onBack: () => void }) {
+  return (
+    <div>
+      <BackButton onClick={onBack} />
+      <h1 className="text-h2 font-poppins text-[var(--color-text)] mb-6">Foire Aux Questions</h1>
+      <div className="border-t border-[var(--color-grey-two)]">
+        <FaqAccordion />
+      </div>
+    </div>
+  );
+}
+
+function DocContact() {
+  const { user } = useUser();
+  const [objet, setObjet] = useState("");
+  const [message, setMessage] = useState("");
+  const [sending, setSending] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
+
+  const today = new Date().toLocaleDateString("fr-FR");
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSending(true);
+    // TODO: brancher l'envoi email (sera géré par un collègue)
+    setTimeout(() => {
+      setObjet("");
+      setMessage("");
+      setSending(false);
+      setShowSuccess(true);
+    }, 500);
+  };
+
+  const inputBase = "w-full px-4 py-2.5 text-body-small font-poppins border border-[var(--color-grey-two)] rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--color-main)] transition";
+  const readonlyBase = "w-full px-4 py-2.5 text-body-small font-poppins border border-[var(--color-grey-two)] rounded-lg bg-[var(--color-grey-one)] text-[var(--color-grey-three)] cursor-not-allowed";
+
+  return (
+    <div>
+      <Modal
+        isOpen={showSuccess}
+        onClose={() => setShowSuccess(false)}
+        onButtonClick={() => setShowSuccess(false)}
+        stepContents={[{
+          title: "Merci pour votre message !",
+          text: "Nous l'avons bien reçu et notre équipe vous répondra sous 24 à 48h ouvrées. Un e-mail de confirmation vient de vous être envoyé. En attendant, n'hésitez pas à consulter notre FAQ",
+          buttonText: "Fermer",
+          image: "/images/mascotte/time.png",
+          imagePosition: "center",
+        }]}
+      />
+
+      <h1 className="text-h2 font-poppins text-[var(--color-text)] mb-8">Nous Contacter</h1>
+
+      <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+        <div>
+          <label className="block mb-1.5 text-body-small font-poppins text-[var(--color-grey-three)]">Objet</label>
+          <input
+            type="text"
+            value={objet}
+            onChange={(e) => setObjet(e.target.value)}
+            placeholder="ex : Problème de facturation"
+            required
+            className={inputBase}
+          />
+        </div>
+
+        <div className="flex flex-col sm:flex-row gap-4">
+          <div className="flex-1">
+            <label className="block mb-1.5 text-body-small font-poppins text-[var(--color-grey-three)]">Adresse e-mail</label>
+            <input
+              type="email"
+              value={user?.email ?? ""}
+              readOnly
+              className={readonlyBase}
+            />
+          </div>
+          <div className="w-full sm:w-44">
+            <label className="block mb-1.5 text-body-small font-poppins text-[var(--color-grey-three)]">Date</label>
+            <input
+              type="text"
+              value={today}
+              readOnly
+              className={readonlyBase}
+            />
+          </div>
+        </div>
+
+        <div>
+          <label className="block mb-1.5 text-body-small font-poppins text-[var(--color-grey-three)]">Message</label>
+          <textarea
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            required
+            rows={10}
+            className={`${inputBase} resize-none`}
+          />
+        </div>
+
+        <div>
+          <button
+            type="submit"
+            disabled={sending}
+            className="px-8 py-3 bg-[var(--color-text)] text-white font-poppins text-body-small rounded-lg hover:opacity-80 transition cursor-pointer disabled:opacity-50"
+          >
+            {sending ? "Envoi..." : "Envoyer"}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
 function TabAide() {
-  const router = useRouter();
+  const [aideView, setAideView] = useState<"faq" | "contact" | null>(null);
+
+  if (aideView === "faq") return <DocFAQ onBack={() => setAideView(null)} />;
+  if (aideView === "contact") return <DocContact />;
 
   return (
     <div>
@@ -1046,18 +1420,87 @@ function TabAide() {
       </h1>
 
       <div className="border-t border-[var(--color-grey-two)]">
-        <SettingRow label="Foire Aux Questions" value="Voir" />
-        <SettingRow
-          label="Nous Contacter"
-          value="Voir"
-          onClick={() => router.push("/contact-us")}
-        />
+        <SettingRow label="Foire Aux Questions" value="Voir" onClick={() => setAideView("faq")} />
+        <SettingRow label="Nous Contacter" value="Voir" onClick={() => setAideView("contact")} />
       </div>
     </div>
   );
 }
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
+
+function DeleteConfirmModal({ isOpen, onClose, onConfirm }: {
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: (password: string) => void;
+}) {
+  const [password, setPassword] = useState("");
+  const [understood, setUnderstood] = useState(false);
+
+  if (!isOpen) return null;
+
+  function handleClose() {
+    setPassword("");
+    setUnderstood(false);
+    onClose();
+  }
+
+  return (
+    <div
+      className="fixed inset-0 flex items-center justify-center bg-black/20 backdrop-blur-[2px] z-50 p-4"
+      onClick={handleClose}
+    >
+      <div
+        className="bg-white rounded-4xl shadow-lg w-full max-w-xl p-6 max-h-[90vh] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="w-full h-[200px] sm:h-[279px] bg-[#E9F1FE] rounded-2xl flex items-end justify-center mb-4">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/images/mascotte/sad_1.png"
+            alt="Suppression de compte"
+            width={266}
+            height={279}
+            className="object-contain"
+          />
+        </div>
+
+        <p className="font-poppins text-body-small text-[var(--color-text)] mb-3">
+          Pour confirmer votre identité, entrez votre mot de passe
+        </p>
+
+        <input
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          placeholder="••••••••••"
+          className="w-full px-4 py-3 border border-[var(--color-grey-two)] rounded-lg font-poppins text-body-small text-[var(--color-text)] placeholder:text-[var(--color-grey-two)] focus:outline-none focus:border-[var(--color-text)] mb-4"
+        />
+
+        <label className="flex items-start gap-3 mb-6 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={understood}
+            onChange={(e) => setUnderstood(e.target.checked)}
+            className="mt-0.5 w-4 h-4 flex-shrink-0 accent-[var(--color-text)] cursor-pointer"
+          />
+          <span className="font-poppins text-body-small text-[var(--color-text)]">
+            Je comprends que cette action est irréversible et entraîne la perte de toutes mes données.
+          </span>
+        </label>
+
+        <button
+          type="button"
+          disabled={!password || !understood}
+          onClick={() => onConfirm(password)}
+          className="w-full py-3 bg-[var(--color-text)] text-white font-poppins text-body-small rounded-xl transition disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+        >
+          Valider
+        </button>
+      </div>
+    </div>
+  );
+}
 
 const TABS: { id: Tab; label: string }[] = [
   { id: "compte", label: "Votre Compte" },
@@ -1071,6 +1514,8 @@ export default function SettingsPage() {
   const { showToast } = useToast();
   const [activeTab, setActiveTab] = useState<Tab>("compte");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteStep, setDeleteStep] = useState(1);
+  const [showDeleteSuccess, setShowDeleteSuccess] = useState(false);
 
   useEffect(() => {
     if (!isLoading && !user) router.push("/login");
@@ -1081,23 +1526,24 @@ export default function SettingsPage() {
     router.push("/login");
   };
 
-  const confirmDeleteAccount = async () => {
+  const confirmDeleteAccount = async (password: string) => {
     if (!user) return;
     try {
-      const res = await fetch(`/api/users/${user.id}`, { method: "DELETE" });
+      const res = await fetch(`/api/users/${user.id}`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password }),
+      });
       if (res.ok) {
-        await logout();
-        router.push("/login");
+        setShowDeleteConfirm(false);
+        setDeleteStep(1);
+        setShowDeleteSuccess(true);
       } else {
-        showToast({
-          title: "Erreur",
-          body: "Impossible de supprimer le compte.",
-        });
+        showToast({ title: "Erreur", body: "Mot de passe incorrect ou suppression impossible." });
       }
     } catch {
       showToast({ title: "Erreur", body: "Une erreur est survenue." });
     }
-    setShowDeleteConfirm(false);
   };
 
   if (isLoading) {
@@ -1111,17 +1557,17 @@ export default function SettingsPage() {
   if (!user) return null;
 
   return (
-    <div className="mt-24 p-10 max-w-7xl mx-auto min-h-[calc(100vh-6rem)]">
-      <div className="flex gap-0 min-h-[600px]">
+    <div className="mt-24 px-4 sm:px-8 lg:px-16 py-10 w-full min-h-[calc(100vh-6rem)]">
+      <div className="flex flex-col lg:flex-row gap-6 lg:gap-0 lg:min-h-[600px]">
         {/* Sidebar */}
-        <aside className="w-64 flex-shrink-0 flex flex-col justify-between border-r border-[var(--color-grey-two)] pr-6 pb-8">
-          <nav className="flex flex-col gap-1">
+        <aside className="w-full lg:w-64 flex-shrink-0 flex flex-col lg:justify-between border-b lg:border-b-0 lg:border-r border-[var(--color-grey-two)] pb-4 lg:pr-6 lg:pb-8">
+          <nav className="flex flex-row lg:flex-col gap-1 overflow-x-auto">
             {TABS.map((tab) => (
               <button
                 key={tab.id}
                 type="button"
                 onClick={() => setActiveTab(tab.id)}
-                className={`w-full text-left px-4 py-3 rounded-lg font-poppins text-body-small font-semibold transition-colors cursor-pointer ${
+                className={`whitespace-nowrap lg:w-full text-left px-4 py-2.5 lg:py-3 rounded-lg font-poppins text-body-small font-semibold transition-colors cursor-pointer ${
                   activeTab === tab.id
                     ? "bg-[var(--color-grey-one)] text-[var(--color-text)]"
                     : "text-[var(--color-grey-three)] hover:bg-[var(--color-grey-one)]"
@@ -1132,55 +1578,69 @@ export default function SettingsPage() {
             ))}
           </nav>
 
+          {/* Déconnexion - desktop (bas de sidebar) */}
           <button
             type="button"
             onClick={handleLogout}
-            className="w-full px-4 py-3 border-2 border-[var(--color-secondary)] text-[var(--color-secondary)] font-poppins text-body-small font-medium rounded-lg hover:bg-[var(--color-secondary)]/10 transition cursor-pointer"
+            className="hidden lg:block w-full px-4 py-3 border-2 border-[var(--color-secondary)] text-[var(--color-secondary)] font-poppins text-body-small font-medium rounded-lg hover:bg-[var(--color-secondary)]/10 transition cursor-pointer"
           >
             Déconnexion
           </button>
         </aside>
 
         {/* Content */}
-        <main className="flex-1 pl-12">
-          {activeTab === "compte" && (
-            <TabCompte onDeleteAccount={() => setShowDeleteConfirm(true)} />
-          )}
+        <main className="flex-1 lg:pl-12">
+          {activeTab === "compte" && <TabCompte onDeleteAccount={() => setShowDeleteConfirm(true)} />}
           {activeTab === "legal" && <TabLegal />}
           {activeTab === "aide" && <TabAide />}
         </main>
+
+        {/* Déconnexion - mobile (bas de page) */}
+        <button
+          type="button"
+          onClick={handleLogout}
+          className="lg:hidden w-full px-4 py-2.5 border-2 border-[var(--color-secondary)] text-[var(--color-secondary)] font-poppins text-body-small font-medium rounded-lg hover:bg-[var(--color-secondary)]/10 transition cursor-pointer"
+        >
+          Déconnexion
+        </button>
       </div>
 
-      {/* Delete confirmation modal */}
-      {showDeleteConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="bg-white rounded-xl p-8 max-w-sm w-full mx-4 shadow-xl">
-            <h2 className="text-h3 font-poppins text-[var(--color-text)] mb-3">
-              Supprimer le compte
-            </h2>
-            <p className="text-body-small font-poppins text-[var(--color-grey-three)] mb-6">
-              Cette action est irréversible. Toutes vos données seront
-              définitivement supprimées.
-            </p>
-            <div className="flex gap-3">
-              <button
-                type="button"
-                onClick={confirmDeleteAccount}
-                className="flex-1 py-2.5 bg-[var(--color-secondary)] text-white font-poppins text-body-small rounded-lg hover:opacity-90 transition cursor-pointer"
-              >
-                Confirmer
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowDeleteConfirm(false)}
-                className="flex-1 py-2.5 border-2 border-[var(--color-grey-two)] text-[var(--color-grey-three)] font-poppins text-body-small rounded-lg hover:bg-[var(--color-grey-one)] transition cursor-pointer"
-              >
-                Annuler
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <Modal
+        isOpen={showDeleteConfirm && deleteStep === 1}
+        onClose={() => { setShowDeleteConfirm(false); setDeleteStep(1); }}
+        onButtonClick={() => setDeleteStep(2)}
+        stepContents={[{
+          title: "Supprimer mon compte ?",
+          text: "Cette action est définitive. Toutes vos données, vos événements créés, ainsi que l'accès de vos collaborateurs à ces événements seront supprimés.",
+          subtext: "Conformément au RGPD, vos données seront effacées dans un délai de 30 jours. Vous pouvez annuler votre demande à tout moment avant la suppression effective.",
+          buttonText: "Suivant",
+          image: "/images/mascotte/sad.png",
+          imagePosition: "center",
+        }]}
+      />
+
+      <DeleteConfirmModal
+        isOpen={showDeleteConfirm && deleteStep === 2}
+        onClose={() => { setShowDeleteConfirm(false); setDeleteStep(1); }}
+        onConfirm={confirmDeleteAccount}
+      />
+
+      <Modal
+        isOpen={showDeleteSuccess}
+        onClose={() => {}}
+        onButtonClick={() => {
+          setShowDeleteSuccess(false);
+          logout();
+          router.push("/login");
+        }}
+        stepContents={[{
+          title: "Supprimer mon compte ?",
+          text: `Votre demande de suppression de compte a bien été enregistrée. Nous vous enverrons une confirmation finale à ${user?.email ?? "votre adresse e-mail"} une fois la suppression effectuée.`,
+          buttonText: "Déconnexion",
+          image: "/images/mascotte/sad_1.png",
+          imagePosition: "center",
+        }]}
+      />
     </div>
   );
 }

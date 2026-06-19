@@ -56,7 +56,25 @@ export default function NotificationsPage() {
         }
 
         const data: Notification[] = await response.json();
-        setNotifications(data);
+
+        // Marquer comme lues automatiquement à la visite (sauf invitations en attente,
+        // qui restent actionnables via Accepter / Décliner)
+        const hasUnread = data.some((n) => !n.read && n.type !== "EVENT_INVITATION");
+        const displayData = data.map((n) =>
+          n.type !== "EVENT_INVITATION" ? { ...n, read: true } : n
+        );
+        setNotifications(displayData);
+
+        if (hasUnread) {
+          fetch(`/api/notifications`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ userId: user.id }),
+            signal: controller.signal,
+          })
+            .then(() => window.dispatchEvent(new Event("notificationsUpdated")))
+            .catch(() => {});
+        }
 
         // Ouvrir automatiquement la première invitation non lue
         const unreadInvitation = data.find(
@@ -153,49 +171,30 @@ export default function NotificationsPage() {
     }
   };
 
-  const handleInvitationClick = async (notification: Notification) => {
-    if (!notification.eventId) return;
 
+  const handleInlineResponse = async (notification: Notification, action: "accept" | "decline") => {
+    if (!notification.eventId || !user) return;
     try {
-      // Récupérer les détails de l'événement
-      const eventResponse = await fetch(`/api/events/${notification.eventId}`);
-      if (eventResponse.ok) {
-        const eventData = await eventResponse.json();
-        const event = eventData.event || eventData;
-        
-        // Extraire le nom du créateur depuis le message de notification
-        // Format: "@FirstName LastName vous a invité à son événement "Title""
-        const messageMatch = notification.message.match(/@([^@]+?) vous a invité/);
-        const creatorName = messageMatch
-          ? messageMatch[1].trim()
-          : "Quelqu'un";
-
-        setSelectedInvitation({
-          eventId: notification.eventId!,
-          eventTitle: event.title || "Événement",
-          creatorName,
-          notificationId: notification.id,
-        });
-      } else {
-        // Si on ne peut pas récupérer l'événement, utiliser quand même la notification
-        const messageMatch = notification.message.match(/@([^@]+?) vous a invité/);
-        setSelectedInvitation({
-          eventId: notification.eventId,
-          eventTitle: "Événement",
-          creatorName: messageMatch ? messageMatch[1].trim() : "Quelqu'un",
-          notificationId: notification.id,
-        });
-      }
-    } catch (error) {
-      console.error("Erreur lors de la récupération de l'événement:", error);
-      const messageMatch = notification.message.match(/@([^@]+?) vous a invité/);
-      setSelectedInvitation({
-        eventId: notification.eventId!,
-        eventTitle: "Événement",
-        creatorName: messageMatch ? messageMatch[1].trim() : "Quelqu'un",
-        notificationId: notification.id,
+      await fetch(`/api/events/${notification.eventId}/invitation`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: user.id, action }),
       });
+      await handleMarkAsRead(notification.id);
+      refetch();
+    } catch (error) {
+      console.error("Erreur réponse invitation:", error);
     }
+  };
+
+  const formatMessage = (message: string): React.ReactNode => {
+    const match = message.match(/^@([A-Za-zÀ-ÿ]+(?:\s[A-Za-zÀ-ÿ]+)?)(\s[\s\S]*)?$/);
+    if (!match) return message;
+    return (
+      <>
+        <strong>{match[1]}</strong>{match[2] ?? ""}
+      </>
+    );
   };
 
   const formatDate = (dateString: string) => {
@@ -255,26 +254,43 @@ export default function NotificationsPage() {
               {newNotifications.map((notification) => (
                 <div key={notification.id} className="flex items-center gap-3">
                   <div
-                    className={`flex items-center justify-between gap-4 p-3 bg-[#F4F4F4] rounded-lg flex-1 ${
-                      notification.type === "FEEDBACK_REQUEST" ||
-                      notification.type === "EVENT_INVITATION"
+                    className={`flex flex-col gap-2 p-3 bg-[#F4F4F4] rounded-lg flex-1 ${
+                      notification.type === "FEEDBACK_REQUEST"
                         ? "cursor-pointer hover:bg-gray-200 transition"
                         : ""
                     }`}
                     onClick={() => {
                       if (notification.type === "FEEDBACK_REQUEST") {
                         handleFeedbackClick(notification);
-                      } else if (notification.type === "EVENT_INVITATION") {
-                        handleInvitationClick(notification);
                       }
                     }}
                   >
-                    <p className="text-gray-800 flex-1">
-                      {notification.message}
-                    </p>
-                    <span className="text-sm text-gray-500 whitespace-nowrap">
-                      {formatDate(notification.createdAt)}
-                    </span>
+                    <div className="flex items-center justify-between gap-4">
+                      <p className="text-gray-800 flex-1">
+                        {formatMessage(notification.message)}
+                      </p>
+                      <span className="text-sm text-gray-500 whitespace-nowrap">
+                        {formatDate(notification.createdAt)}
+                      </span>
+                    </div>
+                    {notification.type === "EVENT_INVITATION" && (
+                      <div className="flex gap-2 mt-1">
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); handleInlineResponse(notification, "accept"); }}
+                          className="px-4 py-1.5 bg-[var(--color-text)] text-white text-sm font-poppins rounded-lg hover:opacity-80 transition cursor-pointer"
+                        >
+                          Accepter
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); handleInlineResponse(notification, "decline"); }}
+                          className="px-4 py-1.5 border border-[var(--color-text)] text-[var(--color-text)] text-sm font-poppins rounded-lg hover:bg-gray-100 transition cursor-pointer"
+                        >
+                          Décliner
+                        </button>
+                      </div>
+                    )}
                   </div>
                   <button
                     onClick={() => handleMarkAsRead(notification.id)}
@@ -304,7 +320,7 @@ export default function NotificationsPage() {
               {recentReadNotifications.map((notification) => (
                 <div
                   key={notification.id}
-                  className="flex items-center justify-between gap-4 p-3 bg-[#F4F4F4] rounded-lg opacity-70"
+                  className="flex items-center justify-between gap-4 p-3 bg-white rounded-lg"
                 >
                   <p className="text-gray-800 flex-1">{notification.message}</p>
                   <span className="text-sm text-gray-500 whitespace-nowrap">
@@ -326,7 +342,7 @@ export default function NotificationsPage() {
               {oldNotifications.map((notification) => (
                 <div
                   key={notification.id}
-                  className="flex items-center justify-between gap-4 p-3 bg-[#F4F4F4] rounded-lg opacity-70"
+                  className="flex items-center justify-between gap-4 p-3 bg-white rounded-lg"
                 >
                   <p className="text-gray-800 flex-1">{notification.message}</p>
                   <span className="text-sm text-gray-500 whitespace-nowrap">

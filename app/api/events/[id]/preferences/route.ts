@@ -169,7 +169,7 @@ export async function POST(request: NextRequest) {
       await prisma.notification.create({
         data: {
           userId: organizerId,
-          message: `@${user.firstName}${user.lastName} a répondu aux préférences de "${event.title}"`,
+          message: `@${user.firstName} ${user.lastName} a répondu aux préférences de "${event.title}"`,
           type: "QUESTIONNAIRE_RESPONSE",
           eventId,
         },

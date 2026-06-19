@@ -47,6 +47,33 @@ export async function GET(request: NextRequest) {
   }
 }
 
+// PATCH - Marquer toutes les notifications d'un utilisateur comme lues
+// (les invitations en attente sont conservées comme non lues pour rester actionnables)
+export async function PATCH(request: NextRequest) {
+  try {
+    const body = await request.json().catch(() => ({}));
+    const { userId } = body;
+
+    if (!userId) {
+      return NextResponse.json({ error: "userId requis" }, { status: 400 });
+    }
+
+    const result = await prisma.notification.updateMany({
+      where: {
+        userId: BigInt(userId),
+        read: false,
+        type: { not: "EVENT_INVITATION" },
+      },
+      data: { read: true },
+    });
+
+    return NextResponse.json({ success: true, count: result.count });
+  } catch (error) {
+    console.error("Erreur marquage notifications:", error);
+    return NextResponse.json({ error: "Erreur serveur" }, { status: 500 });
+  }
+}
+
 // POST - Créer une nouvelle notification
 export async function POST(request: NextRequest) {
   try {
