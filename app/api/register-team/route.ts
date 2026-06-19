@@ -2,9 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import { randomBytes } from "node:crypto";
-import { render } from "@react-email/render";
-import { SetPasswordEmailTemplate } from "@/components/set-password-email-template";
-import { sendEmail } from "@/lib/brevo";
+import { sendEmailTemplate } from "@/lib/brevo";
 
 interface CSVRow {
     email: string;
@@ -163,21 +161,14 @@ export async function POST(req: NextRequest) {
             ? process.env.BREVO_TEST_EMAIL || "glyms.app@gmail.com"
             : ownerEmail;
 
-        const ownerHtml = await render(
-            SetPasswordEmailTemplate({
-                setPasswordLink: ownerSetPasswordLink,
-                userEmail: ownerEmail,
-                firstName,
-                isOwner: true,
-            })
-        );
-
-        await sendEmail({
+        await sendEmailTemplate({
             to: [{ email: ownerRecipientEmail, name: `${firstName} ${lastName}` }],
-            subject: isDevelopment
-                ? `[TEST] Créez votre mot de passe Glyms - ${ownerEmail}`
-                : "Créez votre mot de passe - Glyms",
-            html: ownerHtml,
+            templateId: Number(process.env.BREVO_TEMPLATE_ID_WELCOME_ENTREPRISE),
+            params: {
+                FIRSTNAME: firstName,
+                USER_EMAIL: ownerEmail,
+                SET_PASSWORD_LINK: ownerSetPasswordLink,
+            },
         });
 
         // Créer les utilisateurs de l'équipe
@@ -244,21 +235,14 @@ export async function POST(req: NextRequest) {
                     ? process.env.BREVO_TEST_EMAIL || "glyms.app@gmail.com"
                     : employeeEmail;
 
-                const employeeHtml = await render(
-                    SetPasswordEmailTemplate({
-                        setPasswordLink,
-                        userEmail: employeeEmail,
-                        firstName: employee.firstName || '',
-                        isOwner: false,
-                    })
-                );
-
-                await sendEmail({
+                await sendEmailTemplate({
                     to: [{ email: recipientEmail, name: `${employee.firstName} ${employee.lastName}` }],
-                    subject: isDevelopment
-                        ? `[TEST] Créez votre mot de passe Glyms - ${employeeEmail}`
-                        : "Créez votre mot de passe - Glyms",
-                    html: employeeHtml,
+                    templateId: Number(process.env.BREVO_TEMPLATE_ID_WELCOME_COLLABORATEUR),
+                    params: {
+                        FIRSTNAME: employee.firstName || '',
+                        USER_EMAIL: employeeEmail,
+                        SET_PASSWORD_LINK: setPasswordLink,
+                    },
                 });
 
                 usersCreated++;

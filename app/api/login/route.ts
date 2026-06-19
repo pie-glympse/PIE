@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import jwt from "jsonwebtoken";
+import { sendEmailTemplate } from "@/lib/brevo";
 
 const JWT_SECRET = process.env.JWT_SECRET || "supersecretkey"; // mettre dans .env
 
@@ -22,6 +23,24 @@ export async function POST(req: Request) {
     const isValid = await bcrypt.compare(password, user.password);
     if (!isValid) {
       return NextResponse.json({ error: "Mot de passe incorrect" }, { status: 401 });
+    }
+
+    // Envoyer le mail de bienvenue à la première connexion
+    if (!user.welcomeEmailSent) {
+      const recipientEmail = process.env.NODE_ENV === "development"
+        ? process.env.BREVO_TEST_EMAIL || "glyms.app@gmail.com"
+        : user.email;
+
+      sendEmailTemplate({
+        to: [{ email: recipientEmail, name: `${user.firstName} ${user.lastName}` }],
+        templateId: Number(process.env.BREVO_TEMPLATE_ID_WELCOME_COLLABORATEUR),
+        params: { FIRSTNAME: user.firstName },
+      }).catch(err => console.error("Erreur envoi mail bienvenue:", err));
+
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { welcomeEmailSent: true },
+      });
     }
 
     // Créer un token JWT avec id, email, name, role

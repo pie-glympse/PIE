@@ -1,10 +1,6 @@
-import * as Brevo from "@getbrevo/brevo";
+import { BrevoClient } from "@getbrevo/brevo";
 
-const apiInstance = new Brevo.TransactionalEmailsApi();
-apiInstance.setApiKey(
-  Brevo.TransactionalEmailsApiApiKeys.apiKey,
-  process.env.BREVO_API_KEY!
-);
+const client = new BrevoClient({ apiKey: process.env.BREVO_API_KEY! });
 
 export const BREVO_SENDER = {
   name: "Glyms",
@@ -20,10 +16,27 @@ export async function sendEmail({
   subject: string;
   html: string;
 }) {
-  return apiInstance.sendTransacEmail({
+  return client.transactionalEmails.sendTransacEmail({
     sender: BREVO_SENDER,
     to,
     subject,
     htmlContent: html,
+  });
+}
+
+export async function sendEmailTemplate({
+  to,
+  templateId,
+  params,
+}: {
+  to: { email: string; name?: string }[];
+  templateId: number;
+  params?: Record<string, string>;
+}) {
+  return client.transactionalEmails.sendTransacEmail({
+    sender: BREVO_SENDER,
+    to,
+    templateId,
+    params,
   });
 }

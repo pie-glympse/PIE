@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { randomBytes } from "node:crypto";
-import { render } from "@react-email/render";
-import { PasswordResetEmailTemplate } from "@/components/password-reset-email-template";
 import { prisma } from "@/lib/prisma";
-import { sendEmail } from "@/lib/brevo";
+import { sendEmailTemplate } from "@/lib/brevo";
 
 export async function POST(req: NextRequest) {
   try {
@@ -55,18 +53,14 @@ export async function POST(req: NextRequest) {
         ? process.env.BREVO_TEST_EMAIL || "glyms.app@gmail.com"
         : email;
 
-      const subject = isDevelopment
-        ? `[TEST] Réinitialisation mot de passe - Demandé pour: ${email}`
-        : "Réinitialisation de votre mot de passe - Glyms";
-
-      const html = await render(
-        PasswordResetEmailTemplate({ resetLink, userEmail: email })
-      );
-
-      await sendEmail({
+      await sendEmailTemplate({
         to: [{ email: recipientEmail, name: `${user.firstName} ${user.lastName}` }],
-        subject,
-        html,
+        templateId: Number(process.env.BREVO_TEMPLATE_ID_RESET_PASSWORD),
+        params: {
+          USER_EMAIL: email,
+          RESET_LINK: resetLink,
+          FIRSTNAME: user.firstName,
+        },
       });
     } catch (emailError) {
       console.error("Erreur lors de l'envoi de l'email:", emailError);

@@ -27,6 +27,7 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  serverExternalPackages: ["@getbrevo/brevo"],
   webpack: (config, { isServer }) => {
     if (isServer) {
       config.externals.push("@prisma/client");

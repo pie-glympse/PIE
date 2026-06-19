@@ -1,19 +1,19 @@
-import { EmailTemplate } from "@/components/email-template";
-import { render } from "@react-email/render";
-import { sendEmail } from "@/lib/brevo";
+import { sendEmailTemplate } from "@/lib/brevo";
 
 export async function POST() {
   try {
-    const html = await render(EmailTemplate({ firstName: "John" }));
-
-    await sendEmail({
-      to: [{ email: "delivered@example.com", name: "John" }],
-      subject: "Hello world",
-      html,
+    const result = await sendEmailTemplate({
+      to: [{ email: process.env.BREVO_TEST_EMAIL || "glyms.app@gmail.com", name: "Test" }],
+      templateId: Number(process.env.BREVO_TEMPLATE_ID_TEST || 1),
+      params: {
+        FIRSTNAME: "Kevin",
+      },
     });
 
-    return Response.json({ message: "Email envoyé" });
+    console.log("Brevo response:", JSON.stringify(result, null, 2));
+    return Response.json({ message: "Email envoyé via template Brevo", result });
   } catch (error) {
-    return Response.json({ error }, { status: 500 });
+    console.error("Brevo error:", error);
+    return Response.json({ error: String(error) }, { status: 500 });
   }
 }
