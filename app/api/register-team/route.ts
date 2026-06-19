@@ -3,8 +3,7 @@ import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import { randomBytes } from "node:crypto";
-import { Resend } from "resend";
-import { SetPasswordEmailTemplate } from "@/components/set-password-email-template";
+import { sendEmailTemplate } from "@/lib/brevo";
 import {
     mergeTeamMembers,
     parseTeamCSV,
@@ -14,8 +13,6 @@ import {
     REGISTRATION_ACCESS_COOKIE,
     verifyRegistrationAccessToken,
 } from "@/lib/registration-access";
-
-const resend = new Resend(process.env.RESEND_API_KEY);
 
 async function getOrCreateTeam(
   teamCache: Map<string, bigint>,
@@ -81,32 +78,18 @@ async function createEmployeeAccount(
   const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
   await prisma.passwordResetToken.create({
-    data: {
-      token,
-      email,
-      userId: user.id,
-      expiresAt,
-      used: false,
-    },
+    data: { token, email, userId: user.id, expiresAt, used: false },
   });
 
   const setPasswordLink = `${baseUrl}/set-password?token=${token}&email=${encodeURIComponent(email)}`;
   const recipientEmail = isDevelopment
-    ? process.env.RESEND_TEST_EMAIL || "glyms.app@gmail.com"
+    ? process.env.BREVO_TEST_EMAIL || "glyms.app@gmail.com"
     : email;
 
-  await resend.emails.send({
-    from: process.env.RESEND_FROM_EMAIL || "Glyms <onboarding@resend.dev>",
-    to: [recipientEmail],
-    subject: isDevelopment
-      ? `[TEST] Créez votre mot de passe Glyms - ${email}`
-      : "Créez votre mot de passe - Glyms",
-    react: SetPasswordEmailTemplate({
-      setPasswordLink,
-      userEmail: email,
-      firstName: employee.firstName || "",
-      isOwner: false,
-    }),
+  await sendEmailTemplate({
+    to: [{ email: recipientEmail, name: `${employee.firstName} ${employee.lastName}` }],
+    templateId: Number(process.env.BREVO_TEMPLATE_ID_WELCOME_COLLABORATEUR),
+    params: { FIRSTNAME: employee.firstName || "", USER_EMAIL: email, SET_PASSWORD_LINK: setPasswordLink },
   });
 }
 
@@ -265,34 +248,20 @@ export async function POST(req: NextRequest) {
     const ownerExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
     await prisma.passwordResetToken.create({
-      data: {
-        token: ownerToken,
-        email: ownerEmail,
-        userId: owner.id,
-        expiresAt: ownerExpiresAt,
-        used: false,
-      },
+      data: { token: ownerToken, email: ownerEmail, userId: owner.id, expiresAt: ownerExpiresAt, used: false },
     });
 
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3001";
     const ownerSetPasswordLink = `${baseUrl}/set-password?token=${ownerToken}&email=${encodeURIComponent(ownerEmail)}`;
     const isDevelopment = process.env.NODE_ENV === "development";
     const ownerRecipientEmail = isDevelopment
-      ? process.env.RESEND_TEST_EMAIL || "glyms.app@gmail.com"
+      ? process.env.BREVO_TEST_EMAIL || "glyms.app@gmail.com"
       : ownerEmail;
 
-    await resend.emails.send({
-      from: process.env.RESEND_FROM_EMAIL || "Glyms <onboarding@resend.dev>",
-      to: [ownerRecipientEmail],
-      subject: isDevelopment
-        ? `[TEST] Créez votre mot de passe Glyms - ${ownerEmail}`
-        : "Créez votre mot de passe - Glyms",
-      react: SetPasswordEmailTemplate({
-        setPasswordLink: ownerSetPasswordLink,
-        userEmail: ownerEmail,
-        firstName,
-        isOwner: true,
-      }),
+    await sendEmailTemplate({
+      to: [{ email: ownerRecipientEmail, name: `${firstName} ${lastName}` }],
+      templateId: Number(process.env.BREVO_TEMPLATE_ID_WELCOME_ENTREPRISE),
+      params: { FIRSTNAME: firstName, USER_EMAIL: ownerEmail, SET_PASSWORD_LINK: ownerSetPasswordLink },
     });
 
     const teamCache = new Map<string, bigint>();

@@ -7,22 +7,23 @@ datasource db {
 }
 
 model User {
-  id                            BigInt                      @id @default(autoincrement())
-  email                         String                      @unique
+  id                            BigInt                @id @default(autoincrement())
+  email                         String                @unique
   password                      String
-  role                          String                      @default("STANDARD")
-  photoUrl                      String                      @default("")
-  firstName                     String                      @default("")
-  lastName                      String                      @default("")
+  role                          String                @default("STANDARD")
+  photoUrl                      String                @default("")
+  firstName                     String                @default("")
+  lastName                      String                @default("")
   companyId                     BigInt?
   teamId                        BigInt?
-  hasSeenOnboarding             Boolean                     @default(false)
-  points                        Int                         @default(0)
+  hasSeenOnboarding             Boolean               @default(false)
+  welcomeEmailSent              Boolean               @default(false)
+  points                        Int                   @default(0)
   selectedBadgeId               BigInt?
-  bannerUrl                     String                      @default("")
+  bannerUrl                     String                @default("")
   blacklistedPlaces             BlacklistedPlace[]
   companyStats                  CompanyStats?
-  Event_Event_createdByIdToUser Event[]                     @relation("Event_createdByIdToUser")
+  Event_Event_createdByIdToUser Event[]               @relation("Event_createdByIdToUser")
   preferences                   EventUserPreference[]
   themeVotes                    EventThemeVote[]
   photos                        EventsUsersPhoto[]
@@ -30,12 +31,12 @@ model User {
   notifications                 Notification[]
   PasswordResetToken            PasswordResetToken[]
   PointsHistory                 PointsHistory[]
-  company                       Company?                    @relation(fields: [companyId], references: [id])
-  Badge                         Badge?                      @relation(fields: [selectedBadgeId], references: [id])
-  team                          Team?                       @relation(fields: [teamId], references: [id])
+  company                       Company?              @relation(fields: [companyId], references: [id])
+  Badge                         Badge?                @relation(fields: [selectedBadgeId], references: [id])
+  team                          Team?                 @relation(fields: [teamId], references: [id])
   UserBadge                     UserBadge[]
   votes                         Vote[]
-  events                        Event[]                     @relation("EventUsers")
+  events                        Event[]               @relation("EventUsers")
 }
 
 model Company {
@@ -58,27 +59,27 @@ model Team {
 }
 
 model Event {
-  id                           BigInt                      @id @default(autoincrement())
-  title                        String
-  maxPersons                   BigInt?
-  costPerPerson                BigInt?
-  state                        String                      @default("PENDING")
-  createdAt                    DateTime                    @default(now())
-  updatedAt                    DateTime
-  uuid                         String                      @unique @default(uuid())
-  city                         String?
-  endDate                      DateTime?
-  endTime                      DateTime?
-  maxDistance                  Float?
-  startDate                    DateTime?
-  startTime                    DateTime?
-  createdById                  BigInt?
-  duration                     Int?
-  recurring                    Boolean                     @default(false)
-  recurringRate                String?
-  isSpecificPlace              Boolean                     @default(false)
-  isPublic                     Boolean                     @default(false)
-  publicStatus                 String                      @default("open")
+  id                               BigInt                      @id @default(autoincrement())
+  title                            String
+  maxPersons                       BigInt?
+  costPerPerson                    BigInt?
+  state                            String                      @default("PENDING")
+  createdAt                        DateTime                    @default(now())
+  updatedAt                        DateTime
+  uuid                             String                      @unique @default(uuid())
+  city                             String?
+  endDate                          DateTime?
+  endTime                          DateTime?
+  maxDistance                      Float?
+  startDate                        DateTime?
+  startTime                        DateTime?
+  createdById                      BigInt?
+  duration                         Int?
+  recurring                        Boolean                     @default(false)
+  recurringRate                    String?
+  isSpecificPlace                  Boolean                     @default(false)
+  isPublic                         Boolean                     @default(false)
+  publicStatus                     String                      @default("open")
   confirmedGoogleTagId             BigInt?
   confirmedGoogleTagSubGroupId     BigInt?                     @map("confirmed_google_tag_sub_group_id")
   blacklistedPlaces                BlacklistedPlace[]
@@ -111,46 +112,46 @@ model GoogleTagGroup {
 }
 
 model GoogleTagSubGroup {
-  id                 BigInt           @id @default(autoincrement())
-  name               String
-  groupId            BigInt           @map("group_id")
-  sortOrder          Int              @default(0) @map("sort_order")
-  isActive           Boolean          @default(true) @map("is_active")
-  createdAt          DateTime         @default(now()) @map("created_at")
-  updatedAt          DateTime         @updatedAt @map("updated_at")
-  group              GoogleTagGroup   @relation(fields: [groupId], references: [id], onDelete: Cascade)
-  tags               GoogleTag[]
-  themeVotes         EventThemeVote[]
-  confirmedOnEvents  Event[]          @relation("EventConfirmedGoogleTagSubGroup")
+  id                BigInt           @id @default(autoincrement())
+  name              String
+  groupId           BigInt           @map("group_id")
+  sortOrder         Int              @default(0) @map("sort_order")
+  isActive          Boolean          @default(true) @map("is_active")
+  createdAt         DateTime         @default(now()) @map("created_at")
+  updatedAt         DateTime         @updatedAt @map("updated_at")
+  group             GoogleTagGroup   @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  tags              GoogleTag[]
+  themeVotes        EventThemeVote[]
+  confirmedOnEvents Event[]          @relation("EventConfirmedGoogleTagSubGroup")
 
   @@index([groupId, sortOrder])
   @@map("google_tag_sub_groups")
 }
 
 model GoogleTag {
-  id               BigInt             @id @default(autoincrement())
-  techName         String             @unique @map("tech_name")
-  displayName      String?            @map("display_name")
-  source           String             @default("google-docs")
-  isActive         Boolean            @default(true) @map("is_active")
-  subGroupId       BigInt?            @map("sub_group_id")
-  sortOrder        Int                @default(0) @map("sort_order")
-  createdAt        DateTime           @default(now()) @map("created_at")
-  updatedAt        DateTime           @updatedAt @map("updated_at")
-  subGroup         GoogleTagSubGroup? @relation(fields: [subGroupId], references: [id], onDelete: SetNull)
-  selectedByEvents Event[]            @relation("EventSelectedGoogleTags")
-  confirmedOnEvents Event[]           @relation("EventConfirmedGoogleTag")
+  id                BigInt             @id @default(autoincrement())
+  techName          String             @unique @map("tech_name")
+  displayName       String?            @map("display_name")
+  source            String             @default("google-docs")
+  isActive          Boolean            @default(true) @map("is_active")
+  subGroupId        BigInt?            @map("sub_group_id")
+  sortOrder         Int                @default(0) @map("sort_order")
+  createdAt         DateTime           @default(now()) @map("created_at")
+  updatedAt         DateTime           @updatedAt @map("updated_at")
+  subGroup          GoogleTagSubGroup? @relation(fields: [subGroupId], references: [id], onDelete: SetNull)
+  selectedByEvents  Event[]            @relation("EventSelectedGoogleTags")
+  confirmedOnEvents Event[]            @relation("EventConfirmedGoogleTag")
 
   @@index([subGroupId, sortOrder])
   @@map("google_tags")
 }
 
 model EventUserPreference {
-  userId         BigInt
-  eventId        BigInt
-  preferredDate  DateTime
-  event          Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  user           User  @relation(fields: [userId], references: [id])
+  userId        BigInt
+  eventId       BigInt
+  preferredDate DateTime
+  event         Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user          User     @relation(fields: [userId], references: [id])
 
   @@id([userId, eventId])
 }

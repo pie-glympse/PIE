@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { addCacheHeaders, CACHE_STRATEGIES } from "@/lib/cache-utils";
 import { enrichEventForClient } from "@/lib/event-public";
+import { sendEmailTemplate } from "@/lib/brevo";
 
 const toJson = (data: unknown) =>
   JSON.parse(
@@ -158,7 +159,7 @@ export async function POST(request: Request) {
     if (isPublic) {
       const creator = await prisma.user.findUnique({
         where: { id: userIdBigInt },
-        select: { companyId: true },
+        select: { companyId: true, firstName: true, lastName: true },
       });
       if (creator?.companyId) {
         const companyUsers = await prisma.user.findMany({
@@ -166,7 +167,7 @@ export async function POST(request: Request) {
             companyId: creator.companyId,
             id: { not: userIdBigInt },
           },
-          select: { id: true },
+          select: { id: true, email: true, firstName: true, lastName: true },
         });
         if (companyUsers.length > 0) {
           await prisma.notification.createMany({
@@ -176,6 +177,17 @@ export async function POST(request: Request) {
               type: "EVENT_PUBLIC_AVAILABLE",
               eventId: event.id,
             })),
+          });
+
+          const isDev = process.env.NODE_ENV === "development";
+          const creatorName = `${creator.firstName} ${creator.lastName}`;
+          companyUsers.forEach((u) => {
+            const recipient = isDev ? process.env.BREVO_TEST_EMAIL || "glyms.app@gmail.com" : u.email;
+            sendEmailTemplate({
+              to: [{ email: recipient, name: `${u.firstName} ${u.lastName}` }],
+              templateId: Number(process.env.BREVO_TEMPLATE_ID_NEW_EVENT),
+              params: { FIRSTNAME: u.firstName, EVENT_TITLE: title, CREATOR_NAME: creatorName },
+            }).catch((err) => console.error("Erreur mail nouvel event:", err));
           });
         }
       }

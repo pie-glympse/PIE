@@ -36,3 +36,28 @@ export async function POST() {
 
   return response;
 }
+
+export async function GET() {
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+  const response = NextResponse.redirect(new URL("/login", baseUrl));
+
+  const tokenCookie = clearCookie("token");
+  response.cookies.set(tokenCookie.name, tokenCookie.value, {
+    expires: tokenCookie.expires,
+    path: tokenCookie.path,
+    httpOnly: tokenCookie.httpOnly,
+    secure: tokenCookie.secure,
+    sameSite: tokenCookie.sameSite,
+  });
+
+  const registrationCookie = clearCookie(REGISTRATION_ACCESS_COOKIE);
+  response.cookies.set(registrationCookie.name, registrationCookie.value, {
+    expires: registrationCookie.expires,
+    path: registrationCookie.path,
+    httpOnly: registrationCookie.httpOnly,
+    secure: registrationCookie.secure,
+    sameSite: registrationCookie.sameSite,
+  });
+
+  return response;
+}

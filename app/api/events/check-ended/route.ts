@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { sendEmailTemplate } from "@/lib/brevo";
 
 /**
  * Cette route vérifie les événements terminés et crée des notifications de feedback
@@ -14,30 +15,24 @@ export async function POST(request: NextRequest) {
 
   try {
     const now = new Date();
-    
-    // Récupérer tous les événements qui ont une date de fin passée
-    // et qui ne sont pas annulés
+    const oneDayAgo = new Date(now);
+    oneDayAgo.setDate(oneDayAgo.getDate() - 1);
+
     const allEvents = await prisma.event.findMany({
-      where: {
-        state: {
-          not: "CANCELLED",
-        },
-      },
+      where: { state: { not: "CANCELLED" } },
       include: {
         users: {
-          select: {
-            id: true,
-          },
+          select: { id: true, email: true, firstName: true, lastName: true },
         },
       },
     });
 
+    const isDev = process.env.NODE_ENV === "development";
     let notificationsCreated = 0;
 
     for (const event of allEvents) {
-      // Calculer la date de fin réelle de l'événement
       let eventEndDate: Date | null = null;
-      
+
       if (event.endDate) {
         eventEndDate = new Date(event.endDate);
       } else if (event.endTime) {
@@ -50,35 +45,22 @@ export async function POST(request: NextRequest) {
         eventEndDate.setHours(23, 59, 59, 999);
       }
 
-      // Si on ne peut pas déterminer la date de fin, passer à l'événement suivant
-      if (!eventEndDate) {
-        continue;
-      }
+      if (!eventEndDate) continue;
 
-      // Si l'événement est terminé (date de fin passée)
+      // Événement terminé depuis J+1 (entre 1 et 2 jours)
+      const twoDaysAgo = new Date(now);
+      twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
+      const isJ1 = eventEndDate >= twoDaysAgo && eventEndDate < oneDayAgo;
+
       if (eventEndDate < now) {
-        // Pour chaque utilisateur invité, créer une notification de feedback
         for (const user of event.users) {
-          // Vérifier si une notification de feedback existe déjà
           const existingNotification = await prisma.notification.findFirst({
-            where: {
-              userId: user.id,
-              eventId: event.id,
-              type: "FEEDBACK_REQUEST",
-            },
+            where: { userId: user.id, eventId: event.id, type: "FEEDBACK_REQUEST" },
           });
-
-          // Vérifier si l'utilisateur a déjà soumis un feedback
           const existingFeedback = await prisma.feedback.findUnique({
-            where: {
-              userId_eventId: {
-                userId: user.id,
-                eventId: event.id,
-              },
-            },
+            where: { userId_eventId: { userId: user.id, eventId: event.id } },
           });
 
-          // Créer la notification seulement si elle n'existe pas et qu'il n'y a pas de feedback
           if (!existingNotification && !existingFeedback) {
             await prisma.notification.create({
               data: {
@@ -88,6 +70,17 @@ export async function POST(request: NextRequest) {
                 eventId: event.id,
               },
             });
+
+            // Envoyer le mail feedback uniquement à J+1
+            if (isJ1) {
+              const recipient = isDev ? process.env.BREVO_TEST_EMAIL || "glyms.app@gmail.com" : user.email;
+              sendEmailTemplate({
+                to: [{ email: recipient, name: `${user.firstName} ${user.lastName}` }],
+                templateId: Number(process.env.BREVO_TEMPLATE_ID_FEEDBACK),
+                params: { FIRSTNAME: user.firstName, EVENT_TITLE: event.title },
+              }).catch((err) => console.error("Erreur mail feedback:", err));
+            }
+
             notificationsCreated++;
           }
         }
