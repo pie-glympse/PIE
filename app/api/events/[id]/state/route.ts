@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { sendEmailTemplate } from '@/lib/brevo';
 
 function safeJson(obj: unknown) {
   return JSON.parse(
@@ -153,6 +154,30 @@ export async function PATCH(
 
         return event;
       });
+
+      // Envoyer le mail "activité confirmée" à tous les participants
+      const eventWithUsers = await prisma.event.findUnique({
+        where: { id: eventId },
+        select: {
+          title: true,
+          startDate: true,
+          users: { select: { email: true, firstName: true, lastName: true } },
+        },
+      });
+      if (eventWithUsers) {
+        const isDev = process.env.NODE_ENV === "development";
+        const eventDate = eventWithUsers.startDate
+          ? new Date(eventWithUsers.startDate).toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" })
+          : "";
+        eventWithUsers.users.forEach((u) => {
+          const recipient = isDev ? process.env.BREVO_TEST_EMAIL || "glyms.app@gmail.com" : u.email;
+          sendEmailTemplate({
+            to: [{ email: recipient, name: `${u.firstName} ${u.lastName}` }],
+            templateId: Number(process.env.BREVO_TEMPLATE_ID_EVENT_CONFIRMED),
+            params: { FIRSTNAME: u.firstName, EVENT_TITLE: eventWithUsers.title, EVENT_DATE: eventDate },
+          }).catch((err) => console.error("Erreur mail event confirmé:", err));
+        });
+      }
 
       return NextResponse.json(safeJson(updatedEvent), { status: 200 });
     } else {

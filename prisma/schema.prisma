@@ -17,6 +17,7 @@ model User {
   companyId                     BigInt?
   teamId                        BigInt?
   hasSeenOnboarding             Boolean               @default(false)
+  welcomeEmailSent              Boolean               @default(false)
   points                        Int                   @default(0)
   selectedBadgeId               BigInt?
   bannerUrl                     String                @default("")

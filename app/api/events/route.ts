@@ -6,6 +6,7 @@ import {
   addCacheHeaders,
   CACHE_STRATEGIES,
 } from "@/lib/cache-utils";
+import { sendEmailTemplate } from "@/lib/brevo";
 
 export async function POST(request: Request) {
   try {
@@ -308,6 +309,22 @@ export async function POST(request: Request) {
               type: "EVENT_INVITATION",
               eventId: newEvent.id,
             })),
+          });
+
+          // Envoyer un mail "nouvel événement" à chaque invité
+          const invitedUsersData = await prisma.user.findMany({
+            where: { id: { in: usersToNotify.map((id: number) => BigInt(id)) } },
+            select: { email: true, firstName: true, lastName: true },
+          });
+          const isDev = process.env.NODE_ENV === "development";
+          const creatorName = `${creator.firstName} ${creator.lastName}`;
+          invitedUsersData.forEach((u) => {
+            const recipient = isDev ? process.env.BREVO_TEST_EMAIL || "glyms.app@gmail.com" : u.email;
+            sendEmailTemplate({
+              to: [{ email: recipient, name: `${u.firstName} ${u.lastName}` }],
+              templateId: Number(process.env.BREVO_TEMPLATE_ID_NEW_EVENT),
+              params: { FIRSTNAME: u.firstName, EVENT_TITLE: title, CREATOR_NAME: creatorName },
+            }).catch((err) => console.error("Erreur mail nouvel event:", err));
           });
         }
       }
