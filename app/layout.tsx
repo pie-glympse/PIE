@@ -3,7 +3,6 @@ import type { ReactNode } from "react";
 import { Urbanist, Poppins } from 'next/font/google';
 import "./globals.css";
 import AppShell from "@/app/AppShell";
-import DecorationImage from "@/components/ui/DecorationImage";
 
 const urbanist = Urbanist({
   subsets: ['latin'],
@@ -34,7 +33,6 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <AppShell>
           <div className="relative">
             {children}
-            <DecorationImage />
           </div>
         </AppShell>
       </body>

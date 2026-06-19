@@ -1,4 +1,3 @@
-
 interface GcardSkeletonProps {
   /** Même className que Gcard pour garder les mêmes dimensions (ex: "w-full h-60") */
   className?: string;
@@ -19,14 +18,6 @@ export default function GcardSkeleton({
         {/* Ligne titre + espace menu (même flex que Gcard) */}
         <div className="flex">
           <div className="h-6 w-3/4 max-w-[200px] rounded bg-gray-200" />
-          <div className="ml-auto flex items-center gap-2">
-            <div className="h-3 w-3 rounded-full bg-gray-200" />
-            <div className="flex gap-0.5">
-              <span className="h-1 w-1 rounded-full bg-gray-200 block" />
-              <span className="h-1 w-1 rounded-full bg-gray-200 block" />
-              <span className="h-1 w-1 rounded-full bg-gray-200 block" />
-            </div>
-          </div>
         </div>
 
         {/* Date */}

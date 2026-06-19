@@ -79,33 +79,69 @@ model Event {
   isSpecificPlace              Boolean                     @default(false)
   isPublic                     Boolean                     @default(false)
   publicStatus                 String                      @default("open")
-  confirmedGoogleTagId         BigInt?
-  blacklistedPlaces            BlacklistedPlace[]
-  User_Event_createdByIdToUser User?                       @relation("Event_createdByIdToUser", fields: [createdById], references: [id])
-  location                     EventLocation?
-  preferences                  EventUserPreference[]
-  themeVotes                   EventThemeVote[]
-  photos                       EventsUsersPhoto[]
-  feedbacks                    Feedback[]
-  notifications                Notification[]
-  votes                        Vote[]
-  selectedGoogleTags           GoogleTag[]                 @relation("EventSelectedGoogleTags")
-  confirmedGoogleTag           GoogleTag?                  @relation("EventConfirmedGoogleTag", fields: [confirmedGoogleTagId], references: [id])
-  users                        User[]                      @relation("EventUsers")
+  confirmedGoogleTagId             BigInt?
+  confirmedGoogleTagSubGroupId     BigInt?                     @map("confirmed_google_tag_sub_group_id")
+  blacklistedPlaces                BlacklistedPlace[]
+  User_Event_createdByIdToUser     User?                       @relation("Event_createdByIdToUser", fields: [createdById], references: [id])
+  location                         EventLocation?
+  preferences                      EventUserPreference[]
+  themeVotes                       EventThemeVote[]
+  photos                           EventsUsersPhoto[]
+  feedbacks                        Feedback[]
+  notifications                    Notification[]
+  votes                            Vote[]
+  selectedGoogleTags               GoogleTag[]                 @relation("EventSelectedGoogleTags")
+  selectedGoogleTagGroups          GoogleTagGroup[]            @relation("EventSelectedGoogleTagGroups")
+  confirmedGoogleTag               GoogleTag?                  @relation("EventConfirmedGoogleTag", fields: [confirmedGoogleTagId], references: [id])
+  confirmedGoogleTagSubGroup       GoogleTagSubGroup?          @relation("EventConfirmedGoogleTagSubGroup", fields: [confirmedGoogleTagSubGroupId], references: [id])
+  users                            User[]                      @relation("EventUsers")
+}
+
+model GoogleTagGroup {
+  id               BigInt              @id @default(autoincrement())
+  name             String
+  sortOrder        Int                 @default(0) @map("sort_order")
+  isActive         Boolean             @default(true) @map("is_active")
+  createdAt        DateTime            @default(now()) @map("created_at")
+  updatedAt        DateTime            @updatedAt @map("updated_at")
+  subGroups        GoogleTagSubGroup[]
+  selectedByEvents Event[]             @relation("EventSelectedGoogleTagGroups")
+
+  @@map("google_tag_groups")
+}
+
+model GoogleTagSubGroup {
+  id                 BigInt           @id @default(autoincrement())
+  name               String
+  groupId            BigInt           @map("group_id")
+  sortOrder          Int              @default(0) @map("sort_order")
+  isActive           Boolean          @default(true) @map("is_active")
+  createdAt          DateTime         @default(now()) @map("created_at")
+  updatedAt          DateTime         @updatedAt @map("updated_at")
+  group              GoogleTagGroup   @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  tags               GoogleTag[]
+  themeVotes         EventThemeVote[]
+  confirmedOnEvents  Event[]          @relation("EventConfirmedGoogleTagSubGroup")
+
+  @@index([groupId, sortOrder])
+  @@map("google_tag_sub_groups")
 }
 
 model GoogleTag {
-  id          BigInt   @id @default(autoincrement())
-  techName    String   @unique @map("tech_name")
-  displayName String?  @map("display_name")
-  source      String   @default("google-docs")
-  isActive    Boolean  @default(true) @map("is_active")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-  selectedByEvents Event[]         @relation("EventSelectedGoogleTags")
-  confirmedOnEvents Event[]        @relation("EventConfirmedGoogleTag")
-  themeVotes       EventThemeVote[]
+  id               BigInt             @id @default(autoincrement())
+  techName         String             @unique @map("tech_name")
+  displayName      String?            @map("display_name")
+  source           String             @default("google-docs")
+  isActive         Boolean            @default(true) @map("is_active")
+  subGroupId       BigInt?            @map("sub_group_id")
+  sortOrder        Int                @default(0) @map("sort_order")
+  createdAt        DateTime           @default(now()) @map("created_at")
+  updatedAt        DateTime           @updatedAt @map("updated_at")
+  subGroup         GoogleTagSubGroup? @relation(fields: [subGroupId], references: [id], onDelete: SetNull)
+  selectedByEvents Event[]            @relation("EventSelectedGoogleTags")
+  confirmedOnEvents Event[]           @relation("EventConfirmedGoogleTag")
 
+  @@index([subGroupId, sortOrder])
   @@map("google_tags")
 }
 
@@ -120,16 +156,16 @@ model EventUserPreference {
 }
 
 model EventThemeVote {
-  userId     BigInt
-  eventId    BigInt
-  googleTagId BigInt
-  createdAt   DateTime @default(now())
-  event       Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  googleTag   GoogleTag @relation(fields: [googleTagId], references: [id], onDelete: Cascade)
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId              BigInt
+  eventId             BigInt
+  googleTagSubGroupId BigInt            @map("google_tag_sub_group_id")
+  createdAt           DateTime          @default(now())
+  event               Event             @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  googleTagSubGroup   GoogleTagSubGroup @relation(fields: [googleTagSubGroupId], references: [id], onDelete: Cascade)
+  user                User              @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@id([userId, eventId, googleTagId])
-  @@index([eventId, googleTagId])
+  @@id([userId, eventId, googleTagSubGroupId])
+  @@index([eventId, googleTagSubGroupId])
 }
 
 model EventsUsersPhoto {

@@ -1,30 +1,27 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { buildPrincipalGroups } from "@/lib/google-tags/serialize";
+import { ensureDefaultGoogleTagGroups } from "@/lib/google-tags/default-groups";
+import { ensureDefaultGoogleTagSubGroups } from "@/lib/google-tags/default-sub-groups";
 
 export async function GET() {
   try {
-    const tags = await prisma.googleTag.findMany({
-      where: {
-        isActive: true,
-        displayName: {
-          not: null,
-        },
-      },
-      orderBy: {
-        displayName: "asc",
-      },
+    await ensureDefaultGoogleTagGroups(prisma);
+    await ensureDefaultGoogleTagSubGroups(prisma);
+
+    const groups = await prisma.googleTagGroup.findMany({
+      where: { isActive: true },
+      orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
       select: {
         id: true,
-        techName: true,
-        displayName: true,
+        name: true,
+        sortOrder: true,
+        isActive: true,
       },
     });
 
     return NextResponse.json(
-      tags.map((tag) => ({
-        ...tag,
-        id: tag.id.toString(),
-      })),
+      { groups: buildPrincipalGroups(groups) },
       { status: 200 },
     );
   } catch (error) {

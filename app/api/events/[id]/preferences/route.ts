@@ -14,54 +14,108 @@ export async function POST(request: NextRequest) {
     const segments = url.pathname.split("/").filter(Boolean);
     const eventIdStr = segments[2];
     if (!eventIdStr) {
-      return NextResponse.json({ message: "eventId manquant" }, { status: 400 });
+      return NextResponse.json(
+        { message: "eventId manquant" },
+        { status: 400 },
+      );
     }
     const eventId = BigInt(eventIdStr);
 
-    const { userId, selectedGoogleTagIds = [], preferredDate } = await request.json();
+    const {
+      userId,
+      selectedGoogleTagSubGroupIds = [],
+      selectedGoogleTagIds = [],
+      preferredDate,
+    } = await request.json();
     if (!userId) {
-      return NextResponse.json({ message: "userId est requis" }, { status: 400 });
+      return NextResponse.json(
+        { message: "userId est requis" },
+        { status: 400 },
+      );
     }
 
     const userIdBigInt = BigInt(userId);
-    const parsedIds: bigint[] = Array.isArray(selectedGoogleTagIds)
-      ? selectedGoogleTagIds.map((id: string | number) => BigInt(id))
-      : [];
+    const parsedSubGroupIds: bigint[] = Array.isArray(
+      selectedGoogleTagSubGroupIds,
+    )
+      ? selectedGoogleTagSubGroupIds.map((id: string | number) => BigInt(id))
+      : Array.isArray(selectedGoogleTagIds)
+        ? selectedGoogleTagIds.map((id: string | number) => BigInt(id))
+        : [];
 
     const event = await prisma.event.findUnique({
       where: { id: eventId },
       select: {
         id: true,
         title: true,
+        createdById: true,
         isSpecificPlace: true,
         startDate: true,
+        selectedGoogleTagGroups: {
+          select: {
+            id: true,
+            subGroups: { select: { id: true }, where: { isActive: true } },
+          },
+        },
         selectedGoogleTags: { select: { id: true } },
         users: { select: { id: true } },
       },
     });
     if (!event) {
-      return NextResponse.json({ message: "Événement non trouvé" }, { status: 404 });
+      return NextResponse.json(
+        { message: "Événement non trouvé" },
+        { status: 404 },
+      );
+    }
+
+    const isCreator = event.createdById === userIdBigInt;
+    const isParticipant = event.users.some((u) => u.id === userIdBigInt);
+    if (!isCreator && !isParticipant) {
+      return NextResponse.json(
+        {
+          message:
+            "Vous devez participer à l'événement avant de renseigner vos préférences",
+        },
+        { status: 403 },
+      );
     }
 
     const user = await prisma.user.findUnique({ where: { id: userIdBigInt } });
     if (!user) {
-      return NextResponse.json({ message: "Utilisateur non trouvé" }, { status: 404 });
+      return NextResponse.json(
+        { message: "Utilisateur non trouvé" },
+        { status: 404 },
+      );
     }
 
-    const allowedIds = new Set(event.selectedGoogleTags.map((tag) => tag.id.toString()));
+    const allowedSubGroupIds = new Set(
+      event.selectedGoogleTagGroups.flatMap((group) =>
+        group.subGroups.map((subGroup) => subGroup.id.toString()),
+      ),
+    );
+    const usesSubGroups = event.selectedGoogleTagGroups.length > 0;
+
     if (!event.isSpecificPlace) {
-      if (parsedIds.length === 0) {
+      if (parsedSubGroupIds.length === 0) {
         return NextResponse.json(
-          { message: "Veuillez sélectionner au moins un thème" },
+          { message: "Veuillez sélectionner au moins un sous-groupe" },
           { status: 400 },
         );
       }
-      const hasInvalid = parsedIds.some((id) => !allowedIds.has(id.toString()));
-      if (hasInvalid) {
-        return NextResponse.json(
-          { message: "Un ou plusieurs thèmes ne sont pas autorisés pour cet événement" },
-          { status: 400 },
+
+      if (usesSubGroups) {
+        const hasInvalid = parsedSubGroupIds.some(
+          (id) => !allowedSubGroupIds.has(id.toString()),
         );
+        if (hasInvalid) {
+          return NextResponse.json(
+            {
+              message:
+                "Un ou plusieurs sous-groupes ne sont pas autorisés pour cet événement",
+            },
+            { status: 400 },
+          );
+        }
       }
     }
 
@@ -94,12 +148,16 @@ export async function POST(request: NextRequest) {
         },
       });
 
-      if (!event.isSpecificPlace && parsedIds.length > 0) {
+      if (
+        !event.isSpecificPlace &&
+        parsedSubGroupIds.length > 0 &&
+        usesSubGroups
+      ) {
         await tx.eventThemeVote.createMany({
-          data: parsedIds.map((googleTagId) => ({
+          data: parsedSubGroupIds.map((googleTagSubGroupId) => ({
             userId: userIdBigInt,
             eventId,
-            googleTagId,
+            googleTagSubGroupId,
           })),
           skipDuplicates: true,
         });
@@ -123,9 +181,9 @@ export async function POST(request: NextRequest) {
         message: "Préférences enregistrées",
         eventId,
         userId: userIdBigInt,
-        selectedGoogleTagIds: event.isSpecificPlace
+        selectedGoogleTagSubGroupIds: event.isSpecificPlace
           ? []
-          : parsedIds.map((id) => id.toString()),
+          : parsedSubGroupIds.map((id) => id.toString()),
       }),
       { status: 200 },
     );

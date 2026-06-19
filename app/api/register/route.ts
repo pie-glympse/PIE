@@ -7,7 +7,8 @@ const JWT_SECRET = process.env.JWT_SECRET || "supersecretkey";
 
 export async function POST(req: Request) {
   try {
-    const { email, password, firstName, lastName, companyName, address } = await req.json();
+    const { email, password, firstName, lastName, companyName, address } =
+      await req.json();
 
     const user = await createUser({ email, password, firstName, lastName });
 
@@ -37,9 +38,9 @@ export async function POST(req: Request) {
     response.cookies.set("token", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
+      sameSite: "lax",
       path: "/",
-      maxAge: 60 * 60 * 24 * 7, // 7 jours
+      maxAge: 60 * 60 * 24 * 7,
     });
 
     return response;
@@ -47,7 +48,7 @@ export async function POST(req: Request) {
     console.error("Erreur d'inscription :", error);
     return NextResponse.json(
       { error: (error as Error).message ?? "Erreur serveur" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

@@ -63,35 +63,40 @@ const NearbyActivities = ({
 
     const fetchEventData = async () => {
       try {
-        console.log("🔍 Récupération des tags pour l'événement:", eventId);
-        const response = await fetch(`/api/events/${eventId}`);
+        const response = await fetch(
+          `/api/events/${eventId}?_ts=${Date.now()}`,
+          { cache: "no-store" },
+        );
         if (response.ok) {
           const data = await response.json();
           const event = data.event || data;
-          const confirmedTechName = event.confirmedGoogleTag?.techName;
-          const fallbackTechName = event.selectedGoogleTags?.[0]?.techName;
-          const selected = confirmedTechName
-            ? [confirmedTechName]
-            : fallbackTechName
-              ? [fallbackTechName]
-              : [];
-          setVotedGoogleMapsTags(selected);
+          const techNames = new Set<string>();
+
+          if (event.confirmedGoogleTag?.techName) {
+            techNames.add(event.confirmedGoogleTag.techName);
+          }
+
+          const subGroupTags = event.confirmedGoogleTagSubGroup?.tags ?? [];
+          for (const tag of subGroupTags) {
+            if (tag.techName) techNames.add(tag.techName);
+          }
+
+          if (techNames.size === 0 && event.selectedGoogleTags?.[0]?.techName) {
+            techNames.add(event.selectedGoogleTags[0].techName);
+          }
+
+          setVotedGoogleMapsTags(Array.from(techNames));
         } else {
-          console.error(
-            "❌ Erreur lors de la récupération de l'événement:",
-            response.status,
-            response.statusText,
-          );
           setVotedGoogleMapsTags([]);
         }
       } catch (err) {
         console.error(
-          "❌ Erreur lors de la récupération des tags Google Maps:",
+          "Erreur lors de la récupération des tags Google Maps:",
           err,
         );
         setVotedGoogleMapsTags([]);
       } finally {
-        setTagsLoaded(true); // Marquer que le chargement est terminé (même en cas d'erreur)
+        setTagsLoaded(true);
       }
     };
 
@@ -225,14 +230,7 @@ const NearbyActivities = ({
     fetchPlaces();
     // Ne pas inclure blacklistedPlaceIds et onPlacesLoaded dans les dépendances
     // pour éviter les boucles infinies
-  }, [
-    city,
-    maxDistance,
-    eventState,
-    votedGoogleMapsTags,
-    eventId,
-    tagsLoaded,
-  ]);
+  }, [city, maxDistance, eventState, votedGoogleMapsTags, eventId, tagsLoaded]);
 
   // Fonction pour obtenir les étoiles
   const renderStars = (rating?: number) => {
@@ -446,7 +444,6 @@ const NearbyActivities = ({
     //     partner: 'google_maps',
     //   });
     // }
-
     // Optionnel: Envoyer à votre API backend pour tracking
     // fetch('/api/analytics', {
     //   method: 'POST',

@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getRepresentativeGoogleTagId } from "@/lib/google-tags/sub-group-assignment";
+import { getEventVotingStatus } from "@/lib/event-voting";
 
 function safeJson(obj: unknown) {
   return JSON.parse(
@@ -9,6 +11,20 @@ function safeJson(obj: unknown) {
   );
 }
 
+const eventInclude = {
+  confirmedGoogleTag: true,
+  confirmedGoogleTagSubGroup: true,
+  selectedGoogleTagGroups: {
+    include: {
+      subGroups: {
+        where: { isActive: true },
+        orderBy: [{ sortOrder: "asc" as const }, { name: "asc" as const }],
+      },
+    },
+  },
+  selectedGoogleTags: true,
+};
+
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
@@ -16,34 +32,83 @@ export async function PATCH(
   try {
     const resolvedParams = await params;
     const eventId = BigInt(resolvedParams.id);
-    const { state: newState } = await request.json();
+    const { state: newStateRaw } = await request.json();
+    const newState = String(newStateRaw || "").toLowerCase();
 
     const validStates = ["pending", "confirmed", "planned"];
-    if (!newState || !validStates.includes(newState.toLowerCase())) {
+    if (!newState || !validStates.includes(newState)) {
       return NextResponse.json(
-        { message: "État invalide. États autorisés: pending, confirmed, planned" },
+        {
+          message:
+            "État invalide. États autorisés: pending, confirmed, planned",
+        },
         { status: 400 },
       );
     }
 
     const currentEvent = await prisma.event.findUnique({
       where: { id: eventId },
-      select: { id: true, selectedGoogleTags: { select: { id: true } } },
+      select: {
+        id: true,
+        isSpecificPlace: true,
+        selectedGoogleTagGroups: {
+          select: {
+            subGroups: {
+              select: { id: true },
+              where: { isActive: true },
+              take: 1,
+            },
+          },
+        },
+        selectedGoogleTags: { select: { id: true } },
+      },
     });
     if (!currentEvent) {
-      return NextResponse.json({ message: "Événement non trouvé" }, { status: 404 });
+      return NextResponse.json(
+        { message: "Événement non trouvé" },
+        { status: 404 },
+      );
     }
 
-    if (newState.toLowerCase() === "confirmed") {
+    if (newState === "confirmed") {
+      const votingStatus = await getEventVotingStatus(prisma, eventId);
+      if (!votingStatus.allVoted) {
+        return NextResponse.json(
+          {
+            message: `Tous les participants doivent voter avant de confirmer (${votingStatus.votedCount}/${votingStatus.participantCount} ont répondu).`,
+            votingStatus,
+          },
+          { status: 400 },
+        );
+      }
+
       const votes = await prisma.eventThemeVote.groupBy({
-        by: ["googleTagId"],
+        by: ["googleTagSubGroupId"],
         where: { eventId },
-        _count: { googleTagId: true },
-        orderBy: [{ _count: { googleTagId: "desc" } }, { googleTagId: "asc" }],
+        _count: { googleTagSubGroupId: true },
+        orderBy: {
+          _count: { googleTagSubGroupId: "desc" },
+        },
       });
 
-      const winnerGoogleTagId =
-        votes[0]?.googleTagId || currentEvent.selectedGoogleTags[0]?.id || null;
+      const winnerSubGroupId =
+        votes[0]?.googleTagSubGroupId ||
+        currentEvent.selectedGoogleTagGroups[0]?.subGroups[0]?.id ||
+        null;
+
+      const winnerGoogleTagId = winnerSubGroupId
+        ? await getRepresentativeGoogleTagId(prisma, winnerSubGroupId)
+        : currentEvent.selectedGoogleTags[0]?.id || null;
+
+      if (!currentEvent.isSpecificPlace && !winnerSubGroupId) {
+        return NextResponse.json(
+          {
+            message:
+              "Impossible de confirmer : aucun vote de sous-groupe enregistré.",
+          },
+          { status: 400 },
+        );
+      }
 
       const mostVotedDate = await prisma.eventUserPreference.groupBy({
         by: ["preferredDate"],
@@ -57,15 +122,13 @@ export async function PATCH(
         where: { id: eventId },
         data: {
           state: newState,
+          confirmedGoogleTagSubGroupId: winnerSubGroupId,
           confirmedGoogleTagId: winnerGoogleTagId,
           ...(mostVotedDate.length > 0
             ? { startDate: mostVotedDate[0].preferredDate }
             : {}),
         },
-        include: {
-          confirmedGoogleTag: true,
-          selectedGoogleTags: true,
-        },
+        include: eventInclude,
       });
 
       return NextResponse.json(safeJson(updatedEvent), { status: 200 });
@@ -74,7 +137,7 @@ export async function PATCH(
     const updatedEvent = await prisma.event.update({
       where: { id: eventId },
       data: { state: newState },
-      include: { confirmedGoogleTag: true, selectedGoogleTags: true },
+      include: eventInclude,
     });
 
     return NextResponse.json(safeJson(updatedEvent), { status: 200 });
