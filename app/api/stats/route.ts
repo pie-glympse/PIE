@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { generateETag, isNotModified, addCacheHeaders, CACHE_STRATEGIES } from "@/lib/cache-utils";
+import { getOrSet } from "@/lib/memory-cache";
+
+// Durée de vie du cache applicatif pour les stats (données non temps-réel).
+const STATS_TTL_MS = 60_000;
 
 function safeJson(obj: unknown) {
   return JSON.parse(
@@ -21,6 +25,11 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "userId est requis" }, { status: 400 });
     }
 
+    // Cache applicatif : la clé inclut tous les paramètres qui changent le résultat.
+    // 1er appel = MISS (requête DB profonde + agrégations CPU), appels suivants = HIT
+    // (aucune requête, aucun recalcul) tant que le TTL n'a pas expiré.
+    const cacheKey = `stats:${userId}:${period}:${city ?? ""}`;
+    const { value: statsData, hit } = await getOrSet(cacheKey, STATS_TTL_MS, async () => {
     const userIdBigInt = BigInt(userId);
 
     // Construire les filtres de date
@@ -103,10 +112,10 @@ export async function GET(request: NextRequest) {
     });
 
     if (events.length === 0) {
-      return NextResponse.json({
+      return {
         hasEvents: false,
         message: "Vous n'avez pas encore créé d'événement",
-      });
+      };
     }
 
     // Calculer les statistiques globales
@@ -273,7 +282,7 @@ export async function GET(request: NextRequest) {
       .slice(0, 10)
       .map(([word, count]) => ({ word, count }));
 
-    const statsData = safeJson({
+    return safeJson({
       hasEvents: true,
       overview: {
         totalEvents,
@@ -315,6 +324,7 @@ export async function GET(request: NextRequest) {
         feedbacks: e.feedbacks.length,
       })),
     });
+    }); // fin getOrSet — statsData est soit calculé (MISS), soit servi du cache (HIT)
 
     // Générer un ETag basé sur les paramètres de requête et les données
     const etag = generateETag({ userId, period, city, stats: statsData });
@@ -324,9 +334,11 @@ export async function GET(request: NextRequest) {
       return new NextResponse(null, { status: 304 });
     }
 
-    // Créer la réponse avec les headers de cache (semi-statique car dépend des filtres)
+    // Réponse privée (par utilisateur) + preuve d'efficacité du cache applicatif.
     const response = NextResponse.json(statsData, { status: 200 });
-    return addCacheHeaders(response, CACHE_STRATEGIES.USER_DATA, etag);
+    addCacheHeaders(response, CACHE_STRATEGIES.USER_DATA, etag);
+    response.headers.set("X-App-Cache", hit ? "HIT" : "MISS");
+    return response;
   } catch (error) {
     console.error("Erreur lors de la récupération des statistiques:", error);
     return NextResponse.json(
