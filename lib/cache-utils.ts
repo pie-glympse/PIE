@@ -79,16 +79,26 @@ export function addCacheHeaders(
 export const CACHE_STRATEGIES = {
   // Ressources statiques (images, fonts, etc.) - 1 an
   STATIC: "public, max-age=31536000, immutable",
-  
+
   // Données statiques (tags, company) - Cache navigateur 24h, CDN 5min (optimisé client)
   STATIC_DATA: "public, max-age=86400, s-maxage=300",
-  
+
   // Données semi-statiques (events, users) - Cache navigateur 30min, CDN 1min (optimisé client)
   SEMI_STATIC: "private, max-age=1800, s-maxage=60",
-  
+
   // Données dynamiques (notifications) - Pas de cache
   DYNAMIC: "no-cache, no-store, must-revalidate",
-  
+
   // Données utilisateur spécifiques - Cache navigateur 5min, CDN 30s (optimisé client)
   USER_DATA: "private, max-age=300, s-maxage=30",
+
+  // PUBLIC PARTAGÉ - données identiques pour TOUS les visiteurs (ex: tarifs).
+  // `public` + `s-maxage` => mises en cache sur le CDN (Vercel Edge) => x-vercel-cache: HIT.
+  // `stale-while-revalidate` sert l'ancienne version pendant la revalidation en arrière-plan.
+  PUBLIC_SHARED: "public, s-maxage=3600, stale-while-revalidate=86400",
+
+  // PRIVÉ STRICT - données propres à l'utilisateur connecté.
+  // `private` interdit le cache CDN partagé, `no-store` interdit tout stockage
+  // => jamais servi depuis un cache partagé => x-vercel-cache: MISS / PASS (sécurité).
+  PRIVATE_STRICT: "private, no-store, max-age=0, must-revalidate",
 } as const;

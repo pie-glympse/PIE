@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getStripe, getStripePriceId } from "@/lib/stripe";
 import { GLYMS_PLAN_BENEFITS } from "@/lib/stripe-pricing";
+import { addCacheHeaders, generateETag, CACHE_STRATEGIES } from "@/lib/cache-utils";
 
 export async function GET() {
   try {
@@ -29,14 +30,23 @@ export async function GET() {
           ? "an"
           : price.recurring?.interval || "période";
 
-    return NextResponse.json({
+    const payload = {
       name: product && "name" in product ? product.name : "Glyms Pro",
       description:
         product && "description" in product ? product.description : null,
       amount,
       intervalLabel,
       benefits: GLYMS_PLAN_BENEFITS,
-    });
+    };
+
+    // Route PUBLIQUE : le tarif est identique pour tous les visiteurs.
+    // On autorise le cache CDN partagé (HIT) => moins d'appels à l'API Stripe.
+    const response = NextResponse.json(payload);
+    return addCacheHeaders(
+      response,
+      CACHE_STRATEGIES.PUBLIC_SHARED,
+      generateETag(payload),
+    );
   } catch (error) {
     console.error("Erreur récupération pricing Stripe:", error);
     return NextResponse.json(
