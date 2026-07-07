@@ -2,6 +2,7 @@
 import { useUser } from "../../context/UserContext";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import BackArrow from "@/components/ui/BackArrow";
 import Tilt from "react-parallax-tilt";
 
@@ -170,13 +171,15 @@ export default function RankingPage() {
                     )}
                     <div className={`w-36 h-36 ${isUnlocked ? '' : ''}`}>
                       {badge.icon.startsWith('/') ? (
-                        <img 
-                          src={badge.icon}  
-                          alt={badge.name} 
+                        <Image
+                          src={badge.icon}
+                          alt={badge.name}
+                          width={144}
+                          height={144}
                           className="w-full h-full object-contain"
                           style={{
-                            filter: isUnlocked 
-                              ? 'none' 
+                            filter: isUnlocked
+                              ? 'none'
                               : 'grayscale(100%) brightness(0.6) contrast(1.2)'
                           }}
                         />
@@ -233,13 +236,15 @@ export default function RankingPage() {
                       currentPoints >= activeBadge.pointsRequired ? 'drop-shadow-2xl' : 'drop-shadow-xl'
                     }`}>
                       {activeBadge.icon.startsWith('/') ? (
-                        <img 
-                          src={activeBadge.icon} 
-                          alt={activeBadge.name} 
+                        <Image
+                          src={activeBadge.icon}
+                          alt={activeBadge.name}
+                          width={360}
+                          height={360}
                           className="w-full h-full object-contain"
                           style={{
-                            filter: currentPoints >= activeBadge.pointsRequired 
-                              ? 'drop-shadow(0 10px 5px rgba(12, 12, 12, 0.09))' 
+                            filter: currentPoints >= activeBadge.pointsRequired
+                              ? 'drop-shadow(0 10px 5px rgba(12, 12, 12, 0.09))'
                               : 'grayscale(100%) brightness(0.9) contrast(1) drop-shadow(0 10px 5px rgba(0, 0, 0, 0.4))'
                           }}
                         />
