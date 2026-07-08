@@ -234,7 +234,7 @@ export default function NotificationsPage() {
   }
 
   return (
-    <main className="h-screen overflow-y-auto pt-24 p-10 flex flex-col gap-6">
+    <section className="h-screen overflow-y-auto pt-24 p-10 flex flex-col gap-6">
       <div className="h-full w-full flex flex-col gap-4 items-start p-10">
         {/* Back Arrow */}
         <BackArrow onClick={() => router.back()} className="!mb-0" />
@@ -422,6 +422,6 @@ export default function NotificationsPage() {
           }}
         />
       )}
-    </main>
+    </section>
   );
 }

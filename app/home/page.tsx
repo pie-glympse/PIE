@@ -64,6 +64,24 @@ function EventsSectionFallback() {
   );
 }
 
+function HomeSkeleton() {
+  return (
+    <section className="overflow-y-auto md:overflow-hidden pt-24 p-10 flex flex-col gap-8">
+      <section className="mt-10">
+        <div className="h-8 w-40 bg-gray-100 rounded animate-pulse mb-3" />
+        <div className="h-9 w-64 bg-gray-100 rounded animate-pulse" />
+      </section>
+      <section>
+        <div className="h-[280px] rounded-lg bg-gray-100 animate-pulse" />
+        <div className="mt-4 h-4 w-80 max-w-full bg-gray-100 rounded animate-pulse" />
+      </section>
+      <section className="flex flex-col">
+        <EventsSectionFallback />
+      </section>
+    </section>
+  );
+}
+
 export default function HomePage() {
   return (
     <Suspense fallback={<EventsSectionFallback />}>
@@ -319,12 +337,12 @@ function HomePageContent() {
   );
 
   if (isLoading) {
-    return <div>Chargement...</div>;
+    return <HomeSkeleton />;
   }
 
   return (
     <>
-      <main className="overflow-y-auto md:overflow-hidden pt-24 p-10 flex flex-col gap-8">
+      <section className="overflow-y-auto md:overflow-hidden pt-24 p-10 flex flex-col gap-8">
         {/* Section Bienvenue */}
         <section className="mt-10">
           <div className="flex justify-between items-center mb-1">
@@ -372,7 +390,9 @@ function HomePageContent() {
 
         {/* Calendrier */}
         <section>
-          <GCalendar year={2025} />
+          <div className="min-h-[280px]">
+            <GCalendar year={2025} />
+          </div>
           <div className="mt-4 text-sm text-gray-500">
             Les jours avec événements sont affichés en couleur selon leur type.
           </div>
@@ -523,7 +543,7 @@ function HomePageContent() {
             error={deleteError}
           />
         )}
-      </main>
+      </section>
     </>
   );
 }

@@ -31,9 +31,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     <html lang="fr" suppressHydrationWarning>
       <body className={`${poppins.variable} ${urbanist.variable} antialiased`}>
         <AppShell>
-          <div className="relative">
+          <main className="relative">
             {children}
-          </div>
+          </main>
         </AppShell>
       </body>
     </html>

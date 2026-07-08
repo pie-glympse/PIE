@@ -566,7 +566,7 @@ export default function OfficeTagsPage() {
   };
 
   return (
-    <main className="min-h-screen pt-32 bg-gray-50 p-6">
+    <div className="min-h-screen pt-32 bg-gray-50 p-6">
       <section className="max-w-7xl mx-auto space-y-4">
         <header className="flex flex-wrap justify-between items-center gap-3">
           <div>
@@ -993,6 +993,6 @@ export default function OfficeTagsPage() {
           )}
         </div>
       </section>
-    </main>
+    </div>
   );
 }

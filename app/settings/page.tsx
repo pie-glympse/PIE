@@ -1589,11 +1589,11 @@ export default function SettingsPage() {
         </aside>
 
         {/* Content */}
-        <main className="flex-1 lg:pl-12">
+        <div className="flex-1 lg:pl-12">
           {activeTab === "compte" && <TabCompte onDeleteAccount={() => setShowDeleteConfirm(true)} />}
           {activeTab === "legal" && <TabLegal />}
           {activeTab === "aide" && <TabAide />}
-        </main>
+        </div>
 
         {/* Déconnexion - mobile (bas de page) */}
         <button

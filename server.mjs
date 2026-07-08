@@ -1,6 +1,9 @@
 import { patchBrokenNodeLocalStorage } from "./patch-localstorage.mjs";
 patchBrokenNodeLocalStorage();
 
+import nextEnv from "@next/env";
+nextEnv.loadEnvConfig(process.cwd());
+
 import next from "next";
 import http from "http";
 

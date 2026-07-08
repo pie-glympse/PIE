@@ -35,10 +35,10 @@ export default function NotFound() {
 
                     <div className="flex justify-center md:order-2 md:flex-1">
                         <Image
-                            src="/images/mascotte/night_work.svg"
+                            src="/images/mascotte/night_work.webp"
                             alt="Page non trouvée"
-                            width={700}
-                            height={700}
+                            width={1200}
+                            height={1704}
                             className="w-full max-w-[200px] md:max-w-[700px] h-auto"
                             sizes="(max-width: 768px) 200px, 700px"
                             loading="lazy"

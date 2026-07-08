@@ -43,6 +43,7 @@ interface EventCardProps {
   onParticipate?: () => void;
   hideParticipateButton?: boolean;
   isNew?: boolean;
+  priority?: boolean;
 }
 
 export default function EventCard({
@@ -52,6 +53,7 @@ export default function EventCard({
   participants = [],
   backgroundUrl,
   backgroundSize = 200,
+  priority = false,
   className = "",
   dropdownOpen = false,
   onDropdownToggle,
@@ -168,9 +170,9 @@ export default function EventCard({
                 Public
               </span>
             )}
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+            <h2 className="text-lg font-semibold text-gray-900 mb-2">
               {title}
-            </h3>
+            </h2>
           </div>
 
           {/* Container pour la pastille d'état et le menu */}
@@ -294,7 +296,7 @@ export default function EventCard({
             objectFit: "contain",
           }}
           sizes="(max-width: 640px) 150px, (max-width: 1024px) 200px, 250px"
-          loading="lazy"
+          {...(priority ? { priority: true } : { loading: "lazy" as const })}
         />
       </div>
     </div>

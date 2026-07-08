@@ -11,6 +11,11 @@
     "test": "jest",
     "test:watch": "jest --watch"
   },
+  "browserslist": [
+    "last 2 years",
+    "not dead",
+    "not op_mini all"
+  ],
   "dependencies": {
     "@fullcalendar/core": "^6.1.20",
     "@fullcalendar/daygrid": "^6.1.20",
@@ -40,6 +45,7 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
+    "@faker-js/faker": "^10.5.0",
     "@tailwindcss/postcss": "^4.1.10",
     "@types/jest": "^29.5.12",
     "@types/node": "^20",

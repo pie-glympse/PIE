@@ -78,6 +78,7 @@ export const EventList = ({
               <Gcard
                 eventId={event.id}
                 {...adaptEventForGcard(event, index)}
+                priority={index === 0}
                 className="w-full h-60"
                 dropdownOpen={dropdownEvent === event.id}
                 onDropdownToggle={() => onDropdownToggle(event.id)}
@@ -177,6 +178,7 @@ export const EventList = ({
             <Gcard
               eventId={event.id}
               {...adaptEventForGcard(event, index)}
+              priority={index === 0}
               className="w-full ha-auto"
               dropdownOpen={dropdownEvent === event.id}
               onDropdownToggle={() => onDropdownToggle(event.id)}

@@ -13,7 +13,29 @@ import { useEvents, filterEventsByStatus, type EventType } from "@/hooks/useEven
 import { useEventPreferences } from "@/hooks/useEventPreferences";
 import { useJoinPublicEvent } from "@/hooks/useJoinPublicEvent";
 import ConfirmationModal from "@/components/ui/ConfirmationModal";
+import GcardSkeleton from "@/components/GcardSkeleton";
 import dynamic from "next/dynamic";
+
+function EventsSkeleton() {
+  return (
+    <section className="overflow-y-auto md:overflow-hidden pt-24 p-10 flex flex-col gap-8">
+      <div className="h-full w-full flex flex-col gap-6 items-start p-4 md:p-10">
+        <div className="h-6 w-6 rounded bg-gray-100 animate-pulse" />
+        <div className="flex flex-col md:flex-row md:justify-between md:items-start w-full gap-4">
+          <div className="h-9 w-64 rounded bg-gray-100 animate-pulse" />
+          <div className="h-9 w-28 rounded bg-gray-100 animate-pulse" />
+        </div>
+        <div className="h-9 w-full max-w-md rounded bg-gray-100 animate-pulse" />
+        <div className="w-full flex flex-wrap gap-4">
+          <GcardSkeleton className="w-full md:w-100 h-60 md:flex-shrink-0" />
+          <GcardSkeleton className="w-full md:w-100 h-60 md:flex-shrink-0" />
+          <GcardSkeleton className="w-full md:w-100 h-60 md:flex-shrink-0" />
+          <GcardSkeleton className="w-full md:w-100 h-60 md:flex-shrink-0" />
+        </div>
+      </div>
+    </section>
+  );
+}
 
 const EventCalendar = dynamic(
   () => import("@/components/event/EventCalendar").then((m) => m.EventCalendar),
@@ -137,7 +159,7 @@ export default function EventForm() {
   }, [isLoading, user, user?.companyId]);
 
   if (isLoading || eventsLoading) {
-    return <div>Chargement...</div>;
+    return <EventsSkeleton />;
   }
 
   if (!user) return null;
