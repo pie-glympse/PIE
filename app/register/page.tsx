@@ -1,7 +1,7 @@
 "use client";
 
-import { Suspense, useEffect, useRef, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { useUser } from "@/context/UserContext";
 import TeamRegisterForm from "@/components/forms/TeamRegisterForm";
 import BackArrow from "@/components/ui/BackArrow";
@@ -11,7 +11,7 @@ export default function RegisterPage() {
     <Suspense
       fallback={
         <div className="flex items-center justify-center h-screen">
-          Vérification de votre abonnement...
+          Chargement...
         </div>
       }
     >
@@ -22,85 +22,18 @@ export default function RegisterPage() {
 
 function RegisterContent() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const { user, isLoading, logout } = useUser();
-  const [isCheckingPayment, setIsCheckingPayment] = useState(true);
-  const [hasAccess, setHasAccess] = useState(false);
-  const [accessError, setAccessError] = useState("");
-  const verificationStarted = useRef(false);
+  const { user, isLoading } = useUser();
 
   useEffect(() => {
-    if (isLoading || verificationStarted.current) return;
-    verificationStarted.current = true;
+    if (!isLoading && user) {
+      router.replace("/home");
+    }
+  }, [isLoading, user, router]);
 
-    const verifyAccess = async () => {
-      const sessionId = searchParams.get("session_id");
-
-      try {
-        if (sessionId) {
-          await logout();
-
-          const response = await fetch("/api/stripe/verify-session", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            credentials: "include",
-            body: JSON.stringify({ sessionId }),
-          });
-          const data = await response.json();
-
-          if (!response.ok) {
-            setAccessError(
-              data.error ||
-                "Paiement non confirmé. Veuillez compléter l'abonnement.",
-            );
-            setHasAccess(false);
-            router.replace("/pricing");
-            return;
-          }
-
-          setHasAccess(true);
-          router.replace("/register");
-          return;
-        }
-
-        if (user) {
-          router.replace("/home");
-          return;
-        }
-
-        const response = await fetch("/api/stripe/verify-session", {
-          credentials: "include",
-        });
-        const data = await response.json();
-        if (!data.hasAccess) {
-          router.replace("/pricing");
-          return;
-        }
-
-        setHasAccess(true);
-      } catch {
-        setAccessError("Impossible de vérifier votre abonnement");
-        router.replace("/pricing");
-      } finally {
-        setIsCheckingPayment(false);
-      }
-    };
-
-    verifyAccess();
-  }, [isLoading, user, searchParams, router, logout]);
-
-  if (isLoading || isCheckingPayment) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center h-screen">
-        Vérification de votre abonnement...
-      </div>
-    );
-  }
-
-  if (!hasAccess) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        {accessError || "Redirection..."}
+        Chargement...
       </div>
     );
   }
@@ -117,9 +50,9 @@ function RegisterContent() {
     <section className="flex flex-row h-screen items-center gap-10 p-10">
       <div className="h-full w-full flex flex-col gap-6 justify-between items-start p-10">
         <div>
-          <BackArrow onClick={() => router.push("/pricing")} className="" />
+          <BackArrow onClick={() => router.push("/greetings")} className="" />
         </div>
-        <div className="w-full flex justify-center">
+        <div className="w-full flex flex-col items-center gap-4">
           <TeamRegisterForm
             title={
               <>
@@ -128,7 +61,7 @@ function RegisterContent() {
                 Créez votre espace Entreprise
               </>
             }
-            buttonText="Inscrire mon équipe"
+            buttonText="Continuer vers l'abonnement"
           />
         </div>
 

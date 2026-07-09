@@ -26,7 +26,7 @@ export default function GreetingsPage() {
   }, []);
 
   const handleRegisterTeam = () => {
-    router.push("/pricing");
+    router.push("/register");
   };
 
   // Afficher un loader pendant la vérification
