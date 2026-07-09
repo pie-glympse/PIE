@@ -3,10 +3,22 @@
 
 import { useState, useEffect, useRef } from 'react';
 
+export type SelectedPlace = {
+  placeId?: string;
+  name?: string;
+  address?: string;
+  lat?: number;
+  lng?: number;
+};
+
 interface Props {
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
+  /** Recherche d'établissements (nom + adresse) au lieu d'adresses seules */
+  searchPlaces?: boolean;
+  /** Callback avec le lieu structuré (place_id, coordonnées…) quand un choix est fait */
+  onPlaceSelected?: (place: SelectedPlace) => void;
 }
 
 declare global {
@@ -17,10 +29,19 @@ declare global {
   }
 }
 
-export default function SimpleAutocomplete({ value, onChange, placeholder }: Props) {
+export default function SimpleAutocomplete({
+  value,
+  onChange,
+  placeholder,
+  searchPlaces = false,
+  onPlaceSelected,
+}: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [isApiLoaded, setIsApiLoaded] = useState(false);
   const autocompleteRef = useRef<any>(null);
+  // Ref pour toujours appeler la dernière version du callback (listener attaché une seule fois)
+  const onPlaceSelectedRef = useRef(onPlaceSelected);
+  onPlaceSelectedRef.current = onPlaceSelected;
 
   useEffect(() => {
     // Fonction pour initialiser l'autocomplete
@@ -33,8 +54,9 @@ export default function SimpleAutocomplete({ value, onChange, placeholder }: Pro
       }
 
       autocompleteRef.current = new window.google.maps.places.Autocomplete(inputRef.current, {
-        types: ['geocode'], // Pour des adresses complètes
+        types: searchPlaces ? ['establishment'] : ['geocode'],
         componentRestrictions: { country: 'fr' },
+        fields: ['place_id', 'name', 'formatted_address', 'geometry'],
       });
 
       autocompleteRef.current.addListener('place_changed', () => {
@@ -44,6 +66,13 @@ export default function SimpleAutocomplete({ value, onChange, placeholder }: Pro
         } else if (place.name) {
           onChange(place.name);
         }
+        onPlaceSelectedRef.current?.({
+          placeId: place.place_id || undefined,
+          name: place.name || undefined,
+          address: place.formatted_address || undefined,
+          lat: place.geometry?.location?.lat?.() ?? undefined,
+          lng: place.geometry?.location?.lng?.() ?? undefined,
+        });
       });
 
       setIsApiLoaded(true);
@@ -117,7 +146,7 @@ export default function SimpleAutocomplete({ value, onChange, placeholder }: Pro
         window.google?.maps?.event?.clearInstanceListeners(autocompleteRef.current);
       }
     };
-  }, [onChange]);
+  }, [onChange, searchPlaces]);
 
   return (
     <div className="relative">

@@ -20,6 +20,8 @@ export async function POST(request: Request) {
     const body = await request.json();
     const {
       title,
+      description = "",
+      dateKnown = true,
       startDate,
       endDate,
       startTime,
@@ -31,7 +33,11 @@ export async function POST(request: Request) {
       maxDistance,
       placeName,
       placeAddress,
+      placeId,
+      placeLat,
+      placeLng,
       isSpecificPlace = false,
+      categoryId = null,
       googleTagIds = [],
       recurring,
       duration,
@@ -43,6 +49,13 @@ export async function POST(request: Request) {
 
     if (!userId) {
       return NextResponse.json({ error: "userId manquant" }, { status: 400 });
+    }
+
+    if (!title || !String(title).trim()) {
+      return NextResponse.json(
+        { error: "Le nom de l'événement est obligatoire" },
+        { status: 400 },
+      );
     }
 
     if (isPublic && (!maxPersons || Number(maxPersons) <= 0)) {
@@ -57,9 +70,24 @@ export async function POST(request: Request) {
       ? googleTagIds.map((id: string | number) => BigInt(id))
       : [];
 
-    if (!isSpecificPlace && parsedGoogleTagIds.length === 0) {
+    if (isSpecificPlace) {
+      if (!placeName || !placeAddress) {
+        return NextResponse.json(
+          { error: "Le nom et l'adresse du lieu sont obligatoires" },
+          { status: 400 },
+        );
+      }
+    } else if (!categoryId && parsedGoogleTagIds.length === 0) {
       return NextResponse.json(
-        { error: "Au moins un thème est requis" },
+        { error: "Une catégorie d'événement est requise" },
+        { status: 400 },
+      );
+    }
+
+    // Plage de dates (date non connue) : les participants votent une date dedans
+    if (!dateKnown && (!startDate || !endDate)) {
+      return NextResponse.json(
+        { error: "Une plage de dates (début et fin) est requise quand la date n'est pas connue" },
         { status: 400 },
       );
     }
@@ -67,6 +95,8 @@ export async function POST(request: Request) {
     const event = await prisma.event.create({
       data: {
         title,
+        description: String(description || ""),
+        dateKnown: Boolean(dateKnown),
         startDate: createDateOnly(startDate),
         endDate: createDateOnly(endDate),
         startTime: createTimeOnly(startTime),
@@ -86,10 +116,11 @@ export async function POST(request: Request) {
         recurringRate: recurringRate || null,
         updatedAt: new Date(),
         createdById: userIdBigInt,
+        ...(categoryId ? { categoryId: BigInt(categoryId) } : {}),
         users: {
           connect: [{ id: userIdBigInt }],
         },
-        ...(isSpecificPlace
+        ...(isSpecificPlace || parsedGoogleTagIds.length === 0
           ? {}
           : {
               selectedGoogleTags: {
@@ -100,6 +131,7 @@ export async function POST(request: Request) {
       include: {
         selectedGoogleTags: true,
         confirmedGoogleTag: true,
+        category: true,
         users: true,
         _count: { select: { users: true } },
         User_Event_createdByIdToUser: {
@@ -107,6 +139,21 @@ export async function POST(request: Request) {
         },
       },
     });
+
+    // Lieu précis (« je sais ce que je veux ») : enregistrer le lieu structuré
+    if (isSpecificPlace) {
+      await prisma.eventLocation.create({
+        data: {
+          id: event.id,
+          eventId: event.id,
+          placeId: placeId || null,
+          name: placeName,
+          address: placeAddress,
+          lat: typeof placeLat === "number" ? placeLat : null,
+          lng: typeof placeLng === "number" ? placeLng : null,
+        },
+      });
+    }
 
     if (!isPublic && Array.isArray(invitedUsers) && invitedUsers.length > 0) {
       await prisma.notification.createMany({
@@ -198,6 +245,7 @@ export async function GET(request: NextRequest) {
       include: {
         selectedGoogleTags: true,
         confirmedGoogleTag: true,
+        category: true,
         users: {
           select: {
             id: true,
