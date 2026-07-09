@@ -363,6 +363,8 @@ model EventPlaceProposal {
   userRatingsTotal Int?     @map("user_ratings_total")
   photoUrl         String?  @map("photo_url")
   websiteUrl       String?  @map("website_url")
+  lat              Float?
+  lng              Float?
   score            Float    @default(0)
   rank             Int
   chosen           Boolean  @default(false)

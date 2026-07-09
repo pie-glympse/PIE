@@ -152,7 +152,7 @@ export async function POST(
         { status: 404 },
       );
     }
-    if (event.state?.toLowerCase() === "confirmed") {
+    if (["confirmed", "closed"].includes(event.state?.toLowerCase() ?? "")) {
       return NextResponse.json(
         { message: "Les votes sont clôturés pour cet événement" },
         { status: 400 },

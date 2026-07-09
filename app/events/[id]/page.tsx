@@ -11,6 +11,7 @@ import EventDocuments from "@/components/event/EventDocuments";
 import { useUser } from "@/context/UserContext";
 import ConfirmationModal from "@/components/ui/ConfirmationModal";
 import PublicEventParticipateButton from "@/components/event/PublicEventParticipateButton";
+import EventClosurePanel from "@/components/event/EventClosurePanel";
 import { useJoinPublicEvent } from "@/hooks/useJoinPublicEvent";
 
 type EventDetails = {
@@ -30,6 +31,12 @@ type EventDetails = {
   maxDistance?: number;
   selectedGoogleTags?: { id: string; techName: string; displayName?: string | null }[];
   confirmedGoogleTag?: { id: string; techName: string; displayName?: string | null } | null;
+  category?: { id: string; name: string; slug: string } | null;
+  location?: {
+    placeId?: string | null;
+    name?: string | null;
+    address?: string | null;
+  } | null;
   users: {
     id: string;
     firstName: string;
@@ -327,6 +334,8 @@ export default function SingleEventPage() {
     switch (state?.toLowerCase()) {
       case "pending":
         return "bg-yellow-500";
+      case "closed":
+        return "bg-orange-500";
       case "confirmed":
         return "bg-green-500";
       case "planned":
@@ -428,6 +437,15 @@ export default function SingleEventPage() {
               </div>
             )}
 
+            {/* Panneau créateur : progression des votes → clôture → choix du lieu */}
+            <EventClosurePanel
+              eventId={event.id}
+              isCreator={!!isCreator}
+              eventState={event.state}
+              isSpecificPlace={event.isSpecificPlace}
+              onConfirmed={() => void refetchEvent()}
+            />
+
             {/* ✅ Afficher les résultats des votes si l'événement est confirmé */}
             {event.state?.toLowerCase() === "confirmed" && (
               <div className="mt-6 p-6 rounded-lg shadow-sm">
@@ -447,6 +465,30 @@ export default function SingleEventPage() {
                   <div className="flex-1">
                     <h3 className="text-h3 font-urbanist font-semibold mb-3">Événement finalisé avec succès !</h3>
                     <div className="space-y-3">
+                      {event.location?.name && (
+                        <div className="flex items-center gap-3">
+                          <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                          <div>
+                            <span className="text-body-large font-poppins font-medium text-[var(--color-text)]">
+                              Lieu retenu :
+                            </span>
+                            <span className="ml-2 text-body-large font-poppins text-green-700 font-semibold">
+                              {event.location.name}
+                              {event.location.address ? ` — ${event.location.address}` : ""}
+                            </span>
+                            {event.location.placeId && (
+                              <a
+                                href={`https://www.google.com/maps/place/?q=place_id:${event.location.placeId}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="ml-3 text-body-small font-poppins underline text-green-700"
+                              >
+                                Voir sur Google Maps
+                              </a>
+                            )}
+                          </div>
+                        </div>
+                      )}
                       {event.confirmedGoogleTag && (
                         <div className="flex items-center gap-3">
                           <div className="w-2 h-2 bg-green-500 rounded-full"></div>
@@ -577,11 +619,27 @@ export default function SingleEventPage() {
                   {/* Dropdown des états - sorti du bouton pour éviter l'imbrication */}
                   {isStateDropdownOpen && (
                     <div className="absolute top-full mt-2 right-0 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50 min-w-48">
-                      {availableStates.map((stateOption) => (
+                      {availableStates.map((stateOption) => {
+                        // Les events à catégorie se confirment via le choix du lieu
+                        // (clôture des votes), pas manuellement.
+                        const confirmViaClosure =
+                          stateOption.value === "confirmed" &&
+                          !event.isSpecificPlace;
+                        return (
                         <button
                           key={stateOption.value}
+                          disabled={confirmViaClosure}
+                          title={
+                            confirmViaClosure
+                              ? "Clôturez les votes puis choisissez un lieu pour confirmer"
+                              : undefined
+                          }
                           onClick={() => handleChangeEventState(stateOption.value)}
-                          className={`w-full flex items-center gap-3 px-4 py-2 text-left hover:bg-gray-50 transition-colors ${
+                          className={`w-full flex items-center gap-3 px-4 py-2 text-left transition-colors ${
+                            confirmViaClosure
+                              ? "opacity-40 cursor-not-allowed"
+                              : "hover:bg-gray-50"
+                          } ${
                             event.state?.toLowerCase() === stateOption.value ? "bg-gray-100" : ""
                           }`}
                         >
@@ -597,7 +655,8 @@ export default function SingleEventPage() {
                             </svg>
                           )}
                         </button>
-                      ))}
+                        );
+                      })}
                     </div>
                   )}
                 </div>

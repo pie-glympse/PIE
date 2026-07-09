@@ -34,6 +34,7 @@ export async function GET(
       include: {
         selectedGoogleTags: true,
         confirmedGoogleTag: true,
+        category: true,
         users: {
           select: {
             id: true,
