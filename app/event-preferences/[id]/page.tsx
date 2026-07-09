@@ -1,31 +1,81 @@
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useUser } from "@/context/UserContext";
 import BackArrow from "@/components/ui/BackArrow";
 import MainButton from "@/components/ui/MainButton";
 
-type EventTheme = { id: string; displayName?: string | null; techName: string };
-type EventData = {
+type QuestionOption = {
   id: string;
-  title: string;
-  state?: string;
-  isSpecificPlace?: boolean;
-  selectedGoogleTags: EventTheme[];
+  label: string;
+  sortOrder: number;
 };
 
+type Question = {
+  id: string;
+  text: string;
+  sortOrder: number;
+  multiSelect: boolean;
+  maxChoices: number;
+  options: QuestionOption[];
+};
+
+type QuestionnaireData = {
+  event: {
+    id: string;
+    title: string;
+    state?: string;
+    dateKnown: boolean;
+    startDate?: string | null;
+    endDate?: string | null;
+    isSpecificPlace: boolean;
+    category?: { id: string; name: string; slug: string } | null;
+  };
+  questions: Question[];
+  myAnswerOptionIds: string[];
+  myPreferredDate?: string | null;
+  hasAnswered: boolean;
+};
+
+const dayKey = (iso: string) => iso.split("T")[0];
+
+// Liste des jours de la plage (chips cliquables si la plage est raisonnable)
+function buildRangeDays(start?: string | null, end?: string | null): string[] {
+  if (!start || !end) return [];
+  const days: string[] = [];
+  const current = new Date(dayKey(start));
+  const last = new Date(dayKey(end));
+  while (current <= last && days.length <= 60) {
+    days.push(current.toISOString().split("T")[0]);
+    current.setDate(current.getDate() + 1);
+  }
+  return days;
+}
+
+const formatDay = (iso: string) =>
+  new Date(iso).toLocaleDateString("fr-FR", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+  });
+
+// Questionnaire participant : le moteur de la future requête Google Places.
+// Étapes : [date dans la plage si non connue] puis une question par étape.
 export default function EventPreferencesPage() {
   const router = useRouter();
   const params = useParams();
   const { user, isLoading } = useUser();
   const eventId = params.id as string;
 
-  const [eventData, setEventData] = useState<EventData | null>(null);
-  const [loadingEvent, setLoadingEvent] = useState(true);
-  const [step, setStep] = useState(1);
-  const [selectedGoogleTagIds, setSelectedGoogleTagIds] = useState<string[]>([]);
+  const [data, setData] = useState<QuestionnaireData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [accessDenied, setAccessDenied] = useState<string | null>(null);
+  const [stepIndex, setStepIndex] = useState(0);
   const [preferredDate, setPreferredDate] = useState("");
+  const [selectedByQuestion, setSelectedByQuestion] = useState<
+    Record<string, string[]>
+  >({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
@@ -33,48 +83,103 @@ export default function EventPreferencesPage() {
   }, [isLoading, user, router]);
 
   useEffect(() => {
-    const fetchEvent = async () => {
-      if (!eventId) return;
-      setLoadingEvent(true);
+    const fetchQuestionnaire = async () => {
+      if (!eventId || !user?.id) return;
+      setLoading(true);
+      setAccessDenied(null);
       try {
-        const response = await fetch(`/api/events/${eventId}`);
+        const response = await fetch(
+          `/api/events/${eventId}/questionnaire?userId=${encodeURIComponent(user.id)}`,
+        );
+        if (response.status === 403) {
+          const err = await response.json().catch(() => null);
+          setAccessDenied(
+            err?.message ||
+              "Rejoignez l'événement avant de répondre au questionnaire.",
+          );
+          return;
+        }
         if (!response.ok) return;
-        const data = await response.json();
-        const event = data.event || data;
-        setEventData(event);
+        const payload: QuestionnaireData = await response.json();
+        setData(payload);
+
+        // Pré-remplir avec mes réponses précédentes (re-vote possible)
+        if (payload.myPreferredDate) {
+          setPreferredDate(dayKey(payload.myPreferredDate));
+        }
+        if (payload.myAnswerOptionIds.length > 0) {
+          const prefill: Record<string, string[]> = {};
+          for (const question of payload.questions) {
+            prefill[question.id] = question.options
+              .filter((o) => payload.myAnswerOptionIds.includes(o.id))
+              .map((o) => o.id);
+          }
+          setSelectedByQuestion(prefill);
+        }
       } finally {
-        setLoadingEvent(false);
+        setLoading(false);
       }
     };
-    fetchEvent();
-  }, [eventId]);
+    fetchQuestionnaire();
+  }, [eventId, user?.id]);
 
-  const toggleTheme = (id: string) => {
-    setSelectedGoogleTagIds((prev) =>
-      prev.includes(id) ? prev.filter((value) => value !== id) : [...prev, id],
-    );
+  const hasDateStep = data ? !data.event.dateKnown : false;
+  const questions = data?.questions ?? [];
+  const totalSteps = (hasDateStep ? 1 : 0) + questions.length;
+  const rangeDays = useMemo(
+    () => buildRangeDays(data?.event.startDate, data?.event.endDate),
+    [data?.event.startDate, data?.event.endDate],
+  );
+
+  const currentQuestion: Question | null = (() => {
+    const questionIndex = stepIndex - (hasDateStep ? 1 : 0);
+    if (questionIndex < 0 || questionIndex >= questions.length) return null;
+    return questions[questionIndex];
+  })();
+
+  const isDateStep = hasDateStep && stepIndex === 0;
+
+  const toggleOption = (question: Question, optionId: string) => {
+    setSelectedByQuestion((prev) => {
+      const current = prev[question.id] ?? [];
+      if (question.multiSelect) {
+        if (current.includes(optionId)) {
+          return { ...prev, [question.id]: current.filter((v) => v !== optionId) };
+        }
+        if (current.length >= question.maxChoices) return prev; // limite atteinte
+        return { ...prev, [question.id]: [...current, optionId] };
+      }
+      return { ...prev, [question.id]: [optionId] };
+    });
   };
 
-  const submit = async () => {
-    if (!user || !eventData) return;
-    if (!eventData.isSpecificPlace && selectedGoogleTagIds.length === 0) return;
-    if (!preferredDate) return;
+  const canContinue = isDateStep
+    ? preferredDate.length > 0
+    : currentQuestion
+      ? (selectedByQuestion[currentQuestion.id]?.length ?? 0) > 0
+      : false;
 
+  const submit = async () => {
+    if (!user || !data) return;
     setIsSubmitting(true);
     try {
-      const response = await fetch(`/api/events/${eventId}/preferences`, {
+      const optionIds = questions.flatMap(
+        (question) => selectedByQuestion[question.id] ?? [],
+      );
+      const response = await fetch(`/api/events/${eventId}/questionnaire`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           userId: user.id,
-          selectedGoogleTagIds,
-          preferredDate,
+          optionIds,
+          preferredDate: hasDateStep ? preferredDate : undefined,
         }),
       });
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error?.message || "Erreur envoi préférences");
+        throw new Error(error?.message || "Erreur lors de l'envoi des réponses");
       }
+      window.dispatchEvent(new Event("preferencesUpdated"));
       router.push(`/events/${eventId}`);
     } catch (error) {
       alert(error instanceof Error ? error.message : "Erreur inconnue");
@@ -83,79 +188,192 @@ export default function EventPreferencesPage() {
     }
   };
 
-  if (isLoading || loadingEvent) {
+  if (isLoading || loading) {
     return (
       <div className="flex items-center justify-center h-screen">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[var(--color-main)]"></div>
       </div>
     );
   }
-  if (!user || !eventData) return null;
 
-  const showThemeStep = !eventData.isSpecificPlace;
-  const maxStep = showThemeStep ? 2 : 1;
-  const canContinue = step === 1
-    ? showThemeStep
-      ? selectedGoogleTagIds.length > 0
-      : preferredDate.length > 0
-    : preferredDate.length > 0;
+  if (accessDenied) {
+    return (
+      <section className="h-screen overflow-y-auto pt-24 p-10 flex flex-col gap-8">
+        <div className="h-full w-full flex flex-col gap-6 items-start p-10">
+          <BackArrow onClick={() => router.back()} />
+          <p className="text-body-large font-poppins text-[var(--color-grey-three)]">
+            {accessDenied}
+          </p>
+        </div>
+      </section>
+    );
+  }
+
+  if (!user || !data) return null;
+
+  // Lieu précis + date connue : rien à voter
+  if (totalSteps === 0) {
+    return (
+      <section className="h-screen overflow-y-auto pt-24 p-10 flex flex-col gap-8">
+        <div className="h-full w-full flex flex-col gap-6 items-start p-10">
+          <BackArrow onClick={() => router.back()} />
+          <h1 className="text-h1 font-urbanist">{data.event.title}</h1>
+          <p className="text-body-large font-poppins text-[var(--color-grey-three)]">
+            Le lieu et la date de cet événement sont déjà fixés — il n&apos;y a
+            rien à voter. À bientôt !
+          </p>
+          <div className="w-1/6">
+            <MainButton
+              text="Voir l'événement"
+              onClick={() => router.push(`/events/${eventId}`)}
+              color="bg-[var(--color-text)] font-poppins text-body-large"
+            />
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="h-screen overflow-y-auto pt-24 p-10 flex flex-col gap-8">
       <div className="h-full w-full flex flex-col gap-6 items-start p-10">
-        <BackArrow onClick={() => (step > 1 ? setStep(step - 1) : router.back())} />
+        <BackArrow
+          onClick={() =>
+            stepIndex > 0 ? setStepIndex(stepIndex - 1) : router.back()
+          }
+        />
 
-        <div className="w-full">
-          <h1 className="text-h1 mb-4 text-left w-full font-urbanist">
-            {eventData.title}
-          </h1>
-          {step === 1 && showThemeStep ? (
-            <>
-              <p className="text-h3 mb-4 font-poppins text-[var(--color-grey-three)]">
-                Choisissez les thèmes que vous préférez
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {eventData.selectedGoogleTags.map((tag) => (
-                  <button
-                    type="button"
-                    key={tag.id}
-                    onClick={() => toggleTheme(tag.id)}
-                    className={`px-3 py-2 rounded border ${
-                      selectedGoogleTagIds.includes(tag.id)
-                        ? "bg-[var(--color-main)] text-white border-[var(--color-main)]"
-                        : "bg-white border-[var(--color-grey-two)] text-[var(--color-text)]"
-                    }`}
-                  >
-                    {tag.displayName || tag.techName}
-                  </button>
-                ))}
-              </div>
-            </>
-          ) : (
-            <>
-              <p className="text-h3 mb-4 font-poppins text-[var(--color-grey-three)]">
-                Choisissez votre date préférée
-              </p>
-              <input
-                type="date"
-                value={preferredDate}
-                onChange={(e) => setPreferredDate(e.target.value)}
-                className="px-4 py-2 border-2 border-[var(--color-grey-two)] rounded"
-              />
-            </>
-          )}
+        {/* Barre de progression segmentée (cohérente avec la création) */}
+        <div className="flex items-center gap-2 w-full max-w-xs">
+          {Array.from({ length: totalSteps }, (_, i) => (
+            <div
+              key={i}
+              className={`h-1.5 flex-1 rounded-full transition-colors ${
+                stepIndex >= i ? "bg-[var(--color-main)]" : "bg-gray-200"
+              }`}
+            />
+          ))}
         </div>
 
-        <div className="w-1/6">
+        <div className="w-full max-w-3xl">
+          <h1 className="text-h1 mb-2 text-left font-urbanist">
+            {data.event.title}
+          </h1>
+          <p className="text-body-small font-poppins text-[var(--color-grey-three)] mb-6">
+            Étape {stepIndex + 1} / {totalSteps}
+            {data.event.category ? ` — ${data.event.category.name}` : ""}
+          </p>
+
+          {isDateStep ? (
+            <>
+              <p className="text-h3 mb-4 font-poppins text-[var(--color-grey-three)]">
+                Quelle date vous conviendrait le mieux ?
+              </p>
+              {rangeDays.length > 0 && rangeDays.length <= 21 ? (
+                <div className="flex flex-wrap gap-2">
+                  {rangeDays.map((day) => (
+                    <button
+                      type="button"
+                      key={day}
+                      onClick={() => setPreferredDate(day)}
+                      className={`px-4 py-2 rounded-lg border-2 font-poppins transition-all ${
+                        preferredDate === day
+                          ? "bg-[var(--color-main)] text-white border-[var(--color-main)]"
+                          : "bg-white text-[var(--color-text)] border-[var(--color-grey-two)] hover:border-[var(--color-main)]"
+                      }`}
+                    >
+                      {formatDay(day)}
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <input
+                  type="date"
+                  value={preferredDate}
+                  min={data.event.startDate ? dayKey(data.event.startDate) : undefined}
+                  max={data.event.endDate ? dayKey(data.event.endDate) : undefined}
+                  onChange={(e) => setPreferredDate(e.target.value)}
+                  className="px-4 py-2 border-2 border-[var(--color-grey-two)] rounded"
+                />
+              )}
+            </>
+          ) : currentQuestion ? (
+            <>
+              <p className="text-h3 mb-1 font-poppins text-[var(--color-text)]">
+                {currentQuestion.text}
+              </p>
+              <p className="text-body-small mb-4 font-poppins text-[var(--color-grey-three)]">
+                {currentQuestion.multiSelect
+                  ? `Jusqu'à ${currentQuestion.maxChoices} choix — ${
+                      selectedByQuestion[currentQuestion.id]?.length ?? 0
+                    }/${currentQuestion.maxChoices} sélectionné(s)`
+                  : "1 choix"}
+              </p>
+              <div className="flex flex-col gap-3">
+                {currentQuestion.options.map((option) => {
+                  const selected = (
+                    selectedByQuestion[currentQuestion.id] ?? []
+                  ).includes(option.id);
+                  return (
+                    <button
+                      type="button"
+                      key={option.id}
+                      onClick={() => toggleOption(currentQuestion, option.id)}
+                      className={`flex items-center justify-between text-left px-5 py-3 rounded-lg border-2 font-poppins transition-all ${
+                        selected
+                          ? "border-[var(--color-main)] bg-[#E9F1FE]"
+                          : "border-[var(--color-grey-two)] bg-white hover:border-[var(--color-main)]"
+                      }`}
+                    >
+                      <span className="text-body-large text-[var(--color-text)]">
+                        {option.label}
+                      </span>
+                      <span
+                        aria-hidden
+                        className={`inline-flex w-5 h-5 shrink-0 items-center justify-center border-2 transition-colors ${
+                          currentQuestion.multiSelect ? "rounded" : "rounded-full"
+                        } ${
+                          selected
+                            ? "border-[var(--color-main)] bg-[var(--color-main)]"
+                            : "border-[var(--color-grey-two)]"
+                        }`}
+                      >
+                        {selected && (
+                          <svg
+                            className="w-3 h-3 text-white"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={3}
+                              d="M5 13l4 4L19 7"
+                            />
+                          </svg>
+                        )}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </>
+          ) : null}
+        </div>
+
+        <div className="w-1/6 min-w-[160px]">
           <MainButton
             text={
-              step < maxStep
+              stepIndex < totalSteps - 1
                 ? "Continuer"
                 : isSubmitting
                   ? "Envoi..."
                   : "Finaliser"
             }
-            onClick={() => (step < maxStep ? setStep(step + 1) : submit())}
+            onClick={() =>
+              stepIndex < totalSteps - 1 ? setStepIndex(stepIndex + 1) : submit()
+            }
             disabled={!canContinue || isSubmitting}
             color="bg-[var(--color-text)] font-poppins text-body-large"
           />
