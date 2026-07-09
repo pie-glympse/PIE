@@ -8,14 +8,18 @@ import { useUser } from '@/context/UserContext';
 
 export default function LoginPage() {
     const router = useRouter();
-    const { user, isLoading } = useUser();
+    const { user, isLoading, logout } = useUser();
 
-    // Rediriger vers /home si l'utilisateur est déjà connecté
+    // Si /login s'affiche, le middleware a déjà déterminé que le cookie de
+    // session est invalide (sinon il aurait redirigé vers /home avant même
+    // le rendu). Un `user` encore présent dans le localStorage à ce stade
+    // est donc forcément périmé : on le purge au lieu de renvoyer vers
+    // /home (ce qui provoquerait une boucle /login <-> /home).
     useEffect(() => {
         if (!isLoading && user) {
-            router.push('/home');
+            logout();
         }
-    }, [user, isLoading, router]);
+    }, [user, isLoading, logout]);
 
     // Désactiver le scroll uniquement sur cette page
     useEffect(() => {
