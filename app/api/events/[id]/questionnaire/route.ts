@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { requireAuthUser } from "@/lib/server-auth";
 
 const toJson = (data: unknown) =>
   JSON.parse(
@@ -46,11 +47,14 @@ export async function GET(
   try {
     const { id } = await params;
     const eventId = BigInt(id);
-    const userIdStr = new URL(request.url).searchParams.get("userId");
-    if (!userIdStr) {
-      return NextResponse.json({ message: "userId manquant" }, { status: 400 });
+    const auth = await requireAuthUser(
+      request,
+      new URL(request.url).searchParams.get("userId"),
+    );
+    if (!auth.ok) {
+      return NextResponse.json({ message: auth.error }, { status: auth.status });
     }
-    const userId = BigInt(userIdStr);
+    const userId = auth.userId;
 
     const event = await loadEvent(eventId);
     if (!event) {
@@ -137,10 +141,11 @@ export async function POST(
     const eventId = BigInt(id);
 
     const { userId, optionIds = [], preferredDate } = await request.json();
-    if (!userId) {
-      return NextResponse.json({ message: "userId est requis" }, { status: 400 });
+    const auth = await requireAuthUser(request, userId);
+    if (!auth.ok) {
+      return NextResponse.json({ message: auth.error }, { status: auth.status });
     }
-    const userIdBigInt = BigInt(userId);
+    const userIdBigInt = auth.userId;
     const parsedOptionIds: bigint[] = Array.isArray(optionIds)
       ? optionIds.map((v: string | number) => BigInt(v))
       : [];

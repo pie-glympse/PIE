@@ -30,6 +30,11 @@ interface EventInformationsProps {
     isSpecificPlace?: boolean;
     selectedGoogleTags?: { id: string; techName: string; displayName?: string | null }[];
     confirmedGoogleTag?: { id: string; techName: string; displayName?: string | null } | null;
+    location?: {
+      placeId?: string | null;
+      name?: string | null;
+      address?: string | null;
+    } | null;
     maxDistance?: number;
     users?: {
       id: string;
@@ -280,14 +285,17 @@ const EventInformations = ({ event }: EventInformationsProps) => {
         </div>
       </div>
 
-      {/* Section Recommandations d'activités */}
-      <NearbyActivities 
-        city={event.city} 
-        maxDistance={event.maxDistance || 5}
-        eventId={event.id}
-        companyId={event.users?.[0]?.companyId?.toString()}
-        eventState={event.state}
-      />
+      {/* Recommandations legacy : uniquement si aucun lieu n'a été choisi
+          (le nouveau flux fixe le lieu via la clôture des votes) */}
+      {!event.location?.placeId && (
+        <NearbyActivities
+          city={event.city}
+          maxDistance={event.maxDistance || 5}
+          eventId={event.id}
+          companyId={event.users?.[0]?.companyId?.toString()}
+          eventState={event.state}
+        />
+      )}
     </div>
   );
 };

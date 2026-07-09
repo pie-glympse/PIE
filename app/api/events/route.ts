@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { addCacheHeaders, CACHE_STRATEGIES } from "@/lib/cache-utils";
 import { enrichEventForClient } from "@/lib/event-public";
+import { requireAuthUser } from "@/lib/server-auth";
 
 const toJson = (data: unknown) =>
   JSON.parse(
@@ -47,8 +48,10 @@ export async function POST(request: Request) {
       isPublic = false,
     } = body;
 
-    if (!userId) {
-      return NextResponse.json({ error: "userId manquant" }, { status: 400 });
+    // L'identité vient de la session (cookie JWT), jamais du client
+    const auth = await requireAuthUser(request, userId);
+    if (!auth.ok) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status });
     }
 
     if (!title || !String(title).trim()) {
@@ -65,7 +68,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const userIdBigInt = BigInt(userId);
+    const userIdBigInt = auth.userId;
     const parsedGoogleTagIds = Array.isArray(googleTagIds)
       ? googleTagIds.map((id: string | number) => BigInt(id))
       : [];
@@ -203,7 +206,10 @@ export async function POST(request: Request) {
       event.id,
     ).catch(() => {});
 
-    return NextResponse.json(toJson(enrichEventForClient(event, userId)), { status: 201 });
+    return NextResponse.json(
+      toJson(enrichEventForClient(event, userIdBigInt.toString())),
+      { status: 201 },
+    );
   } catch (error) {
     console.error("Erreur création event:", error);
     return NextResponse.json(

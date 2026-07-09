@@ -2,6 +2,7 @@ import { NextResponse, NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { generateETag, isNotModified, addCacheHeaders, CACHE_STRATEGIES } from "@/lib/cache-utils";
 import { enrichEventForClient } from "@/lib/event-public";
+import { requireAuthUser } from "@/lib/server-auth";
 
 function safeJson(obj: unknown) {
   return JSON.parse(
@@ -137,8 +138,12 @@ export async function PUT(
       );
     }
 
-    // Vérifier que l'utilisateur est le créateur de l'événement
-    if (body.userId && existingEvent.createdById !== BigInt(body.userId)) {
+    // Seul le créateur (identifié par la session) peut modifier l'événement
+    const auth = await requireAuthUser(request, body.userId);
+    if (!auth.ok) {
+      return NextResponse.json({ message: auth.error }, { status: auth.status });
+    }
+    if (existingEvent.createdById !== auth.userId) {
       return NextResponse.json(
         { message: "Vous n'êtes pas autorisé à modifier cet événement" },
         { status: 403 }
@@ -191,12 +196,12 @@ export async function DELETE(req: Request) {
   }
 
   try {
-    // Récupérer le userId depuis le body de la requête
     const body = await req.json().catch(() => ({}));
-    const { userId } = body;
 
-    if (!userId) {
-      return NextResponse.json({ error: "userId est requis" }, { status: 400 });
+    // L'identité vient de la session (cookie JWT), jamais du client
+    const auth = await requireAuthUser(req, body.userId);
+    if (!auth.ok) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status });
     }
 
     // Vérifier que l'événement existe et récupérer le créateur
@@ -212,7 +217,7 @@ export async function DELETE(req: Request) {
     }
 
     // Vérifier que l'utilisateur est le créateur
-    if (event.createdById?.toString() !== userId) {
+    if (event.createdById !== auth.userId) {
       return NextResponse.json(
         { error: "Seul le créateur de l'événement peut le supprimer" },
         { status: 403 }

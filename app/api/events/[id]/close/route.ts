@@ -7,6 +7,7 @@ import {
   rankPlaces,
 } from "@/lib/event-closure";
 import { geocodeCity, searchNearbyPlaces } from "@/lib/google-places-new";
+import { requireAuthUser } from "@/lib/server-auth";
 
 const toJson = (data: unknown) =>
   JSON.parse(
@@ -26,11 +27,14 @@ export async function GET(
   try {
     const { id } = await params;
     const eventId = BigInt(id);
-    const userIdStr = new URL(request.url).searchParams.get("userId");
-    if (!userIdStr) {
-      return NextResponse.json({ message: "userId manquant" }, { status: 400 });
+    const auth = await requireAuthUser(
+      request,
+      new URL(request.url).searchParams.get("userId"),
+    );
+    if (!auth.ok) {
+      return NextResponse.json({ message: auth.error }, { status: auth.status });
     }
-    const userId = BigInt(userIdStr);
+    const userId = auth.userId;
 
     const event = await prisma.event.findUnique({
       where: { id: eventId },
@@ -88,10 +92,11 @@ export async function POST(
     const { id } = await params;
     const eventId = BigInt(id);
     const { userId } = await request.json();
-    if (!userId) {
-      return NextResponse.json({ message: "userId est requis" }, { status: 400 });
+    const auth = await requireAuthUser(request, userId);
+    if (!auth.ok) {
+      return NextResponse.json({ message: auth.error }, { status: auth.status });
     }
-    const userIdBigInt = BigInt(userId);
+    const userIdBigInt = auth.userId;
 
     const event = await prisma.event.findUnique({
       where: { id: eventId },

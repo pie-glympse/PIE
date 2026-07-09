@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { requireAuthUser } from "@/lib/server-auth";
 
 const toJson = (data: unknown) =>
   JSON.parse(
@@ -17,13 +18,17 @@ export async function POST(
     const { id } = await params;
     const eventId = BigInt(id);
     const { userId, proposalId } = await request.json();
-    if (!userId || !proposalId) {
+    if (!proposalId) {
       return NextResponse.json(
-        { message: "userId et proposalId sont requis" },
+        { message: "proposalId est requis" },
         { status: 400 },
       );
     }
-    const userIdBigInt = BigInt(userId);
+    const auth = await requireAuthUser(request, userId);
+    if (!auth.ok) {
+      return NextResponse.json({ message: auth.error }, { status: auth.status });
+    }
+    const userIdBigInt = auth.userId;
 
     const event = await prisma.event.findUnique({
       where: { id: eventId },
