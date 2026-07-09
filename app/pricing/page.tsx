@@ -91,8 +91,20 @@ function PricingContent() {
     try {
       const response = await fetch("/api/stripe/create-checkout-session", {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({}),
       });
       const data = await response.json();
+
+      if (response.status === 400) {
+        setErrorMsg(
+          data.error || "Veuillez d'abord inscrire votre équipe.",
+        );
+        setIsCheckingOut(false);
+        router.push("/register");
+        return;
+      }
 
       if (!response.ok || !data.url) {
         setErrorMsg(data.error || "Impossible de démarrer le paiement");
@@ -119,7 +131,7 @@ function PricingContent() {
     <section className="flex flex-row min-h-screen items-center gap-10 p-10">
       <div className="h-full w-full flex flex-col gap-6 justify-between items-start p-6 md:p-10">
         <div className="flex w-full items-center justify-between">
-          <BackArrow onClick={() => router.push("/greetings")} className="" />
+          <BackArrow onClick={() => router.push("/register")} className="" />
           <Link href="/login" aria-label="Retour à l'accueil">
             <Image
               src="/images/logo/Logotype.svg"

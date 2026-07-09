@@ -4,7 +4,11 @@ import type { FC, ReactNode, ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
 import MainButton from "@/components/ui/MainButton";
 import SimpleAutocomplete from "@/components/ui/SimpleAutocomplete";
-import { parseTeamCSV, type TeamMemberInput } from "@/lib/register-team";
+import {
+  buildTeamCSVTemplate,
+  parseTeamCSV,
+  type TeamMemberInput,
+} from "@/lib/register-team";
 import { FormField, formInputClass } from "@/components/ui/form/FormField";
 import { FormSection } from "@/components/ui/form/FormSection";
 import { formHintClass } from "@/components/ui/form/form-styles";
@@ -61,13 +65,27 @@ const TeamRegisterForm: FC<TeamRegisterFormProps> = ({ title, buttonText }) => {
 
       if (parsed.length === 0) {
         setErrorMsg(
-          "Aucune donnée valide trouvée dans le CSV. Format attendu: email, prénom, nom, équipe (optionnel)",
+          "Aucune donnée valide trouvée dans le CSV. Colonnes attendues : Nom, Prénom, Adresse mail, Équipe.",
         );
       } else {
         setSuccessMsg(`${parsed.length} employé(s) trouvé(s) dans le fichier`);
       }
     };
     reader.readAsText(file);
+  };
+
+  const handleDownloadTemplate = () => {
+    const blob = new Blob([buildTeamCSVTemplate()], {
+      type: "text/csv;charset=utf-8;",
+    });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "modele-equipe-glyms.csv";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
   const handleAddManualMember = () => {
@@ -151,36 +169,28 @@ const TeamRegisterForm: FC<TeamRegisterFormProps> = ({ title, buttonText }) => {
         formData.append("members", JSON.stringify(manualMembers));
       }
 
-      const response = await fetch("/api/register-team", {
+      const prepareRes = await fetch("/api/register-team/prepare", {
         method: "POST",
         body: formData,
+        credentials: "include",
       });
 
-      const data = await response.json();
+      const prepareData = await prepareRes.json();
 
-      if (!response.ok) {
-        setErrorMsg(data.error || "Erreur lors de l'inscription de l'équipe");
+      if (!prepareRes.ok) {
+        setErrorMsg(
+          prepareData.error || "Erreur lors de la validation de l'équipe",
+        );
         setIsSubmitting(false);
         return;
       }
 
-      setSuccessMsg(
-        `Inscription réussie ! ${data.usersCreated} utilisateur(s) créé(s). Les emails de création de mot de passe ont été envoyés.`,
-      );
-
-      await fetch("/api/logout", {
-        method: "POST",
-        credentials: "include",
-      });
-      localStorage.removeItem("token");
-      localStorage.removeItem("user");
-
-      setTimeout(() => {
-        router.push("/login");
-      }, 3000);
+      setSuccessMsg("Équipe enregistrée. Choisissez votre abonnement...");
+      router.push("/pricing");
     } catch (err) {
       console.error("Erreur lors de l'inscription:", err);
       setErrorMsg("Erreur de connexion au serveur");
+      setSuccessMsg("");
       setIsSubmitting(false);
     }
   };
@@ -265,6 +275,20 @@ const TeamRegisterForm: FC<TeamRegisterFormProps> = ({ title, buttonText }) => {
         description="Importez ou ajoutez vos collaborateurs"
       >
         <FormField id="csvFile" label="Fichier CSV de votre équipe">
+          <div className="mb-3 flex flex-col gap-2 rounded-lg border border-dashed border-[#7BA7E8]/50 bg-[#7BA7E8]/5 p-3">
+            <p className="text-body-small font-poppins text-[var(--color-grey-three)]">
+              Pas de fichier ? Téléchargez notre modèle, remplissez une ligne
+              par collaborateur (Nom, Prénom, Adresse mail, Équipe), puis
+              importez-le ci-dessous.
+            </p>
+            <button
+              type="button"
+              onClick={handleDownloadTemplate}
+              className="self-start rounded-lg bg-[#7BA7E8] px-4 py-2 text-sm font-poppins text-white transition hover:opacity-90"
+            >
+              Télécharger le modèle CSV
+            </button>
+          </div>
           <input
             ref={fileInputRef}
             id="csvFile"
@@ -274,8 +298,8 @@ const TeamRegisterForm: FC<TeamRegisterFormProps> = ({ title, buttonText }) => {
             className={formFileInputClass}
           />
           <p className={formHintClass}>
-            Format attendu: email, prénom, nom, équipe (optionnel, une ligne par
-            employé)
+            Colonnes attendues : Nom, Prénom, Adresse mail, Équipe (optionnelle).
+            Une ligne par collaborateur.
           </p>
         </FormField>
 

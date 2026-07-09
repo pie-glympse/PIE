@@ -2,10 +2,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { jwtVerify } from "jose";
 import { OFFICE_COOKIE_NAME, verifyOfficeToken } from "@/lib/officeAuth";
-import {
-    REGISTRATION_ACCESS_COOKIE,
-    verifyRegistrationAccessToken,
-} from "@/lib/registration-access";
 
 const JWT_SECRET = process.env.JWT_SECRET || "supersecretkey";
 
@@ -79,19 +75,6 @@ export async function middleware(request: NextRequest) {
   );
 
   if (isPublicRoute) {
-    if (pathname.startsWith("/register")) {
-      const registrationToken = request.cookies.get(
-        REGISTRATION_ACCESS_COOKIE,
-      )?.value;
-      const hasRegistrationAccess =
-        await verifyRegistrationAccessToken(registrationToken);
-      const sessionId = request.nextUrl.searchParams.get("session_id");
-
-      if (!hasRegistrationAccess && !sessionId) {
-        return NextResponse.redirect(new URL("/pricing", request.url));
-      }
-    }
-
     // Si utilisateur connecté essaie d'accéder au login, rediriger vers events
     if (isTokenValid && pathname === "/login") {
       return NextResponse.redirect(new URL("/home", request.url));

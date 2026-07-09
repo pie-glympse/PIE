@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { headers } from "next/headers";
 import Stripe from "stripe";
 import { getStripe } from "@/lib/stripe";
+import { finalizeRegistrationFromSession } from "@/lib/pending-registration.server";
 
 export async function POST(request: Request) {
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
@@ -43,6 +44,19 @@ export async function POST(request: Request) {
       customer: session.customer,
       subscription: session.subscription,
     });
+
+    try {
+      const outcome = await finalizeRegistrationFromSession(session);
+      console.log("Finalisation inscription (webhook):", {
+        sessionId: session.id,
+        outcome: outcome.status,
+      });
+    } catch (error) {
+      console.error(
+        "Erreur finalisation inscription depuis le webhook:",
+        error,
+      );
+    }
   }
 
   return NextResponse.json({ received: true });

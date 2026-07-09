@@ -1,21 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import {
-    createRegistrationAccessToken,
-    registrationAccessCookieOptions,
-    verifyRegistrationAccessToken,
-    REGISTRATION_ACCESS_COOKIE,
-} from "@/lib/registration-access";
-import {
-    isPaidRegistrationSession,
-    retrieveCheckoutSession,
-} from "@/lib/stripe";
-
-export async function GET(request: NextRequest) {
-  const token = request.cookies.get(REGISTRATION_ACCESS_COOKIE)?.value;
-  const hasAccess = await verifyRegistrationAccessToken(token);
-
-  return NextResponse.json({ hasAccess });
-}
+import { retrieveCheckoutSession } from "@/lib/stripe";
+import { finalizeRegistrationFromSession } from "@/lib/pending-registration.server";
 
 export async function POST(request: NextRequest) {
   try {
@@ -28,26 +13,28 @@ export async function POST(request: NextRequest) {
     }
 
     const session = await retrieveCheckoutSession(sessionId);
+    const outcome = await finalizeRegistrationFromSession(session);
 
-    if (!isPaidRegistrationSession(session)) {
-      return NextResponse.json(
-        { error: "Le paiement n'est pas encore confirmé" },
-        { status: 402 },
-      );
+    switch (outcome.status) {
+      case "unpaid":
+        return NextResponse.json(
+          { error: "Le paiement n'est pas encore confirmé" },
+          { status: 402 },
+        );
+      case "not_found":
+        return NextResponse.json(
+          { error: "Inscription introuvable pour cette session" },
+          { status: 404 },
+        );
+      case "already":
+        return NextResponse.json({ finalized: true, alreadyDone: true });
+      case "created":
+        return NextResponse.json({
+          finalized: true,
+          usersCreated: outcome.usersCreated,
+          errors: outcome.errors,
+        });
     }
-
-    const accessToken = await createRegistrationAccessToken(sessionId);
-    const response = NextResponse.json({ hasAccess: true });
-    const cookie = registrationAccessCookieOptions(accessToken);
-    response.cookies.set(cookie.name, cookie.value, {
-      httpOnly: cookie.httpOnly,
-      secure: cookie.secure,
-      sameSite: cookie.sameSite,
-      path: cookie.path,
-      maxAge: cookie.maxAge,
-    });
-
-    return response;
   } catch (error) {
     console.error("Erreur vérification session Stripe:", error);
     return NextResponse.json(

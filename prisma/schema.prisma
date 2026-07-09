@@ -300,3 +300,14 @@ model UserBadge {
   @@id([userId, badgeId])
   @@index([userId])
 }
+
+model PendingRegistration {
+  id              String   @id @default(cuid())
+  payload         Json
+  stripeSessionId String?  @unique
+  status          String   @default("PENDING")
+  createdAt       DateTime @default(now())
+  expiresAt       DateTime
+
+  @@index([stripeSessionId])
+}
