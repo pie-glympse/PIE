@@ -3,23 +3,29 @@ import { useRouter } from "next/navigation";
 import LoginForm from '@/components/forms/LoginForm';
 import Link from "next/link";
 import Image from 'next/image';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useUser } from '@/context/UserContext';
 
 export default function LoginPage() {
     const router = useRouter();
     const { user, isLoading, logout } = useUser();
+    const hasPurgedStaleSession = useRef(false);
 
     // Si /login s'affiche, le middleware a déjà déterminé que le cookie de
     // session est invalide (sinon il aurait redirigé vers /home avant même
-    // le rendu). Un `user` encore présent dans le localStorage à ce stade
-    // est donc forcément périmé : on le purge au lieu de renvoyer vers
-    // /home (ce qui provoquerait une boucle /login <-> /home).
+    // le rendu). Un `user` encore présent dans le localStorage AU CHARGEMENT
+    // est donc forcément périmé : on le purge une seule fois au montage,
+    // au lieu de renvoyer vers /home (ce qui provoquerait une boucle
+    // /login <-> /home). On ne doit PAS refaire cette purge par la suite,
+    // sinon elle déconnecte l'utilisateur juste après une connexion réussie
+    // sur cette page (user passe de null à rempli suite au login).
     useEffect(() => {
-        if (!isLoading && user) {
+        if (isLoading || hasPurgedStaleSession.current) return;
+        hasPurgedStaleSession.current = true;
+        if (user) {
             logout();
         }
-    }, [user, isLoading, logout]);
+    }, [isLoading, user, logout]);
 
     // Désactiver le scroll uniquement sur cette page
     useEffect(() => {
