@@ -80,7 +80,7 @@ export const EventList = ({
               <Gcard
                 eventId={event.id}
                 {...adaptEventForGcard(event, index)}
-                className="w-full min-h-60"
+                className="w-full h-full min-h-60"
                 dropdownOpen={dropdownEvent === event.id}
                 onDropdownToggle={() => onDropdownToggle(event.id)}
                 isAuthorized={isAuthorized}
@@ -112,6 +112,7 @@ export const EventList = ({
                   (event.maxPersons ? Number(event.maxPersons) : null)
                 }
                 isParticipant={userIsParticipant}
+                hasVoted={userEventPreferences.has(event.id)}
                 isFull={event.isFull}
                 joinLoading={joiningEventId === event.id}
                 hideParticipateButton={isCreator}
@@ -207,6 +208,7 @@ export const EventList = ({
                 (event.maxPersons ? Number(event.maxPersons) : null)
               }
               isParticipant={userIsParticipant}
+              hasVoted={userEventPreferences.has(event.id)}
               isFull={event.isFull}
               joinLoading={joiningEventId === event.id}
               hideParticipateButton={isCreator}

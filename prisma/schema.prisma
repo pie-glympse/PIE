@@ -61,6 +61,7 @@ model Team {
 model Event {
   id                               BigInt                      @id @default(autoincrement())
   title                            String
+  description                      String?
   maxPersons                       BigInt?
   costPerPerson                    BigInt?
   state                            String                      @default("PENDING")

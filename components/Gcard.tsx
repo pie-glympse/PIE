@@ -41,6 +41,7 @@ interface EventCardProps {
   participantCount?: number;
   maxParticipants?: number | null;
   isParticipant?: boolean;
+  hasVoted?: boolean;
   isFull?: boolean;
   joinLoading?: boolean;
   onParticipate?: () => void;
@@ -79,6 +80,7 @@ export default function EventCard({
   participantCount = 0,
   maxParticipants = null,
   isParticipant = false,
+  hasVoted = false,
   isFull = false,
   joinLoading = false,
   onParticipate,
@@ -135,21 +137,11 @@ export default function EventCard({
     onDropdownToggle?.();
   };
 
-  // Nombre de segments remplis dans la barre de progression selon l'étape de l'event
+  // Barre de progression — 3 étapes du cycle de vie de l'event :
+  //   1. créé (à rejoindre / voter)   2. l'utilisateur a voté   3. votes clôturés par le créateur
   const TOTAL_STEPS = 3;
-  const getStep = (eventState?: string) => {
-    switch (eventState?.toLowerCase()) {
-      case "confirmed":
-        return 3;
-      case "planned":
-        return 2;
-      case "pending":
-        return 1;
-      default:
-        return 1;
-    }
-  };
-  const filledSteps = getStep(state);
+  const votesClosed = state?.toLowerCase() === "confirmed";
+  const filledSteps = votesClosed ? 3 : hasVoted ? 2 : 1;
 
   const formattedDate = new Date(date).toLocaleString("fr-FR", {
     dateStyle: "medium",
@@ -237,21 +229,23 @@ export default function EventCard({
           <hr className="border-[var(--color-grey-two)]" />
 
           <div className="mt-3 flex items-center justify-between">
-            {/* Avatars + bouton d'ajout */}
+            {/* Avatars + bouton d'ajout (réservé au créateur d'un event privé) */}
             <div className="flex items-center">
-              <button
-                type="button"
-                aria-label="Inviter des participants"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onShare?.();
-                }}
-                className="w-9 h-9 flex items-center justify-center rounded-full border border-dashed border-[var(--color-grey-three)] text-[var(--color-grey-three)] hover:border-[var(--color-text)] hover:text-[var(--color-text)] transition-colors cursor-pointer"
-              >
-                <Plus size={16} />
-              </button>
+              {isCreator && !isPublic && (
+                <button
+                  type="button"
+                  aria-label="Inviter des participants"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onShare?.();
+                  }}
+                  className="w-9 h-9 mr-2 flex items-center justify-center rounded-full border border-dashed border-[var(--color-grey-three)] text-[var(--color-grey-three)] hover:border-[var(--color-text)] hover:text-[var(--color-text)] transition-colors cursor-pointer"
+                >
+                  <Plus size={16} />
+                </button>
+              )}
 
-              <div className="flex -space-x-3 ml-2">
+              <div className="flex -space-x-3">
                 {displayParticipants.map((participant) => (
                   <div
                     key={participant.id}
@@ -295,8 +289,30 @@ export default function EventCard({
             </div>
           </div>
 
-          {/* Cas invitation : Décliner / Accepter */}
-          {isInvited ? (
+          {/* Bouton d'action selon l'étape de l'event */}
+          {votesClosed ? (
+            /* 3. Le créateur a clôturé les votes */
+            <button
+              type="button"
+              disabled
+              className="w-full py-3 px-4 mt-4 font-poppins text-body-large rounded-lg bg-[var(--color-grey-two)] text-[var(--color-grey-three)] cursor-not-allowed"
+            >
+              Complet
+            </button>
+          ) : hasVoted ? (
+            /* 2. L'utilisateur a voté */
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                router.push(`/events/${eventId}`);
+              }}
+              className="w-full py-3 px-4 mt-4 font-poppins text-body-large rounded-lg bg-[var(--color-text)] text-white hover:opacity-90 transition-colors cursor-pointer"
+            >
+              Voir
+            </button>
+          ) : isInvited ? (
+            /* 1b. Invitation privée en attente : Décliner / Accepter */
             <div className="mt-4 flex items-center gap-3">
               <button
                 type="button"
@@ -322,6 +338,7 @@ export default function EventCard({
               </button>
             </div>
           ) : (
+            /* 1a. Event public créé : Participer (ou Complet si plein) */
             isPublic &&
             !hideParticipateButton && (
               <PublicEventParticipateButton
@@ -362,27 +379,6 @@ export default function EventCard({
         </>
       )}
 
-      {/* Container pour l'image d'arrière-plan avec overflow-hidden */}
-      <div
-        className={`absolute inset-0 overflow-hidden rounded-xl pointer-events-none transition-all duration-300 ${
-          needsVote ? "group-hover:opacity-20 group-hover:scale-105" : ""
-        }`}
-        style={{ zIndex: 1 }}
-      >
-        <Image
-          src={backgroundUrl}
-          alt=""
-          aria-hidden="true"
-          className="absolute right-[-25px] bottom-[-25px]"
-          width={backgroundSize}
-          height={200}
-          style={{
-            objectFit: "contain",
-          }}
-          sizes="(max-width: 640px) 150px, (max-width: 1024px) 200px, 250px"
-          loading="lazy"
-        />
-      </div>
     </div>
   );
 }

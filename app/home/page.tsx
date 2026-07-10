@@ -420,7 +420,7 @@ function HomePageContent() {
                           <Gcard
                             eventId={event.id}
                             {...adaptEventForGcard(event, index)}
-                            className="w-full md:w-100 min-h-60 md:flex-shrink-0"
+                            className="w-full md:w-100 min-h-60 md:h-full md:flex-shrink-0"
                             dropdownOpen={dropdownEvent === event.id}
                             onDropdownToggle={() =>
                               setDropdownEvent(
@@ -464,6 +464,7 @@ function HomePageContent() {
                                 : null)
                             }
                             isParticipant={userIsParticipant}
+                            hasVoted={userEventPreferences.has(event.id)}
                             isFull={event.isFull}
                             joinLoading={joiningEventId === event.id}
                             hideParticipateButton={isCreator}
