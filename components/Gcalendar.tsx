@@ -41,14 +41,14 @@ interface Event {
   duration?: number;
 }
 
-// Code couleur par catégorie d'événement (gris par défaut / autres)
+// Code couleur par catégorie d'événement (couleur "autre" par défaut)
 const CATEGORY_COLORS: Record<string, string> = {
-  gastronomie: "#EF4444", // rouge
-  sport: "#3B82F6", // bleu
-  divertissement: "#8B5CF6", // violet
-  culture: "#22C55E", // vert
+  gastronomie: "#FF5B5B", // rouge
+  sport: "#FCC638", // jaune
+  divertissement: "#F78AFF", // rose
+  culture: "#067FF2", // bleu
 };
-const DEFAULT_EVENT_COLOR = "#9CA3AF"; // gris
+const DEFAULT_EVENT_COLOR = "#B383DE"; // autre (violet)
 
 const colorForSlug = (slug?: string | null): string =>
   (slug && CATEGORY_COLORS[slug]) || DEFAULT_EVENT_COLOR;
