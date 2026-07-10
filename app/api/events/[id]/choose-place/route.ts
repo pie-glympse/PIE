@@ -78,29 +78,30 @@ export async function POST(
       });
 
       // Le lieu choisi devient le lieu officiel de l'événement
+      const locationData = {
+        placeId: proposal.placeId,
+        name: proposal.name,
+        address: proposal.address,
+        lat: proposal.lat,
+        lng: proposal.lng,
+        websiteUrl: proposal.websiteUrl,
+        rating: proposal.rating,
+        userRatingsTotal: proposal.userRatingsTotal,
+      };
       await tx.eventLocation.upsert({
         where: { eventId },
-        update: {
-          placeId: proposal.placeId,
-          name: proposal.name,
-          address: proposal.address,
-          lat: proposal.lat,
-          lng: proposal.lng,
-        },
-        create: {
-          id: eventId,
-          eventId,
-          placeId: proposal.placeId,
-          name: proposal.name,
-          address: proposal.address,
-          lat: proposal.lat,
-          lng: proposal.lng,
-        },
+        update: locationData,
+        create: { id: eventId, eventId, ...locationData },
       });
 
+      // On répercute le lieu sur l'événement lui-même (city) pour que les
+      // listes, le calendrier et la carte pointent sur le lieu retenu.
       await tx.event.update({
         where: { id: eventId },
-        data: { state: "confirmed" },
+        data: {
+          state: "confirmed",
+          city: proposal.address || undefined,
+        },
       });
     });
 

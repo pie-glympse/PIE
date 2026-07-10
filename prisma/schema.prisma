@@ -82,6 +82,7 @@ model Event {
   publicStatus                 String                      @default("open")
   confirmedGoogleTagId         BigInt?
   description                  String                      @default("")
+  additionalInfo               String                      @default("") @map("additional_info")
   dateKnown                    Boolean                     @default(true) @map("date_known")
   categoryId                   BigInt?                     @map("category_id")
   blacklistedPlaces            BlacklistedPlace[]
@@ -176,14 +177,17 @@ model Vote {
 }
 
 model EventLocation {
-  eventId BigInt  @unique
-  id      BigInt  @id
-  placeId String? @map("place_id")
-  name    String?
-  address String?
-  lat     Float?
-  lng     Float?
-  event   Event   @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  eventId          BigInt  @unique
+  id               BigInt  @id
+  placeId          String? @map("place_id")
+  name             String?
+  address          String?
+  lat              Float?
+  lng              Float?
+  websiteUrl       String? @map("website_url")
+  rating           Float?
+  userRatingsTotal Int?    @map("user_ratings_total")
+  event            Event   @relation(fields: [eventId], references: [id], onDelete: Cascade)
 }
 
 model CompanyStats {

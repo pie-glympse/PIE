@@ -12,6 +12,8 @@ import StepperInput from "@/components/ui/StepperInput";
 export type EventDetailsData = {
   title: string;
   description: string;
+  additionalInfo: string;
+  costPerPerson: string;
   dateKnown: boolean;
   startDate: string;
   endDate: string;
@@ -66,6 +68,12 @@ const EventDetailsStep: FC<EventDetailsStepProps> = ({
 
   const [title, setTitle] = useState(initialData?.title || "");
   const [description, setDescription] = useState(initialData?.description || "");
+  const [additionalInfo, setAdditionalInfo] = useState(
+    initialData?.additionalInfo || "",
+  );
+  const [costPerPerson, setCostPerPerson] = useState(
+    initialData?.costPerPerson || "",
+  );
   const [dateKnown, setDateKnown] = useState(initialData?.dateKnown ?? false);
   const [startDate, setStartDate] = useState(initialData?.startDate || "");
   const [endDate, setEndDate] = useState(initialData?.endDate || "");
@@ -191,6 +199,8 @@ const EventDetailsStep: FC<EventDetailsStepProps> = ({
     onSubmit({
       title: title.trim(),
       description: description.trim(),
+      additionalInfo: additionalInfo.trim(),
+      costPerPerson,
       dateKnown,
       startDate,
       endDate: dateKnown ? endDate || startDate : endDate,
@@ -367,22 +377,43 @@ const EventDetailsStep: FC<EventDetailsStepProps> = ({
         </div>
       </div>
 
-      {/* Places maximum */}
-      <div className="mb-6 md:w-1/2">
-        <label htmlFor="maxPersons" className={labelClass}>
-          Places maximum{requireMaxPersons ? " *" : ""}
-        </label>
-        <StepperInput
-          id="maxPersons"
-          value={maxPersons}
-          onChange={(v) => {
-            setMaxPersons(v);
-            clearError("maxPersons");
-          }}
-          min={1}
-          placeholder="32"
-        />
-        {fieldError("maxPersons")}
+      {/* Places maximum + budget indicatif */}
+      <div className="flex flex-col md:flex-row gap-4 mb-6">
+        <div className="flex-1">
+          <label htmlFor="maxPersons" className={labelClass}>
+            Places maximum{requireMaxPersons ? " *" : ""}
+          </label>
+          <StepperInput
+            id="maxPersons"
+            value={maxPersons}
+            onChange={(v) => {
+              setMaxPersons(v);
+              clearError("maxPersons");
+            }}
+            min={1}
+            placeholder="32"
+          />
+          {fieldError("maxPersons")}
+        </div>
+        {mode === "category" && (
+          <div className="flex-1">
+            <label htmlFor="costPerPerson" className={labelClass}>
+              Budget par personne (€)
+            </label>
+            <StepperInput
+              id="costPerPerson"
+              value={costPerPerson}
+              onChange={setCostPerPerson}
+              min={0}
+              step={5}
+              suffix="€"
+              placeholder="30"
+            />
+            <p className="mt-1 text-body-small font-poppins text-[var(--color-grey-three)]">
+              Sert à écarter les lieux trop chers dans les propositions.
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Lieu : divergence selon la branche */}
@@ -469,7 +500,7 @@ const EventDetailsStep: FC<EventDetailsStepProps> = ({
       )}
 
       {/* Description */}
-      <div className="mb-8">
+      <div className="mb-6">
         <label htmlFor="description" className={labelClass}>
           Description
         </label>
@@ -479,6 +510,21 @@ const EventDetailsStep: FC<EventDetailsStepProps> = ({
           onChange={(e) => setDescription(e.target.value)}
           rows={4}
           placeholder="Décrivez votre évènement…"
+          className={`${inputClass} resize-none`}
+        />
+      </div>
+
+      {/* Informations complémentaires (transport, consignes…) */}
+      <div className="mb-8">
+        <label htmlFor="additionalInfo" className={labelClass}>
+          Informations complémentaires
+        </label>
+        <textarea
+          id="additionalInfo"
+          value={additionalInfo}
+          onChange={(e) => setAdditionalInfo(e.target.value)}
+          rows={3}
+          placeholder="Ex : le transport sera assuré par l'entreprise à partir de 18h…"
           className={`${inputClass} resize-none`}
         />
       </div>

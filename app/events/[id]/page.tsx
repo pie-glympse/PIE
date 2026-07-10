@@ -189,8 +189,15 @@ export default function SingleEventPage() {
   };
 
   const refetchEvent = async () => {
-    const userQuery = user?.id ? `?userId=${encodeURIComponent(user.id)}` : "";
-    const response = await fetch(`/api/events/${id}${userQuery}`);
+    // cache: no-store + cache-buster : la route event est en cache navigateur
+    // 30 min (SEMI_STATIC). Sans ça, après la clôture / le choix du lieu on
+    // ré-affichait la version cachée → "rien ne se passe".
+    const params = new URLSearchParams();
+    if (user?.id) params.set("userId", user.id);
+    params.set("_ts", Date.now().toString());
+    const response = await fetch(`/api/events/${id}?${params.toString()}`, {
+      cache: "no-store",
+    });
     if (response.ok) {
       const data = await response.json();
       setEvent(data.event || data);

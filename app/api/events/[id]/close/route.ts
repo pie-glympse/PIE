@@ -5,6 +5,8 @@ import {
   pickWinningDate,
   getQuestionnaireProgress,
   rankPlaces,
+  budgetToMaxPriceLevel,
+  isPlaceEligible,
 } from "@/lib/event-closure";
 import { geocodeCity, searchNearbyPlaces } from "@/lib/google-places-new";
 import { requireAuthUser } from "@/lib/server-auth";
@@ -106,6 +108,7 @@ export async function POST(
         state: true,
         city: true,
         maxDistance: true,
+        costPerPerson: true,
         dateKnown: true,
         isSpecificPlace: true,
         categoryId: true,
@@ -172,7 +175,8 @@ export async function POST(
       includedTypes: topTags.map((t) => t.techName),
     });
 
-    // 4) Exclure les lieux blacklistés (entreprise + événement)
+    // 4) Garde-fous : blacklist entreprise/événement + lieux fermés + grands
+    //    équipements pro (stade/arène) + budget (niveau de prix trop élevé)
     const companyId = event.User_Event_createdByIdToUser?.companyId;
     const blacklisted = companyId
       ? await prisma.blacklistedPlace.findMany({
@@ -184,13 +188,18 @@ export async function POST(
         })
       : [];
     const blacklistedIds = new Set(blacklisted.map((b) => b.placeId));
-    const eligiblePlaces = places.filter((p) => !blacklistedIds.has(p.placeId));
+    const maxPriceLevel = budgetToMaxPriceLevel(
+      event.costPerPerson != null ? Number(event.costPerPerson) : null,
+    );
+    const eligiblePlaces = places.filter((p) =>
+      isPlaceEligible(p, { maxPriceLevel, blacklistedIds }),
+    );
 
     if (eligiblePlaces.length === 0) {
       return NextResponse.json(
         {
           message:
-            "Aucun lieu trouvé pour les activités votées dans cette zone. Essayez d'élargir la distance maximum.",
+            "Aucun lieu adapté trouvé (après filtrage des lieux fermés, non privatisables ou hors budget). Essayez d'élargir la distance ou le budget.",
         },
         { status: 404 },
       );

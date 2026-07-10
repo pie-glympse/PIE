@@ -22,6 +22,7 @@ export async function POST(request: Request) {
     const {
       title,
       description = "",
+      additionalInfo = "",
       dateKnown = true,
       startDate,
       endDate,
@@ -99,6 +100,7 @@ export async function POST(request: Request) {
       data: {
         title,
         description: String(description || ""),
+        additionalInfo: String(additionalInfo || ""),
         dateKnown: Boolean(dateKnown),
         startDate: createDateOnly(startDate),
         endDate: createDateOnly(endDate),

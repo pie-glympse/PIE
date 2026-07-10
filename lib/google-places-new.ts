@@ -39,9 +39,14 @@ export type NearbyPlace = {
   name: string;
   address: string;
   types: string[];
+  primaryType: string | null;
   rating: number | null;
   userRatingsTotal: number | null;
   websiteUrl: string | null;
+  mapsUrl: string | null;
+  businessStatus: string | null;
+  /** Niveau de prix Google normalisé 0..4 (null si non renseigné) */
+  priceLevel: number | null;
   lat: number | null;
   lng: number | null;
 };
@@ -51,10 +56,23 @@ type RawPlace = {
   displayName?: { text?: string };
   formattedAddress?: string;
   types?: string[];
+  primaryType?: string;
   rating?: number;
   userRatingCount?: number;
   websiteUri?: string;
+  googleMapsUri?: string;
+  businessStatus?: string;
+  priceLevel?: string;
   location?: { latitude?: number; longitude?: number };
+};
+
+// Places API (New) renvoie le prix sous forme d'enum : on normalise en 0..4
+const PRICE_LEVEL_MAP: Record<string, number> = {
+  PRICE_LEVEL_FREE: 0,
+  PRICE_LEVEL_INEXPENSIVE: 1,
+  PRICE_LEVEL_MODERATE: 2,
+  PRICE_LEVEL_EXPENSIVE: 3,
+  PRICE_LEVEL_VERY_EXPENSIVE: 4,
 };
 
 export async function searchNearbyPlaces(params: {
@@ -76,9 +94,13 @@ export async function searchNearbyPlaces(params: {
         "places.displayName",
         "places.formattedAddress",
         "places.types",
+        "places.primaryType",
         "places.rating",
         "places.userRatingCount",
         "places.websiteUri",
+        "places.googleMapsUri",
+        "places.businessStatus",
+        "places.priceLevel",
         "places.location",
       ].join(","),
     },
@@ -110,9 +132,14 @@ export async function searchNearbyPlaces(params: {
     name: place.displayName?.text ?? "Lieu sans nom",
     address: place.formattedAddress ?? "",
     types: place.types ?? [],
+    primaryType: place.primaryType ?? null,
     rating: place.rating ?? null,
     userRatingsTotal: place.userRatingCount ?? null,
     websiteUrl: place.websiteUri ?? null,
+    mapsUrl: place.googleMapsUri ?? null,
+    businessStatus: place.businessStatus ?? null,
+    priceLevel:
+      place.priceLevel != null ? (PRICE_LEVEL_MAP[place.priceLevel] ?? null) : null,
     lat: place.location?.latitude ?? null,
     lng: place.location?.longitude ?? null,
   }));

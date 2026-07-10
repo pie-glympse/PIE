@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
-import type { ReactNode, MouseEvent, ReactElement } from "react";
+import type { ReactNode, MouseEvent, ReactElement, CSSProperties } from "react";
 import { useUser } from "../context/UserContext";
 import { useRouter } from "next/navigation";
 
@@ -20,6 +20,7 @@ interface APIEvent {
   duration?: number;
   recurringRate?: string;
   tags?: { id: string; name: string }[];
+  category?: { id: string; name: string; slug: string } | null;
 }
 
 // Type pour les événements du calendrier
@@ -30,6 +31,7 @@ interface Event {
   description: string;
   time: string;
   tags?: { id: string; name: string }[];
+  categorySlug?: string | null;
   isMultiDay?: boolean;
   originalStartDate?: string;
   originalEndDate?: string;
@@ -38,6 +40,18 @@ interface Event {
   recurringRate?: string;
   duration?: number;
 }
+
+// Code couleur par catégorie d'événement (gris par défaut / autres)
+const CATEGORY_COLORS: Record<string, string> = {
+  gastronomie: "#EF4444", // rouge
+  sport: "#3B82F6", // bleu
+  divertissement: "#8B5CF6", // violet
+  culture: "#22C55E", // vert
+};
+const DEFAULT_EVENT_COLOR = "#9CA3AF"; // gris
+
+const colorForSlug = (slug?: string | null): string =>
+  (slug && CATEGORY_COLORS[slug]) || DEFAULT_EVENT_COLOR;
 
 interface HoveredDay {
   day: number;
@@ -234,6 +248,7 @@ const MiniCalendar = ({ eventsData = [] }: MiniCalendarProps) => {
           description: apiEvent.description || '',
           time: getTimeFromDate(apiEvent.startDate),
           tags: apiEvent.tags || [],
+          categorySlug: apiEvent.category?.slug ?? null,
           isMultiDay: eventDuration > 1,
           originalStartDate: startDate,
           originalEndDate: endDate,
@@ -255,6 +270,7 @@ const MiniCalendar = ({ eventsData = [] }: MiniCalendarProps) => {
       description: apiEvent.description || '',
       time: getTimeFromDate(apiEvent.startDate),
       tags: apiEvent.tags || [],
+      categorySlug: apiEvent.category?.slug ?? null,
       isMultiDay: isMultiDay,
       originalStartDate: startDate,
       originalEndDate: endDate,
@@ -402,13 +418,34 @@ const MiniCalendar = ({ eventsData = [] }: MiniCalendarProps) => {
     return events.filter((event) => event.date === dateKey);
   };
 
-  const getDayColor = (day: number, month: number, year: number): string => {
+  // Style d'une case selon les événements du jour :
+  //  - aucun : gris clair (via className)
+  //  - une seule couleur de catégorie : aplat de couleur
+  //  - plusieurs catégories qui se chevauchent : damier des couleurs
+  const getDayStyle = (
+    day: number,
+    month: number,
+    year: number,
+  ): CSSProperties | undefined => {
     const dayEvents = getDayEvents(day, month, year);
-    if (dayEvents.length === 0) return "bg-gray-200 hover:bg-gray-300";
+    if (dayEvents.length === 0) return undefined;
 
-    const firstEvent = dayEvents[0];
-    
-    return "bg-[var(--color-calendar-grey)] hover:bg-[var(--color-calendar-grey-hover)]";
+    const distinctColors = Array.from(
+      new Set(dayEvents.map((e) => colorForSlug(e.categorySlug))),
+    );
+
+    if (distinctColors.length === 1) {
+      return { backgroundColor: distinctColors[0] };
+    }
+
+    // Damier 2 couleurs (les deux premières catégories distinctes présentes)
+    const [a, b] = distinctColors;
+    return {
+      backgroundColor: b,
+      backgroundImage: `linear-gradient(45deg, ${a} 25%, transparent 25%, transparent 75%, ${a} 75%), linear-gradient(45deg, ${a} 25%, transparent 25%, transparent 75%, ${a} 75%)`,
+      backgroundSize: "10px 10px",
+      backgroundPosition: "0 0, 5px 5px",
+    };
   };
 
   // Fonction pour gérer le clic sur un jour avec événement
@@ -457,17 +494,18 @@ const MiniCalendar = ({ eventsData = [] }: MiniCalendarProps) => {
       days.push(<div key={`empty-${i}`} className="w-6 h-6"></div>);
     }
 
-    // Ajouter les jours du mois  
+    // Ajouter les jours du mois
     for (let day = 1; day <= daysInMonth; day++) {
-      const colorClass = getDayColor(day, month, year);
       const dayEvents = getDayEvents(day, month, year);
       const hasEvents = dayEvents.length > 0;
+      const dayStyle = getDayStyle(day, month, year);
 
       days.push(
         <div
           key={day}
-          className={`w-6 h-6 ${colorClass} cursor-pointer rounded-sm transition-colors duration-200 flex items-center justify-center text-xs font-medium text-white hover:transition-all hover:duration-300 hover:ease-in-out ${
-            hasEvents ? 'hover:scale-110' : ''
+          style={dayStyle}
+          className={`w-6 h-6 cursor-pointer rounded-sm transition-transform duration-200 flex items-center justify-center text-xs font-medium text-white hover:transition-all hover:duration-300 hover:ease-in-out ${
+            hasEvents ? 'hover:scale-110' : 'bg-gray-200 hover:bg-gray-300'
           }`}
           onMouseEnter={(e) => handleMouseEnter(day, month, year, e)}
           onMouseMove={handleMouseMove}
@@ -493,8 +531,27 @@ const MiniCalendar = ({ eventsData = [] }: MiniCalendarProps) => {
 
   return (
     <div>
-      <div className="flex justify-between items-center">
-        <h2 className="text-xl font-bold text-gray-800">Calendrier des Evènements</h2>
+      <div className="flex justify-between items-center flex-wrap gap-2">
+        <div className="flex items-center gap-4 flex-wrap">
+          <h2 className="text-xl font-bold text-gray-800">Calendrier des Evènements</h2>
+          <div className="flex items-center gap-3 flex-wrap">
+            {[
+              { slug: "gastronomie", label: "Gastronomie" },
+              { slug: "sport", label: "Sport" },
+              { slug: "divertissement", label: "Divertissement" },
+              { slug: "culture", label: "Culture" },
+              { slug: "autre", label: "Autre" },
+            ].map((c) => (
+              <span key={c.slug} className="flex items-center gap-1.5 text-xs text-gray-500">
+                <span
+                  className="w-3 h-3 rounded-sm"
+                  style={{ backgroundColor: colorForSlug(c.slug) }}
+                />
+                {c.label}
+              </span>
+            ))}
+          </div>
+        </div>
         {/* Boutons de navigation - cachés sur mobile */}
         {!isMobile && (
           <div className="flex gap-2">

@@ -70,6 +70,8 @@ const CreateEventPage = () => {
       const eventData = {
         title: payload.title,
         description: payload.description,
+        additionalInfo: payload.additionalInfo,
+        costPerPerson: payload.costPerPerson ? Number(payload.costPerPerson) : null,
         dateKnown: payload.dateKnown,
         startDate: payload.startDate,
         endDate: payload.endDate,

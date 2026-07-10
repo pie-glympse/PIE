@@ -175,6 +175,57 @@ export type ScoredPlace = {
   score: number;
 };
 
+// ─── Garde-fous sur les lieux Google ────────────────────────────────────────
+// On écarte les lieux inadaptés à un événement d'entreprise :
+//  - fermés (businessStatus)
+//  - grands équipements « pro » non privatisables (stade/arène en type principal :
+//    Parc des Princes, Roland Garros… qui matchent le tag "stadium" du sport)
+//  - trop chers pour le budget indiqué (priceLevel > budget)
+
+// Types PRINCIPAUX écartés : grands équipements pro non privatisables. On ne
+// filtre que sur le type principal (primaryType) pour ne pas exclure un lieu
+// réservable qui aurait "stadium" en type secondaire. Un stade/arène pro
+// (Parc des Princes, Roland Garros) a "stadium" en type principal.
+const EXCLUDED_PRIMARY_TYPES = new Set<string>(["stadium", "arena"]);
+
+/** Budget indicatif par personne (€) → niveau de prix Google maximal toléré (0..4). */
+export function budgetToMaxPriceLevel(
+  costPerPerson: number | null | undefined,
+): number | null {
+  if (costPerPerson == null || costPerPerson <= 0) return null; // pas de budget → pas de filtre
+  if (costPerPerson <= 15) return 1; // €
+  if (costPerPerson <= 40) return 2; // €€
+  if (costPerPerson <= 80) return 3; // €€€
+  return 4; // €€€€
+}
+
+export type PlaceGuardInput = {
+  placeId: string;
+  primaryType: string | null;
+  businessStatus: string | null;
+  priceLevel: number | null;
+};
+
+export function isPlaceEligible(
+  place: PlaceGuardInput,
+  opts: { maxPriceLevel: number | null; blacklistedIds: Set<string> },
+): boolean {
+  if (opts.blacklistedIds.has(place.placeId)) return false;
+  // Fermé définitivement/temporairement (on garde OPERATIONAL et statut inconnu)
+  if (place.businessStatus && place.businessStatus !== "OPERATIONAL") return false;
+  // Équipement pro non privatisable
+  if (place.primaryType && EXCLUDED_PRIMARY_TYPES.has(place.primaryType)) return false;
+  // Budget : on n'écarte que si le prix est connu ET dépasse le plafond
+  if (
+    opts.maxPriceLevel != null &&
+    place.priceLevel != null &&
+    place.priceLevel > opts.maxPriceLevel
+  ) {
+    return false;
+  }
+  return true;
+}
+
 export function haversineKm(
   a: { lat: number; lng: number },
   b: { lat: number; lng: number },
