@@ -321,17 +321,24 @@ export default function Header() {
         <div className="flex items-center gap-6 pr-2">
           <Link
             href="/notifications"
-            className="relative cursor-pointer hover:opacity-80 transition w-[48px] h-[48px]"
+            aria-label="Notifications"
+            className="relative cursor-pointer hover:opacity-80 transition w-[48px] h-[48px] group"
           >
             <div className="w-full h-full flex items-center justify-center bg-[var(--color-grey-one)] rounded-lg relative">
-              <Image
-                src="/images/icones/alert.svg"
-                alt="notification"
-                width={26}
-                height={26}
-                className="object-contain"
-                sizes="26px"
-              />
+              <svg
+                className="w-[26px] h-[26px] text-[var(--color-secondary)]"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                aria-hidden="true"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={1.75}
+                  d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
+                />
+              </svg>
             </div>
             {unreadCount > 0 && (
               <span className="absolute top-2 right-2 w-[11px] h-[11px] bg-[var(--color-validate)] rounded-full"></span>

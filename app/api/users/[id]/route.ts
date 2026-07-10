@@ -178,3 +178,68 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     return NextResponse.json({ error: "Erreur lors de la mise à jour" }, { status: 500 });
   }
 }
+
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    const { id: userId } = await params;
+    const body = await request.json().catch(() => ({}));
+    const { password } = body;
+
+    const user = await prisma.user.findUnique({
+      where: { id: BigInt(userId) },
+      select: { id: true, password: true, photoUrl: true, bannerUrl: true },
+    });
+
+    if (!user) {
+      return NextResponse.json({ error: "Utilisateur non trouvé" }, { status: 404 });
+    }
+
+    if (password) {
+      const valid = await bcrypt.compare(password, user.password);
+      if (!valid) {
+        return NextResponse.json({ error: "Mot de passe incorrect" }, { status: 401 });
+      }
+    }
+
+    await prisma.$transaction(async (tx) => {
+      // 1. Supprimer les préférences d'événements (pas de cascade sur userId)
+      await tx.eventUserPreference.deleteMany({ where: { userId: user.id } });
+
+      // 2. Supprimer les stats entreprise si l'utilisateur en est le superAdmin
+      await tx.companyStats.deleteMany({ where: { superAdminId: user.id } });
+
+      // 3. Détacher l'utilisateur des événements qu'il a créés (ne pas supprimer les événements)
+      await tx.event.updateMany({
+        where: { createdById: user.id },
+        data: { createdById: null },
+      });
+
+      // 4. Retirer l'utilisateur de tous les événements (relation many-to-many)
+      await tx.user.update({
+        where: { id: user.id },
+        data: { events: { set: [] } },
+      });
+
+      // 5. Supprimer l'utilisateur (cascade auto : EventThemeVote, EventsUsersPhoto,
+      //    Feedback, Vote, BlacklistedPlace, Notification, PasswordResetToken,
+      //    PointsHistory, UserBadge)
+      await tx.user.delete({ where: { id: user.id } });
+    });
+
+    // Nettoyer les fichiers Supabase après la transaction
+    for (const url of [user.photoUrl, user.bannerUrl]) {
+      if (url && url.trim() !== "") {
+        const fileInfo = extractFileInfoFromUrl(url);
+        if (fileInfo) await deleteFileFromStorage(fileInfo.bucket, fileInfo.filename);
+      }
+    }
+
+    return NextResponse.json({ success: true }, { status: 200 });
+  } catch (error) {
+    console.error("Erreur suppression utilisateur:", error);
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "Erreur serveur" },
+      { status: 500 }
+    );
+  }
+}

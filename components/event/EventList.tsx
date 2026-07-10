@@ -1,5 +1,10 @@
 import Gcard from "@/components/Gcard";
 import type { EventType } from "@/hooks/useEvents";
+import {
+    getEventIllustration,
+    formatEventCreatedAt,
+} from "@/lib/event-display";
+import { canShowEventPreferencesVote } from "@/lib/event-public";
 
 interface EventListProps {
   events: EventType[];
@@ -21,21 +26,12 @@ interface EventListProps {
   joiningEventId?: string | null;
 }
 
-const adaptEventForGcard = (event: EventType) => {
-  const getBackgroundUrl = (
-    themes: { id: string; techName: string; displayName?: string | null }[] = [],
-  ) => {
-    if (themes.some((tag) => tag.techName.includes("restaurant"))) return "/images/illustration/palm.svg";
-    if (themes.some((tag) => tag.techName.includes("bar"))) return "/images/illustration/stack.svg";
-    if (themes.some((tag) => tag.techName.includes("park"))) return "/images/illustration/roundstar.svg";
-    return "/images/illustration/roundstar.svg";
-  };
-
+const adaptEventForGcard = (event: EventType, index: number) => {
   return {
     title: event.title,
-    date: event.startDate || new Date().toISOString(),
+    date: formatEventCreatedAt(event.createdAt) || new Date().toISOString(),
     participants: event.users || [],
-    backgroundUrl: getBackgroundUrl(event.selectedGoogleTags),
+    backgroundUrl: getEventIllustration(index),
     state: event.state,
   };
 };
@@ -62,17 +58,26 @@ export const EventList = ({
   if (viewMode === "grid") {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {events.map((event) => {
+        {events.map((event, index) => {
           // Comparer les IDs en tant que strings pour éviter les problèmes de type
-          const isCreator = !!(event.createdBy?.id && currentUserId && String(event.createdBy.id) === String(currentUserId));
-          const isParticipant = event.users?.some((user) => String(user.id) === String(currentUserId)) || false;
+          const isCreator = !!(
+            event.createdBy?.id &&
+            currentUserId &&
+            String(event.createdBy.id) === String(currentUserId)
+          );
+          const isParticipant =
+            event.users?.some(
+              (user) => String(user.id) === String(currentUserId),
+            ) || false;
           const canLeave = !isCreator && isParticipant;
+          const userIsParticipant =
+            (event.isParticipant ?? isParticipant) || isCreator;
 
           return (
-            <div key={event.id} onClick={() => onEventClick(event.id)} className="cursor-pointer">
+            <div key={event.id}>
               <Gcard
                 eventId={event.id}
-                {...adaptEventForGcard(event)}
+                {...adaptEventForGcard(event, index)}
                 className="w-full h-60"
                 dropdownOpen={dropdownEvent === event.id}
                 onDropdownToggle={() => onDropdownToggle(event.id)}
@@ -80,17 +85,31 @@ export const EventList = ({
                 onShare={() => onShare(event.id, event.title)}
                 onPreferences={() => onPreferences(event)}
                 onDelete={() => onDelete(event.id)}
-                onEdit={onEdit && isCreator ? () => onEdit(event.id) : undefined}
-                canLeave={canLeave}
-                onLeave={canLeave && onLeaveEvent ? () => onLeaveEvent(event) : undefined}
-                isCreator={isCreator}
-                showPreferencesButton={
-                  !userEventPreferences.has(event.id) && event.state?.toLowerCase() !== "confirmed"
+                onEdit={
+                  onEdit && isCreator ? () => onEdit(event.id) : undefined
                 }
+                canLeave={canLeave}
+                onLeave={
+                  canLeave && onLeaveEvent
+                    ? () => onLeaveEvent(event)
+                    : undefined
+                }
+                isCreator={isCreator}
+                showPreferencesButton={canShowEventPreferencesVote({
+                  isParticipant: userIsParticipant,
+                  isCreator,
+                  hasPreferences: userEventPreferences.has(event.id),
+                  state: event.state,
+                })}
                 isPublic={event.isPublic}
-                participantCount={event.participantCount ?? event.users?.length ?? 0}
-                maxParticipants={event.maxParticipants ?? (event.maxPersons ? Number(event.maxPersons) : null)}
-                isParticipant={(event.isParticipant ?? isParticipant) || isCreator}
+                participantCount={
+                  event.participantCount ?? event.users?.length ?? 0
+                }
+                maxParticipants={
+                  event.maxParticipants ??
+                  (event.maxPersons ? Number(event.maxPersons) : null)
+                }
+                isParticipant={userIsParticipant}
                 isFull={event.isFull}
                 joinLoading={joiningEventId === event.id}
                 hideParticipateButton={isCreator}
@@ -127,7 +146,9 @@ export const EventList = ({
                 strokeDasharray="12 8"
               />
             </svg>
-            <span className="relative z-10 text-6xl text-yellow-400 font-light">+</span>
+            <span className="relative z-10 text-6xl text-yellow-400 font-light">
+              +
+            </span>
           </button>
         )}
       </div>
@@ -136,17 +157,26 @@ export const EventList = ({
 
   return (
     <div className="space-y-4">
-      {events.map((event) => {
+      {events.map((event, index) => {
         // Comparer les IDs en tant que strings pour éviter les problèmes de type
-        const isCreator = !!(event.createdBy?.id && currentUserId && String(event.createdBy.id) === String(currentUserId));
-        const isParticipant = event.users?.some((user) => String(user.id) === String(currentUserId)) || false;
+        const isCreator = !!(
+          event.createdBy?.id &&
+          currentUserId &&
+          String(event.createdBy.id) === String(currentUserId)
+        );
+        const isParticipant =
+          event.users?.some(
+            (user) => String(user.id) === String(currentUserId),
+          ) || false;
         const canLeave = !isCreator && isParticipant;
+        const userIsParticipant =
+          (event.isParticipant ?? isParticipant) || isCreator;
 
         return (
-          <div key={event.id} onClick={() => onEventClick(event.id)} className="cursor-pointer">
+          <div key={event.id}>
             <Gcard
               eventId={event.id}
-              {...adaptEventForGcard(event)}
+              {...adaptEventForGcard(event, index)}
               className="w-full ha-auto"
               dropdownOpen={dropdownEvent === event.id}
               onDropdownToggle={() => onDropdownToggle(event.id)}
@@ -156,13 +186,25 @@ export const EventList = ({
               onDelete={() => onDelete(event.id)}
               onEdit={onEdit && isCreator ? () => onEdit(event.id) : undefined}
               canLeave={canLeave}
-              onLeave={canLeave && onLeaveEvent ? () => onLeaveEvent(event) : undefined}
+              onLeave={
+                canLeave && onLeaveEvent ? () => onLeaveEvent(event) : undefined
+              }
               isCreator={isCreator}
-              showPreferencesButton={!userEventPreferences.has(event.id) && event.state?.toLowerCase() !== "confirmed"}
+              showPreferencesButton={canShowEventPreferencesVote({
+                isParticipant: userIsParticipant,
+                isCreator,
+                hasPreferences: userEventPreferences.has(event.id),
+                state: event.state,
+              })}
               isPublic={event.isPublic}
-              participantCount={event.participantCount ?? event.users?.length ?? 0}
-              maxParticipants={event.maxParticipants ?? (event.maxPersons ? Number(event.maxPersons) : null)}
-              isParticipant={(event.isParticipant ?? isParticipant) || isCreator}
+              participantCount={
+                event.participantCount ?? event.users?.length ?? 0
+              }
+              maxParticipants={
+                event.maxParticipants ??
+                (event.maxPersons ? Number(event.maxPersons) : null)
+              }
+              isParticipant={userIsParticipant}
               isFull={event.isFull}
               joinLoading={joiningEventId === event.id}
               hideParticipateButton={isCreator}

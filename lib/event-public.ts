@@ -2,7 +2,9 @@ import type { Event, User } from "@prisma/client";
 
 export type PublicCapacityStatus = "open" | "full" | "closed";
 
-export function getMaxParticipants(event: { maxPersons?: bigint | null }): number | null {
+export function getMaxParticipants(event: {
+  maxPersons?: bigint | null;
+}): number | null {
   if (event.maxPersons == null) return null;
   const max = Number(event.maxPersons);
   return max > 0 ? max : null;
@@ -18,7 +20,8 @@ export function computePublicStatus(
   currentStatus?: string | null,
 ): PublicCapacityStatus {
   if (currentStatus === "closed") return "closed";
-  if (maxParticipants != null && participantCount >= maxParticipants) return "full";
+  if (maxParticipants != null && participantCount >= maxParticipants)
+    return "full";
   return "open";
 }
 
@@ -32,9 +35,25 @@ export function canJoinPublicEvent(params: {
   if (!params.isPublic) return false;
   if (params.isParticipant) return false;
   if (params.publicStatus === "closed") return false;
-  if (params.maxParticipants != null && params.participantCount >= params.maxParticipants) {
+  if (
+    params.maxParticipants != null &&
+    params.participantCount >= params.maxParticipants
+  ) {
     return false;
   }
+  return true;
+}
+
+/** Vote / preferences UI only for participants (joined public event or accepted invite). */
+export function canShowEventPreferencesVote(params: {
+  isParticipant: boolean;
+  isCreator: boolean;
+  hasPreferences: boolean;
+  state?: string | null;
+}): boolean {
+  if (!params.isParticipant && !params.isCreator) return false;
+  if (params.hasPreferences) return false;
+  if (params.state?.toLowerCase() === "confirmed") return false;
   return true;
 }
 
@@ -44,9 +63,21 @@ export type EventWithUsers = Event & {
 
 export function enrichEventForClient<
   T extends Event & {
-    users: { id: bigint | string; firstName?: string; lastName?: string; email?: string; photoUrl?: string }[];
+    users: {
+      id: bigint | string;
+      firstName?: string;
+      lastName?: string;
+      email?: string;
+      photoUrl?: string;
+    }[];
     _count?: { users: number };
-    User_Event_createdByIdToUser?: { id: bigint; firstName: string; lastName: string; email: string; companyId?: bigint | null } | null;
+    User_Event_createdByIdToUser?: {
+      id: bigint;
+      firstName: string;
+      lastName: string;
+      email: string;
+      companyId?: bigint | null;
+    } | null;
   },
 >(event: T, currentUserId?: string) {
   const participantCount = event._count?.users ?? event.users.length;

@@ -73,17 +73,10 @@ export async function PATCH(
       );
     }
 
+    // Confirmation manuelle : réservée aux lieux précis / events sans catégorie
+    // (les events à catégorie passent par la clôture + choix du lieu, bloqués
+    // plus haut). On retient la date la plus votée si elle existe.
     if (newState.toLowerCase() === "confirmed") {
-      const votes = await prisma.eventThemeVote.groupBy({
-        by: ["googleTagId"],
-        where: { eventId },
-        _count: { googleTagId: true },
-        orderBy: [{ _count: { googleTagId: "desc" } }, { googleTagId: "asc" }],
-      });
-
-      const winnerGoogleTagId =
-        votes[0]?.googleTagId || currentEvent.selectedGoogleTags[0]?.id || null;
-
       const mostVotedDate = await prisma.eventUserPreference.groupBy({
         by: ["preferredDate"],
         where: { eventId },
@@ -96,7 +89,6 @@ export async function PATCH(
         where: { id: eventId },
         data: {
           state: newState,
-          confirmedGoogleTagId: winnerGoogleTagId,
           ...(mostVotedDate.length > 0
             ? { startDate: mostVotedDate[0].preferredDate }
             : {}),
@@ -104,6 +96,7 @@ export async function PATCH(
         include: {
           confirmedGoogleTag: true,
           selectedGoogleTags: true,
+          location: true,
         },
       });
 

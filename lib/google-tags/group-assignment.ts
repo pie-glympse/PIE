@@ -1,0 +1,100 @@
+const GROUP_KEYWORDS: Record<string, string[]> = {
+  Restauration: [
+    "restaurant",
+    "cafe",
+    "bakery",
+    "meal",
+    "food",
+    "bar",
+    "brewery",
+    "wine",
+    "bistro",
+    "diner",
+    "pizza",
+    "sushi",
+    "steak",
+    "seafood",
+    "ice_cream",
+    "coffee",
+    "tea",
+  ],
+  Afterwork: [
+    "night_club",
+    "pub",
+    "cocktail",
+    "lounge",
+    "karaoke",
+    "casino",
+    "dance",
+  ],
+  "Team Building": [
+    "amusement",
+    "bowling",
+    "escape",
+    "arcade",
+    "trampoline",
+    "laser",
+    "mini_golf",
+    "go_kart",
+    "adventure",
+    "climbing",
+    "paintball",
+    "zoo",
+    "aquarium",
+    "museum",
+    "art_gallery",
+    "theater",
+    "movie",
+    "cinema",
+  ],
+  Séminaire: [
+    "convention",
+    "conference",
+    "meeting",
+    "coworking",
+    "office",
+    "library",
+    "university",
+    "school",
+    "auditorium",
+  ],
+  Sport: [
+    "gym",
+    "fitness",
+    "stadium",
+    "golf",
+    "tennis",
+    "swimming",
+    "sport",
+    "yoga",
+    "ski",
+    "skate",
+    "basketball",
+    "football",
+    "soccer",
+    "baseball",
+    "hockey",
+    "martial",
+    "boxing",
+    "cycling",
+    "running",
+    "hiking",
+    "campground",
+    "park",
+    "beach",
+    "marina",
+    "spa",
+  ],
+};
+
+export function inferGroupNameFromTechName(techName: string): string {
+  const normalized = techName.toLowerCase();
+
+  for (const [groupName, keywords] of Object.entries(GROUP_KEYWORDS)) {
+    if (keywords.some((keyword) => normalized.includes(keyword))) {
+      return groupName;
+    }
+  }
+
+  return "Autre";
+}

@@ -1,13 +1,15 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import BackArrow from "@/components/ui/BackArrow";
 import ShareButton from "@/components/ui/ShareButton";
 import TabNavigation from "@/components/ui/TabNavigation";
 import EventInformations from "@/components/event/EventInformations";
 import EventParticipants from "@/components/event/EventParticipants";
-import EventDocuments from "@/components/event/EventDocuments";
+import EventDocuments, {
+  type EventDocumentsHandle,
+} from "@/components/event/EventDocuments";
 import { useUser } from "@/context/UserContext";
 import ConfirmationModal from "@/components/ui/ConfirmationModal";
 import PublicEventParticipateButton from "@/components/event/PublicEventParticipateButton";
@@ -88,6 +90,7 @@ export default function SingleEventPage() {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const { joinEvent, joiningEventId } = useJoinPublicEvent();
+  const documentsRef = useRef<EventDocumentsHandle>(null);
 
   const tabs = [
     {
@@ -175,7 +178,7 @@ export default function SingleEventPage() {
   };
 
   const handleUploadDocument = () => {
-    // TODO: Implémenter la logique d'upload de document
+    documentsRef.current?.openFilePicker();
   };
 
   const openLeaveModal = () => {
@@ -375,7 +378,15 @@ export default function SingleEventPage() {
           />
         );
       case "documents":
-        return <EventDocuments />;
+        return (
+          <EventDocuments
+            ref={documentsRef}
+            eventId={event.id}
+            userId={user?.id}
+            canUpload={!!(isParticipant || isCreator)}
+            isCreator={!!isCreator}
+          />
+        );
       default:
         return <EventInformations event={event} />;
     }

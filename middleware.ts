@@ -1,15 +1,29 @@
 // middleware.ts (à la racine, pas dans app/)
-import { NextRequest, NextResponse } from 'next/server';
-import { jwtVerify } from 'jose';
-import { OFFICE_COOKIE_NAME, verifyOfficeToken } from '@/lib/officeAuth';
+import { NextRequest, NextResponse } from "next/server";
+import { jwtVerify } from "jose";
+import { OFFICE_COOKIE_NAME, verifyOfficeToken } from "@/lib/officeAuth";
 
-const JWT_SECRET = process.env.JWT_SECRET || 'supersecretkey';
+const JWT_SECRET = process.env.JWT_SECRET || "supersecretkey";
 
 // Routes protégées (nécessitent une authentification)
-const protectedRoutes = ['/events', '/dashboard', '/home', '/create-event', '/profile'];
+const protectedRoutes = [
+  "/events",
+  "/dashboard",
+  "/home",
+  "/create-event",
+  "/profile",
+];
 
 // Routes publiques (pas besoin d'authentification)
-const publicRoutes = ['/login', '/register', '/forgot-password', '/reset-password', '/set-password', '/greetings'];
+const publicRoutes = [
+  "/login",
+  "/register",
+  "/forgot-password",
+  "/reset-password",
+  "/set-password",
+  "/greetings",
+  "/pricing",
+];
 
 async function verifyToken(token: string): Promise<boolean> {
   try {
@@ -17,7 +31,7 @@ async function verifyToken(token: string): Promise<boolean> {
     await jwtVerify(token, secret);
     return true;
   } catch (err) {
-    console.error('Token invalide :', err);
+    console.error("Token invalide :", err);
     return false;
   }
 }
@@ -25,43 +39,45 @@ async function verifyToken(token: string): Promise<boolean> {
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  const isOfficeRoute = pathname.startsWith('/office');
-  if (isOfficeRoute && pathname !== '/office/login') {
+  const isOfficeRoute = pathname.startsWith("/office");
+  if (isOfficeRoute && pathname !== "/office/login") {
     const officeToken = request.cookies.get(OFFICE_COOKIE_NAME)?.value;
-    const isOfficeTokenValid = officeToken ? await verifyOfficeToken(officeToken) : false;
+    const isOfficeTokenValid = officeToken
+      ? await verifyOfficeToken(officeToken)
+      : false;
 
     if (!isOfficeTokenValid) {
-      const loginUrl = new URL('/office/login', request.url);
+      const loginUrl = new URL("/office/login", request.url);
       return NextResponse.redirect(loginUrl);
     }
   }
-  
+
   // Lire le token dans les cookies
-  const token = request.cookies.get('token')?.value;
-  
+  const token = request.cookies.get("token")?.value;
+
   // Vérifier si le token est valide
   const isTokenValid = token ? await verifyToken(token) : false;
 
   // ✅ REDIRECTION AUTOMATIQUE DEPUIS LA RACINE
-  if (pathname === '/') {
+  if (pathname === "/") {
     if (isTokenValid) {
       // Utilisateur connecté → rediriger vers home
-      return NextResponse.redirect(new URL('/home', request.url));
+      return NextResponse.redirect(new URL("/home", request.url));
     } else {
       // Utilisateur non connecté → rediriger vers login
-      return NextResponse.redirect(new URL('/login', request.url));
+      return NextResponse.redirect(new URL("/login", request.url));
     }
   }
 
   // ✅ GESTION DES ROUTES PUBLIQUES
   const isPublicRoute = publicRoutes.some((route) =>
-    pathname.startsWith(route)
+    pathname.startsWith(route),
   );
 
   if (isPublicRoute) {
     // Si utilisateur connecté essaie d'accéder au login, rediriger vers events
-    if (isTokenValid && pathname === '/login') {
-      return NextResponse.redirect(new URL('/home', request.url));
+    if (isTokenValid && pathname === "/login") {
+      return NextResponse.redirect(new URL("/home", request.url));
     }
     //
     return NextResponse.next();
@@ -69,13 +85,13 @@ export async function middleware(request: NextRequest) {
 
   // ✅ GESTION DES ROUTES PROTÉGÉES
   const isProtectedRoute = protectedRoutes.some((route) =>
-    pathname.startsWith(route)
+    pathname.startsWith(route),
   );
 
   if (isProtectedRoute) {
     if (!token || !isTokenValid) {
       // Pas de token ou token invalide → redirect vers login
-      return NextResponse.redirect(new URL('/login', request.url));
+      return NextResponse.redirect(new URL("/login", request.url));
     }
     // Token valide → accès autorisé
     return NextResponse.next();
@@ -94,6 +110,6 @@ export const config = {
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
      */
-    '/((?!api|_next/static|_next/image|favicon.ico).*)',
+    "/((?!api|_next/static|_next/image|favicon.ico).*)",
   ],
 };

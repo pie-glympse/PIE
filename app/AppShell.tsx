@@ -22,7 +22,16 @@ const Modal = dynamic(() => import("@/components/layout/Modal"), {
   ssr: false,
 });
 
-const hideHeaderRoutes = ["/login", "/register", "/forgot-password", "/reset-password", "/set-password", "/first-connection", "/greetings"];
+const hideHeaderRoutes = [
+  "/login",
+  "/register",
+  "/forgot-password",
+  "/reset-password",
+  "/set-password",
+  "/first-connection",
+  "/greetings",
+  "/pricing",
+];
 
 function OnboardingProvider({ children }: { children: ReactNode }) {
   const { showOnboarding, isChecking, markOnboardingAsSeen } = useOnboarding();
@@ -123,7 +132,8 @@ function FeedbackProvider({ children }: { children: ReactNode }) {
 
 function InvitationProvider({ children }: { children: ReactNode }) {
   const { user } = useUser();
-  const { pendingInvitation, clearPendingInvitation } = useInvitationNotification();
+  const { pendingInvitation, clearPendingInvitation } =
+    useInvitationNotification();
 
   return (
     <>
@@ -160,7 +170,10 @@ export default function AppShell({ children }: { children: ReactNode }) {
 
     check404();
     const observer = new MutationObserver(check404);
-    observer.observe(document.body, { attributes: true, attributeFilter: ["class"] });
+    observer.observe(document.body, {
+      attributes: true,
+      attributeFilter: ["class"],
+    });
 
     return () => observer.disconnect();
   }, []);

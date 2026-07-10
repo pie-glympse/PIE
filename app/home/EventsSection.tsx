@@ -22,10 +22,23 @@ export type EventType = {
   recurringRate?: string;
   state?: string;
   createdById?: string;
-  selectedGoogleTags?: { id: string; techName: string; displayName?: string | null }[];
-  confirmedGoogleTag?: { id: string; techName: string; displayName?: string | null } | null;
+  selectedGoogleTags?: {
+    id: string;
+    techName: string;
+    displayName?: string | null;
+  }[];
+  confirmedGoogleTag?: {
+    id: string;
+    techName: string;
+    displayName?: string | null;
+  } | null;
   users?: { id: string; firstName: string; lastName: string; email: string }[];
-  createdBy?: { id: string; firstName: string; lastName: string; email: string };
+  createdBy?: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+  };
   isPublic?: boolean;
   publicStatus?: string;
   participantCount?: number;
@@ -33,15 +46,23 @@ export type EventType = {
   isParticipant?: boolean;
   canJoin?: boolean;
   isFull?: boolean;
+  createdAt?: string;
 };
 
-function fetchEvents(userId: string): Promise<{ events: EventType[]; error: string | null }> {
-  const uid = typeof userId === "bigint" ? String(userId) : String(userId ?? "");
-  return fetch(`/api/events?userId=${encodeURIComponent(uid)}&_ts=${Date.now()}`, {
-    cache: "no-store",
-  })
+function fetchEvents(
+  userId: string,
+): Promise<{ events: EventType[]; error: string | null }> {
+  const uid =
+    typeof userId === "bigint" ? String(userId) : String(userId ?? "");
+  return fetch(
+    `/api/events?userId=${encodeURIComponent(uid)}&_ts=${Date.now()}`,
+    {
+      cache: "no-store",
+    },
+  )
     .then((res) => {
-      if (!res.ok) throw new Error("Erreur lors de la récupération des événements");
+      if (!res.ok)
+        throw new Error("Erreur lors de la récupération des événements");
       return res.json();
     })
     .then((data: unknown) => {
@@ -50,7 +71,8 @@ function fetchEvents(userId: string): Promise<{ events: EventType[]; error: stri
     })
     .catch((err) => ({
       events: [],
-      error: err instanceof Error ? err.message : "Erreur lors de la récupération",
+      error:
+        err instanceof Error ? err.message : "Erreur lors de la récupération",
     }));
 }
 
@@ -58,10 +80,18 @@ interface EventsSectionProps {
   userId: string;
   refreshKey: number;
   fallback: React.ReactNode;
-  children: (result: { events: EventType[]; error: string | null }) => React.ReactNode;
+  children: (result: {
+    events: EventType[];
+    error: string | null;
+  }) => React.ReactNode;
 }
 
-export function EventsSection({ userId, refreshKey, fallback, children }: EventsSectionProps) {
+export function EventsSection({
+  userId,
+  refreshKey,
+  fallback,
+  children,
+}: EventsSectionProps) {
   const stableUserId = typeof userId === "bigint" ? String(userId) : userId;
   const [result, setResult] = useState<{
     events: EventType[];

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { isOfficeAuthenticated } from "@/lib/officeApiAuth";
 import { fetchGooglePlaceTypesFromDocs } from "@/lib/google-tags/sync";
+import { techNameToDisplayName } from "@/lib/google-tags/display-name";
 
 export async function POST(request: NextRequest) {
   const isAuthed = await isOfficeAuthenticated(request);
@@ -28,6 +29,7 @@ export async function POST(request: NextRequest) {
       await prisma.googleTag.createMany({
         data: toCreate.map((techName) => ({
           techName,
+          displayName: techNameToDisplayName(techName),
           source: "google-docs",
           isActive: true,
         })),
