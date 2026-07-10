@@ -244,6 +244,117 @@ export function isPlaceEligible(
   return true;
 }
 
+// ─── Requête textuelle depuis les tags votés ────────────────────────────────
+// La taxonomie de types Google ne distingue pas certaines activités (accrobranche,
+// escape game, karting… tous tagués amusement_park/sports_complex comme les
+// piscines). On traduit les tags gagnants en mots-clés FR et on interroge Google
+// en TEXTE (relevance), ce qui lève l'ambiguïté. Les tags trop génériques
+// (sports_complex, event_venue…) n'ont pas de mot-clé et sont ignorés.
+const TAG_KEYWORDS: Record<string, string> = {
+  // Sport / plein air / sensations
+  adventure_sports_center: "accrobranche parc aventure",
+  hiking_area: "randonnée",
+  off_roading_area: "quad tout-terrain",
+  cycling_park: "parcours vélo",
+  ski_resort: "ski",
+  golf_course: "golf",
+  swimming_pool: "piscine",
+  fishing_pond: "étang de pêche",
+  fishing_charter: "sortie pêche",
+  ice_skating_rink: "patinoire",
+  fitness_center: "salle de sport",
+  gym: "salle de sport",
+  water_park: "parc aquatique",
+  amusement_park: "parc d'attractions",
+  // Divertissement
+  bowling_alley: "bowling",
+  video_arcade: "salle d'arcade",
+  karaoke: "karaoké",
+  roller_coaster: "parc d'attractions",
+  skateboard_park: "skatepark",
+  planetarium: "planétarium",
+  aquarium: "aquarium",
+  zoo: "zoo",
+  wildlife_park: "parc animalier",
+  wildlife_refuge: "réserve naturelle",
+  historical_landmark: "monument historique",
+  night_club: "boîte de nuit",
+  dance_hall: "salle de danse",
+  comedy_club: "café-théâtre",
+  concert_hall: "salle de concert",
+  movie_theater: "cinéma",
+  opera_house: "opéra",
+  philharmonic_hall: "philharmonie",
+  park: "parc",
+  garden: "jardin",
+  botanical_garden: "jardin botanique",
+  national_park: "parc national",
+  picnic_ground: "aire de pique-nique",
+  observation_deck: "point de vue",
+  barbecue_area: "aire de barbecue",
+  // Culture
+  art_gallery: "galerie d'art",
+  art_studio: "atelier d'art",
+  sculpture: "exposition sculpture",
+  museum: "musée",
+  historical_place: "lieu historique",
+  monument: "monument",
+  performing_arts_theater: "théâtre",
+  auditorium: "auditorium",
+  cultural_landmark: "site culturel",
+  // Gastronomie
+  restaurant: "restaurant",
+  french_restaurant: "restaurant français",
+  italian_restaurant: "restaurant italien",
+  japanese_restaurant: "restaurant japonais",
+  mexican_restaurant: "restaurant mexicain",
+  indian_restaurant: "restaurant indien",
+  lebanese_restaurant: "restaurant libanais",
+  asian_restaurant: "restaurant asiatique",
+  korean_restaurant: "restaurant coréen",
+  vietnamese_restaurant: "restaurant vietnamien",
+  thai_restaurant: "restaurant thaïlandais",
+  middle_eastern_restaurant: "restaurant oriental",
+  fine_dining_restaurant: "restaurant gastronomique",
+  steak_house: "steakhouse",
+  seafood_restaurant: "fruits de mer",
+  sushi_restaurant: "sushi",
+  pizza_restaurant: "pizzeria",
+  barbecue_restaurant: "barbecue",
+  vegetarian_restaurant: "restaurant végétarien",
+  vegan_restaurant: "restaurant vegan",
+  juice_shop: "bar à jus",
+  fast_food_restaurant: "fast food",
+  hamburger_restaurant: "burger",
+  sandwich_shop: "sandwicherie",
+  bakery: "boulangerie",
+  dessert_shop: "pâtisserie",
+  ice_cream_shop: "glacier",
+  chocolate_shop: "chocolatier",
+  bar: "bar",
+  wine_bar: "bar à vin",
+  pub: "pub",
+  bar_and_grill: "bar grill",
+  cafe: "café",
+  coffee_shop: "café",
+  tea_house: "salon de thé",
+  brunch_restaurant: "brunch",
+  breakfast_restaurant: "petit-déjeuner",
+};
+
+/** Construit une requête textuelle à partir des tags les plus votés (top mots-clés). */
+export function buildActivityQuery(tagScores: TagScore[], maxKeywords = 2): string | null {
+  const keywords: string[] = [];
+  for (const t of tagScores) {
+    const kw = TAG_KEYWORDS[t.techName];
+    if (kw && !keywords.includes(kw)) {
+      keywords.push(kw);
+      if (keywords.length >= maxKeywords) break;
+    }
+  }
+  return keywords.length ? keywords.join(", ") : null;
+}
+
 export function haversineKm(
   a: { lat: number; lng: number },
   b: { lat: number; lng: number },
@@ -273,17 +384,23 @@ export function rankPlaces(
       ? haversineKm(center, { lat: p.lat, lng: p.lng })
       : Number.MAX_SAFE_INTEGER;
 
+  // Score = plus forte intention matchée (MAX), pas la somme : un lieu qui coche
+  // beaucoup de tags faibles (centre aquatique multi-activités) ne doit pas
+  // dépasser un lieu qui matche fortement l'intention gagnante (accrobranche).
+  // Le total sert seulement à départager à intention égale.
   return places
-    .map((place) => ({
-      ...place,
-      score: place.types.reduce(
-        (sum, type) => sum + (scoreByTechName.get(type) ?? 0),
-        0,
-      ),
-    }))
+    .map((place) => {
+      const matched = place.types
+        .map((type) => scoreByTechName.get(type) ?? 0)
+        .filter((s) => s > 0);
+      const best = matched.length ? Math.max(...matched) : 0;
+      const total = matched.reduce((sum, s) => sum + s, 0);
+      return { ...place, score: best, total };
+    })
     .sort(
       (a, b) =>
         b.score - a.score ||
+        b.total - a.total ||
         (b.rating ?? 0) - (a.rating ?? 0) ||
         (b.userRatingsTotal ?? 0) - (a.userRatingsTotal ?? 0) ||
         distance(a) - distance(b) ||

@@ -3,7 +3,23 @@
 // questionnaires (sports_activity_location, hiking_area…) y sont valides.
 
 const PLACES_ENDPOINT = "https://places.googleapis.com/v1/places:searchNearby";
+const PLACES_TEXT_ENDPOINT = "https://places.googleapis.com/v1/places:searchText";
 const GEOCODE_ENDPOINT = "https://maps.googleapis.com/maps/api/geocode/json";
+
+const PLACES_FIELD_MASK = [
+  "places.id",
+  "places.displayName",
+  "places.formattedAddress",
+  "places.types",
+  "places.primaryType",
+  "places.rating",
+  "places.userRatingCount",
+  "places.websiteUri",
+  "places.googleMapsUri",
+  "places.businessStatus",
+  "places.priceLevel",
+  "places.location",
+].join(",");
 
 function getApiKey(): string {
   const apiKey =
@@ -89,20 +105,7 @@ export async function searchNearbyPlaces(params: {
     headers: {
       "Content-Type": "application/json",
       "X-Goog-Api-Key": getApiKey(),
-      "X-Goog-FieldMask": [
-        "places.id",
-        "places.displayName",
-        "places.formattedAddress",
-        "places.types",
-        "places.primaryType",
-        "places.rating",
-        "places.userRatingCount",
-        "places.websiteUri",
-        "places.googleMapsUri",
-        "places.businessStatus",
-        "places.priceLevel",
-        "places.location",
-      ].join(","),
+      "X-Goog-FieldMask": PLACES_FIELD_MASK,
     },
     body: JSON.stringify({
       includedTypes,
@@ -126,8 +129,11 @@ export async function searchNearbyPlaces(params: {
 
   const data = await response.json();
   const places: RawPlace[] = Array.isArray(data.places) ? data.places : [];
+  return places.map(mapRawPlace);
+}
 
-  return places.map((place) => ({
+function mapRawPlace(place: RawPlace): NearbyPlace {
+  return {
     placeId: place.id,
     name: place.displayName?.text ?? "Lieu sans nom",
     address: place.formattedAddress ?? "",
@@ -142,5 +148,50 @@ export async function searchNearbyPlaces(params: {
       place.priceLevel != null ? (PRICE_LEVEL_MAP[place.priceLevel] ?? null) : null,
     lat: place.location?.latitude ?? null,
     lng: place.location?.longitude ?? null,
-  }));
+  };
+}
+
+// Recherche TEXTUELLE (relevance Google) — indispensable pour les activités que
+// la taxonomie de types ne distingue pas (accrobranche, escape game, karting…),
+// car Google tague ces lieux comme amusement_park/sports_complex, comme les
+// piscines. Le texte ("accrobranche à Versailles") lève l'ambiguïté.
+export async function searchTextPlaces(params: {
+  textQuery: string;
+  lat: number;
+  lng: number;
+  radiusMeters: number;
+  maxResultCount?: number;
+}): Promise<NearbyPlace[]> {
+  const { textQuery, lat, lng, radiusMeters, maxResultCount = 20 } = params;
+
+  const response = await fetch(PLACES_TEXT_ENDPOINT, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Goog-Api-Key": getApiKey(),
+      "X-Goog-FieldMask": PLACES_FIELD_MASK,
+    },
+    body: JSON.stringify({
+      textQuery,
+      maxResultCount,
+      languageCode: "fr",
+      locationBias: {
+        circle: {
+          center: { latitude: lat, longitude: lng },
+          radius: Math.min(Math.max(radiusMeters, 500), 50000),
+        },
+      },
+    }),
+  });
+
+  if (!response.ok) {
+    const body = await response.text().catch(() => "");
+    throw new Error(
+      `Places API (New) searchText HTTP ${response.status}${body ? ` — ${body.slice(0, 300)}` : ""}`,
+    );
+  }
+
+  const data = await response.json();
+  const places: RawPlace[] = Array.isArray(data.places) ? data.places : [];
+  return places.map(mapRawPlace);
 }

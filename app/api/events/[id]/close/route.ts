@@ -7,8 +7,13 @@ import {
   rankPlaces,
   budgetToMaxPriceLevel,
   isPlaceEligible,
+  buildActivityQuery,
 } from "@/lib/event-closure";
-import { geocodeCity, searchNearbyPlaces } from "@/lib/google-places-new";
+import {
+  geocodeCity,
+  searchNearbyPlaces,
+  searchTextPlaces,
+} from "@/lib/google-places-new";
 import { requireAuthUser } from "@/lib/server-auth";
 
 const toJson = (data: unknown) =>
@@ -168,22 +173,13 @@ export async function POST(
     }
     const center = await geocodeCity(event.city);
     const radiusMeters = (event.maxDistance ?? 10) * 1000;
-    const places = await searchNearbyPlaces({
-      lat: center.lat,
-      lng: center.lng,
-      radiusMeters,
-      includedTypes: topTags.map((t) => t.techName),
-    });
 
-    // 4) Garde-fous : blacklist entreprise/événement + lieux fermés + grands
-    //    équipements pro (stade/arène) + budget (niveau de prix trop élevé)
+    // Garde-fous communs (blacklist entreprise/événement + fermés + non
+    // privatisables + budget)
     const companyId = event.User_Event_createdByIdToUser?.companyId;
     const blacklisted = companyId
       ? await prisma.blacklistedPlace.findMany({
-          where: {
-            companyId,
-            OR: [{ eventId: null }, { eventId }],
-          },
+          where: { companyId, OR: [{ eventId: null }, { eventId }] },
           select: { placeId: true },
         })
       : [];
@@ -191,11 +187,56 @@ export async function POST(
     const maxPriceLevel = budgetToMaxPriceLevel(
       event.costPerPerson != null ? Number(event.costPerPerson) : null,
     );
-    const eligiblePlaces = places.filter((p) =>
-      isPlaceEligible(p, { maxPriceLevel, blacklistedIds }),
-    );
+    const filterEligible = (list: Awaited<ReturnType<typeof searchNearbyPlaces>>) =>
+      list.filter((p) => isPlaceEligible(p, { maxPriceLevel, blacklistedIds }));
 
-    if (eligiblePlaces.length === 0) {
+    // 3) Recherche TEXTUELLE en priorité (relevance Google sur l'intention
+    //    gagnante) — indispensable pour les activités que les types ne
+    //    distinguent pas (accrobranche, escape game…). On garde l'ordre de
+    //    pertinence de Google, on ne fait qu'appliquer les garde-fous.
+    const activityQuery = buildActivityQuery(tagScores);
+    type ProposalCandidate = {
+      placeId: string;
+      name: string;
+      address: string;
+      rating: number | null;
+      userRatingsTotal: number | null;
+      websiteUrl: string | null;
+      lat: number | null;
+      lng: number | null;
+      score: number;
+    };
+    let ranked: ProposalCandidate[] = [];
+
+    if (activityQuery) {
+      const textPlaces = await searchTextPlaces({
+        textQuery: activityQuery,
+        lat: center.lat,
+        lng: center.lng,
+        radiusMeters,
+      });
+      const eligible = filterEligible(textPlaces);
+      if (eligible.length >= 3) {
+        // relevance Google conservée ; score = note (info), rang = pertinence
+        ranked = eligible
+          .slice(0, PROPOSALS_COUNT)
+          .map((p) => ({ ...p, score: p.rating ?? 0 }));
+      }
+    }
+
+    // 3bis) Fallback : recherche par types + classement par intention forte
+    if (ranked.length === 0) {
+      const places = await searchNearbyPlaces({
+        lat: center.lat,
+        lng: center.lng,
+        radiusMeters,
+        includedTypes: topTags.map((t) => t.techName),
+      });
+      const eligible = filterEligible(places);
+      ranked = rankPlaces(eligible, tagScores, center).slice(0, PROPOSALS_COUNT);
+    }
+
+    if (ranked.length === 0) {
       return NextResponse.json(
         {
           message:
@@ -204,12 +245,6 @@ export async function POST(
         { status: 404 },
       );
     }
-
-    // 5) Classement déterministe → 5 propositions
-    const ranked = rankPlaces(eligiblePlaces, tagScores, center).slice(
-      0,
-      PROPOSALS_COUNT,
-    );
 
     const proposals = await prisma.$transaction(async (tx) => {
       await tx.eventPlaceProposal.deleteMany({ where: { eventId } });
