@@ -40,8 +40,11 @@ function EventActionsColumn() {
       </Link>
       <Link
         href="/create-event"
-        className="flex-1 flex items-center justify-center rounded-xl bg-[var(--color-main)] text-[var(--color-text)] font-poppins text-body-small font-medium shadow-md hover:opacity-90 transition"
+        className="flex-1 flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-[var(--color-main)] text-[var(--color-main-text)] font-poppins text-body-small font-medium hover:bg-[var(--color-main)]/10 transition"
       >
+        <span className="flex items-center justify-center w-9 h-9 rounded-full border-2 border-dashed border-[var(--color-main)] text-2xl leading-none">
+          +
+        </span>
         Créer un événement
       </Link>
     </div>
