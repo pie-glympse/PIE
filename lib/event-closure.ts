@@ -342,17 +342,30 @@ const TAG_KEYWORDS: Record<string, string> = {
   breakfast_restaurant: "petit-déjeuner",
 };
 
-/** Construit une requête textuelle à partir des tags les plus votés (top mots-clés). */
-export function buildActivityQuery(tagScores: TagScore[], maxKeywords = 2): string | null {
+/** Mots-clés d'activité issus des tags les plus votés (ordre = importance du vote). */
+export function getActivityKeywords(tagScores: TagScore[], max = 4): string[] {
   const keywords: string[] = [];
   for (const t of tagScores) {
     const kw = TAG_KEYWORDS[t.techName];
     if (kw && !keywords.includes(kw)) {
       keywords.push(kw);
-      if (keywords.length >= maxKeywords) break;
+      if (keywords.length >= max) break;
     }
   }
-  return keywords.length ? keywords.join(", ") : null;
+  return keywords;
+}
+
+/** Entrelace plusieurs listes (round-robin) pour varier les propositions :
+ *  1er de la liste 1, 1er de la 2, … puis 2e de chaque, etc. */
+export function interleave<T>(lists: T[][]): T[] {
+  const out: T[] = [];
+  const maxLen = Math.max(0, ...lists.map((l) => l.length));
+  for (let i = 0; i < maxLen; i++) {
+    for (const list of lists) {
+      if (i < list.length) out.push(list[i]);
+    }
+  }
+  return out;
 }
 
 export function haversineKm(

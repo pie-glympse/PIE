@@ -47,8 +47,11 @@ export default function EventClosurePanel({
   const { user } = useUser();
   const [status, setStatus] = useState<ClosureStatus | null>(null);
   const [isClosing, setIsClosing] = useState(false);
+  const [isRelaunching, setIsRelaunching] = useState(false);
   const [choosingId, setChoosingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Lieux déjà proposés (cumulés au fil des "Relancer") pour ne pas les revoir
+  const [seenIds, setSeenIds] = useState<Set<string>>(new Set());
 
   const state = (status?.state ?? eventState ?? "").toLowerCase();
 
@@ -94,6 +97,45 @@ export default function EventClosurePanel({
       setError(err instanceof Error ? err.message : "Erreur inconnue");
     } finally {
       setIsClosing(false);
+    }
+  };
+
+  const handleRelaunch = async () => {
+    if (!user?.id) return;
+    setIsRelaunching(true);
+    setError(null);
+    // On exclut tout ce qui a déjà été proposé (batches précédents + actuel)
+    const exclude = new Set(seenIds);
+    (status?.proposals ?? []).forEach((p) => exclude.add(p.placeId));
+    try {
+      const response = await fetch(`/api/events/${eventId}/close`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: user.id,
+          excludePlaceIds: Array.from(exclude),
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        if (data?.noMore) {
+          // Fin du catalogue : on repart de zéro au prochain clic
+          setSeenIds(new Set());
+          setError("Vous avez fait le tour — relancez pour repartir du début.");
+          return;
+        }
+        throw new Error(data?.message || "Erreur lors de la relance");
+      }
+      (data.proposals ?? []).forEach((p: { placeId: string }) =>
+        exclude.add(p.placeId),
+      );
+      setSeenIds(exclude);
+      await fetchStatus();
+      window.dispatchEvent(new Event("eventsUpdated"));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erreur inconnue");
+    } finally {
+      setIsRelaunching(false);
     }
   };
 
@@ -168,15 +210,45 @@ export default function EventClosurePanel({
         </>
       ) : (
         <>
-          <p className="text-body-large font-poppins font-medium text-[var(--color-text)] mb-1">
-            Votes clôturés — choisissez le lieu final
-          </p>
-          <p className="text-body-small font-poppins text-[var(--color-grey-three)] mb-4">
-            {status.proposals.length} proposition
-            {status.proposals.length > 1 ? "s" : ""} basée
-            {status.proposals.length > 1 ? "s" : ""} sur les votes des
-            participants
-          </p>
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
+            <div>
+              <p className="text-body-large font-poppins font-medium text-[var(--color-text)] mb-1">
+                Votes clôturés — choisissez le lieu final
+              </p>
+              <p className="text-body-small font-poppins text-[var(--color-grey-three)]">
+                {status.proposals.length} proposition
+                {status.proposals.length > 1 ? "s" : ""} basée
+                {status.proposals.length > 1 ? "s" : ""} sur les votes des
+                participants
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={handleRelaunch}
+              disabled={isRelaunching}
+              className={`shrink-0 inline-flex items-center gap-2 px-4 py-2 rounded-md font-poppins border-2 transition-colors ${
+                isRelaunching
+                  ? "border-[var(--color-grey-two)] text-[var(--color-grey-three)] cursor-not-allowed"
+                  : "border-[var(--color-main)] text-[var(--color-main-text)] hover:bg-[var(--color-main)]/10 cursor-pointer"
+              }`}
+              title="Proposer 5 autres lieux"
+            >
+              <svg
+                className={`w-4 h-4 ${isRelaunching ? "animate-spin" : ""}`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                />
+              </svg>
+              {isRelaunching ? "Génération..." : "Relancer 5 autres"}
+            </button>
+          </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {status.proposals.map((proposal) => (

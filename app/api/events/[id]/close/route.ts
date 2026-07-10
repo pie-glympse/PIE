@@ -7,7 +7,8 @@ import {
   rankPlaces,
   budgetToMaxPriceLevel,
   isPlaceEligible,
-  buildActivityQuery,
+  getActivityKeywords,
+  interleave,
 } from "@/lib/event-closure";
 import {
   geocodeCity,
@@ -98,7 +99,11 @@ export async function POST(
   try {
     const { id } = await params;
     const eventId = BigInt(id);
-    const { userId } = await request.json();
+    // excludePlaceIds : lieux déjà vus (bouton "Relancer" → 5 autres propositions)
+    const { userId, excludePlaceIds = [] } = await request.json();
+    const excludeSet = new Set<string>(
+      Array.isArray(excludePlaceIds) ? excludePlaceIds.map(String) : [],
+    );
     const auth = await requireAuthUser(request, userId);
     if (!auth.ok) {
       return NextResponse.json({ message: auth.error }, { status: auth.status });
@@ -187,14 +192,10 @@ export async function POST(
     const maxPriceLevel = budgetToMaxPriceLevel(
       event.costPerPerson != null ? Number(event.costPerPerson) : null,
     );
-    const filterEligible = (list: Awaited<ReturnType<typeof searchNearbyPlaces>>) =>
-      list.filter((p) => isPlaceEligible(p, { maxPriceLevel, blacklistedIds }));
+    const isEligible = (p: { placeId: string; primaryType: string | null; businessStatus: string | null; priceLevel: number | null }) =>
+      !excludeSet.has(p.placeId) &&
+      isPlaceEligible(p, { maxPriceLevel, blacklistedIds });
 
-    // 3) Recherche TEXTUELLE en priorité (relevance Google sur l'intention
-    //    gagnante) — indispensable pour les activités que les types ne
-    //    distinguent pas (accrobranche, escape game…). On garde l'ordre de
-    //    pertinence de Google, on ne fait qu'appliquer les garde-fous.
-    const activityQuery = buildActivityQuery(tagScores);
     type ProposalCandidate = {
       placeId: string;
       name: string;
@@ -208,20 +209,33 @@ export async function POST(
     };
     let ranked: ProposalCandidate[] = [];
 
-    if (activityQuery) {
-      const textPlaces = await searchTextPlaces({
-        textQuery: activityQuery,
-        lat: center.lat,
-        lng: center.lng,
-        radiusMeters,
+    // 3) Recherche TEXTUELLE par intention (relevance Google). On interroge
+    //    CHAQUE mot-clé voté séparément puis on ENTRELACE les résultats pour
+    //    varier les propositions (accrobranche + parc aquatique + rando…),
+    //    au lieu de 5 fois la même chose. Les garde-fous + les lieux déjà vus
+    //    (relaunch) sont filtrés.
+    const keywords = getActivityKeywords(tagScores, 4);
+    if (keywords.length > 0) {
+      const perKeyword = await Promise.all(
+        keywords.map((kw) =>
+          searchTextPlaces({
+            textQuery: kw,
+            lat: center.lat,
+            lng: center.lng,
+            radiusMeters,
+            maxResultCount: 12,
+          }).catch(() => []),
+        ),
+      );
+      const seen = new Set<string>();
+      const varied = interleave(perKeyword).filter((p) => {
+        if (seen.has(p.placeId) || !isEligible(p)) return false;
+        seen.add(p.placeId);
+        return true;
       });
-      const eligible = filterEligible(textPlaces);
-      if (eligible.length >= 3) {
-        // relevance Google conservée ; score = note (info), rang = pertinence
-        ranked = eligible
-          .slice(0, PROPOSALS_COUNT)
-          .map((p) => ({ ...p, score: p.rating ?? 0 }));
-      }
+      ranked = varied
+        .slice(0, PROPOSALS_COUNT)
+        .map((p) => ({ ...p, score: p.rating ?? 0 }));
     }
 
     // 3bis) Fallback : recherche par types + classement par intention forte
@@ -232,7 +246,7 @@ export async function POST(
         radiusMeters,
         includedTypes: topTags.map((t) => t.techName),
       });
-      const eligible = filterEligible(places);
+      const eligible = places.filter(isEligible);
       ranked = rankPlaces(eligible, tagScores, center).slice(0, PROPOSALS_COUNT);
     }
 
@@ -240,7 +254,10 @@ export async function POST(
       return NextResponse.json(
         {
           message:
-            "Aucun lieu adapté trouvé (après filtrage des lieux fermés, non privatisables ou hors budget). Essayez d'élargir la distance ou le budget.",
+            excludeSet.size > 0
+              ? "Vous avez fait le tour des propositions disponibles pour cette zone."
+              : "Aucun lieu adapté trouvé (après filtrage des lieux fermés, non privatisables ou hors budget). Essayez d'élargir la distance ou le budget.",
+          noMore: excludeSet.size > 0,
         },
         { status: 404 },
       );
