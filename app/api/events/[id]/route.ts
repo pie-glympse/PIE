@@ -81,12 +81,15 @@ export async function GET(
       return new NextResponse(null, { status: 304 });
     }
 
-    // Créer la réponse avec les headers de cache (semi-statique car peut changer)
+    // Le détail d'un événement change (confirmation, lieu retenu, participants) :
+    // on revalide systématiquement via l'ETag (304 si inchangé, sinon données
+    // fraîches) au lieu de garder 30 min en cache navigateur — sinon après la
+    // confirmation, les participants voyaient encore l'ancienne version.
     const response = NextResponse.json(
       { event: eventJson },
       { status: 200 }
     );
-    return addCacheHeaders(response, CACHE_STRATEGIES.SEMI_STATIC, etag);
+    return addCacheHeaders(response, CACHE_STRATEGIES.REVALIDATE, etag);
   } catch (error) {
     console.error("Erreur récupération event:", error);
     return NextResponse.json({ error: "Erreur récupération event" }, { status: 500 });
