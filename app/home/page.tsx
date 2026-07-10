@@ -317,9 +317,6 @@ export default function HomePage() {
         {/* Calendrier */}
         <section>
           <GCalendar year={2025} />
-          <div className="mt-4 text-sm text-gray-500">
-            Les jours avec événements sont affichés en gris.
-          </div>
         </section>
 
         {/* Évènements à venir */}

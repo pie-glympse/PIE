@@ -532,26 +532,7 @@ const MiniCalendar = ({ eventsData = [] }: MiniCalendarProps) => {
   return (
     <div>
       <div className="flex justify-between items-center flex-wrap gap-2">
-        <div className="flex items-center gap-4 flex-wrap">
-          <h2 className="text-xl font-bold text-gray-800">Calendrier des Evènements</h2>
-          <div className="flex items-center gap-3 flex-wrap">
-            {[
-              { slug: "gastronomie", label: "Gastronomie" },
-              { slug: "sport", label: "Sport" },
-              { slug: "divertissement", label: "Divertissement" },
-              { slug: "culture", label: "Culture" },
-              { slug: "autre", label: "Autre" },
-            ].map((c) => (
-              <span key={c.slug} className="flex items-center gap-1.5 text-xs text-gray-500">
-                <span
-                  className="w-3 h-3 rounded-sm"
-                  style={{ backgroundColor: colorForSlug(c.slug) }}
-                />
-                {c.label}
-              </span>
-            ))}
-          </div>
-        </div>
+        <h2 className="text-xl font-bold text-gray-800">Calendrier des Evènements</h2>
         {/* Boutons de navigation - cachés sur mobile */}
         {!isMobile && (
           <div className="flex gap-2">
@@ -628,6 +609,28 @@ const MiniCalendar = ({ eventsData = [] }: MiniCalendarProps) => {
               {generateMonthDays(monthInfo.month, monthInfo.year)}
             </div>
           </div>
+        ))}
+      </div>
+
+      {/* Légende des couleurs par catégorie */}
+      <div className="flex items-center gap-4 flex-wrap mt-2">
+        {[
+          { slug: "gastronomie", label: "Gastronomie" },
+          { slug: "sport", label: "Sport" },
+          { slug: "divertissement", label: "Divertissement" },
+          { slug: "culture", label: "Culture" },
+          { slug: "autre", label: "Autre" },
+        ].map((c) => (
+          <span
+            key={c.slug}
+            className="flex items-center gap-1.5 text-xs text-gray-500"
+          >
+            <span
+              className="w-3 h-3 rounded-sm"
+              style={{ backgroundColor: colorForSlug(c.slug) }}
+            />
+            {c.label}
+          </span>
         ))}
       </div>
 
