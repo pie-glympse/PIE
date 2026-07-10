@@ -4,6 +4,7 @@ import { useState } from 'react';
 import dynamic from 'next/dynamic';
 import Image from 'next/image';
 import NearbyActivities from '@/components/event/NearbyActivities';
+import PlaceInfoModal from '@/components/event/PlaceInfoModal';
 
 const Map = dynamic(() => import('@/components/Map'), {
   ssr: false,
@@ -60,6 +61,8 @@ interface Place {
 
 const EventInformations = ({ event }: EventInformationsProps) => {
   const isConfirmed = event.state?.toLowerCase() === 'confirmed';
+  const [showPlaceModal, setShowPlaceModal] = useState(false);
+  const hasPlaceInfo = !!event.location?.placeId;
   const [recommendedPlaces, setRecommendedPlaces] = useState<Place[]>([]);
   
   // Formatter la date en français
@@ -162,10 +165,6 @@ const EventInformations = ({ event }: EventInformationsProps) => {
     return event.city || "Lieu non défini";
   };
 
-  const mapsUrl = event.location?.placeId
-    ? `https://www.google.com/maps/place/?q=place_id:${event.location.placeId}`
-    : null;
-
   return (
     <div className="space-y-8">
       {/* Section des 3 cards en haut */}
@@ -242,68 +241,32 @@ const EventInformations = ({ event }: EventInformationsProps) => {
             <p style={{ fontSize: '15px' }} className="text-[var(--color-text)]">
               Lieu
             </p>
-            <p style={{ fontSize: '18px' }} className="font-medium text-[var(--color-text)]">
-              {getLocationText()}
-            </p>
+            {hasPlaceInfo ? (
+              <button
+                type="button"
+                onClick={() => setShowPlaceModal(true)}
+                className="text-left font-medium text-[var(--color-text)] underline decoration-dotted underline-offset-4 hover:text-[var(--color-main-text)] transition-colors cursor-pointer"
+                style={{ fontSize: '18px' }}
+                title="Voir les informations du lieu"
+              >
+                {getLocationText()}
+              </button>
+            ) : (
+              <p style={{ fontSize: '18px' }} className="font-medium text-[var(--color-text)]">
+                {getLocationText()}
+              </p>
+            )}
           </div>
         </div>
       </div>
 
-      {/* Card du lieu retenu (après vote) ou lieu précis — site + Google Maps */}
-      {event.location?.placeId && (
-        <div className="rounded-xl border-2 border-[var(--color-main)] bg-[#F0F7FF] p-5">
-          <div className="flex items-start justify-between gap-4 flex-wrap">
-            <div>
-              <p className="text-body-small font-poppins text-[var(--color-main-text)] mb-1">
-                Lieu retenu
-              </p>
-              <h3 className="text-h3 font-urbanist text-[var(--color-text)]">
-                {event.location.name}
-              </h3>
-              {event.location.address && (
-                <p className="text-body-small font-poppins text-[var(--color-grey-three)] mt-1">
-                  {event.location.address}
-                </p>
-              )}
-              <div className="flex items-center gap-3 mt-2">
-                {event.location.rating != null && (
-                  <span className="text-body-small font-poppins text-[var(--color-text)]">
-                    <span className="text-yellow-500">★</span>{" "}
-                    {event.location.rating.toFixed(1)}
-                    {event.location.userRatingsTotal != null && (
-                      <span className="text-[var(--color-grey-three)]">
-                        {" "}
-                        ({event.location.userRatingsTotal} avis)
-                      </span>
-                    )}
-                  </span>
-                )}
-              </div>
-            </div>
-            <div className="flex flex-col gap-2">
-              {event.location.websiteUrl && (
-                <a
-                  href={event.location.websiteUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="px-4 py-2 rounded-md bg-[var(--color-main)] text-white text-body-small font-poppins text-center hover:opacity-90 transition-opacity"
-                >
-                  Voir le site
-                </a>
-              )}
-              {mapsUrl && (
-                <a
-                  href={mapsUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="px-4 py-2 rounded-md border-2 border-[var(--color-main)] text-[var(--color-main-text)] text-body-small font-poppins text-center hover:bg-white transition-colors"
-                >
-                  Google Maps
-                </a>
-              )}
-            </div>
-          </div>
-        </div>
+      {/* Modale sobre d'info lieu (ouverte au clic sur le nom) */}
+      {event.location && (
+        <PlaceInfoModal
+          isOpen={showPlaceModal}
+          onClose={() => setShowPlaceModal(false)}
+          place={event.location}
+        />
       )}
 
       {/* Section Description et Informations Supplémentaires */}

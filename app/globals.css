@@ -241,3 +241,21 @@ input[type="checkbox"]:focus {
   scrollbar-width: none;
   -ms-overflow-style: none;
 }
+
+/* Icône cadeau (propositions de lieux) : secousse périodique */
+@keyframes gift-shake {
+  0%, 58%, 100% {
+    transform: rotate(0deg);
+  }
+  62% { transform: rotate(-14deg); }
+  67% { transform: rotate(12deg); }
+  72% { transform: rotate(-9deg); }
+  78% { transform: rotate(7deg); }
+  84% { transform: rotate(-4deg); }
+  90% { transform: rotate(2deg); }
+}
+
+.animate-gift-shake {
+  animation: gift-shake 2.6s ease-in-out infinite;
+  transform-origin: 50% 85%;
+}

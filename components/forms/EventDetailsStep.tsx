@@ -311,7 +311,7 @@ const EventDetailsStep: FC<EventDetailsStepProps> = ({
             ? "Date(s) de l'événement — cliquez ou glissez *"
             : "Dates proposées au vote — cliquez/glissez plusieurs jours (non consécutifs possibles) *"}
         </label>
-        <div className="border-2 border-[var(--color-grey-two)] rounded-lg p-2 bg-white">
+        <div className="rounded-lg p-2 bg-white">
           <DragRangeCalendar
             selectedDates={selectedDates}
             minDate={today}
