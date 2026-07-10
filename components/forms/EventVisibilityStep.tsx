@@ -34,7 +34,7 @@ export function EventVisibilityStep({
     {
       id: "private",
       label: "Je souhaite organiser un évènement Privé",
-      bg: "bg-[#E9F1FE]",
+      bg: "bg-white",
       image: "/images/mascotte/mascotte-nrml.png",
     },
   ];

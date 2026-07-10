@@ -31,8 +31,8 @@ const CATEGORY_IMAGES: Record<string, string> = {
 
 const CATEGORY_BG: Record<string, string> = {
   gastronomie: "bg-white",
-  culture: "bg-[#E9F1FE]",
-  divertissement: "bg-[#E9F1FE]",
+  culture: "bg-white",
+  divertissement: "bg-white",
   sport: "bg-white",
 };
 
