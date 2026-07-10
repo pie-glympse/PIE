@@ -75,6 +75,7 @@ const CreateEventPage = () => {
         dateKnown: payload.dateKnown,
         startDate: payload.startDate,
         endDate: payload.endDate,
+        proposedDates: payload.proposedDates,
         startTime: payload.startTime,
         endTime: payload.endTime,
         maxPersons: payload.maxPersons ? Number(payload.maxPersons) : null,

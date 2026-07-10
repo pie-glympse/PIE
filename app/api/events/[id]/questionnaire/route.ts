@@ -21,6 +21,7 @@ async function loadEvent(eventId: bigint) {
       dateKnown: true,
       startDate: true,
       endDate: true,
+      proposedDates: true,
       isSpecificPlace: true,
       categoryId: true,
       createdById: true,
@@ -112,6 +113,7 @@ export async function GET(
           dateKnown: event.dateKnown,
           startDate: event.startDate,
           endDate: event.endDate,
+          proposedDates: event.proposedDates,
           isSpecificPlace: event.isSpecificPlace,
           category: event.category,
         },
@@ -200,9 +202,18 @@ export async function POST(
       if (Number.isNaN(preferredDateValue.getTime())) {
         return NextResponse.json({ message: "Date invalide" }, { status: 400 });
       }
-      if (
-        (event.startDate && dayKey(preferredDateValue) < dayKey(event.startDate)) ||
-        (event.endDate && dayKey(preferredDateValue) > dayKey(event.endDate))
+      const chosenKey = dayKey(preferredDateValue);
+      if (event.proposedDates && event.proposedDates.length > 0) {
+        // Dates proposées explicites (potentiellement non consécutives)
+        if (!event.proposedDates.includes(chosenKey)) {
+          return NextResponse.json(
+            { message: "Choisissez une des dates proposées par l'organisateur" },
+            { status: 400 },
+          );
+        }
+      } else if (
+        (event.startDate && chosenKey < dayKey(event.startDate)) ||
+        (event.endDate && chosenKey > dayKey(event.endDate))
       ) {
         return NextResponse.json(
           { message: "La date choisie doit être dans la plage proposée par l'organisateur" },

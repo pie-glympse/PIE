@@ -18,6 +18,8 @@ export type EventDetailsData = {
   dateKnown: boolean;
   startDate: string;
   endDate: string;
+  /** Dates proposées (potentiellement non consécutives) parmi lesquelles on vote */
+  proposedDates: string[];
   startTime: string;
   endTime: string;
   maxPersons: string;
@@ -86,8 +88,16 @@ const EventDetailsStep: FC<EventDetailsStepProps> = ({
     initialData?.costPerPerson || "",
   );
   const [dateKnown, setDateKnown] = useState(initialData?.dateKnown ?? false);
-  const [startDate, setStartDate] = useState(initialData?.startDate || "");
-  const [endDate, setEndDate] = useState(initialData?.endDate || "");
+  const [selectedDates, setSelectedDates] = useState<string[]>(
+    initialData?.proposedDates && initialData.proposedDates.length > 0
+      ? [...initialData.proposedDates].sort()
+      : initialData?.startDate
+        ? [initialData.startDate]
+        : [],
+  );
+  // start/end = min/max des dates sélectionnées (compat système existant)
+  const startDate = selectedDates[0] || "";
+  const endDate = selectedDates[selectedDates.length - 1] || "";
   const [startTime, setStartTime] = useState(initialData?.startTime || "");
   const [endTime, setEndTime] = useState(initialData?.endTime || "");
   const [maxPersons, setMaxPersons] = useState(initialData?.maxPersons || "");
@@ -138,25 +148,16 @@ const EventDetailsStep: FC<EventDetailsStepProps> = ({
 
     if (!title.trim()) newErrors.title = "Le nom de l'événement est obligatoire";
 
-    if (!startDate) {
+    if (selectedDates.length === 0) {
       newErrors.startDate = dateKnown
-        ? "La date de début est obligatoire"
-        : "Le début de la plage de dates est obligatoire";
-    } else if (startDate < today) {
+        ? "Sélectionnez la date de l'événement"
+        : "Sélectionnez au moins deux dates à proposer au vote";
+    } else if (selectedDates.some((d) => d < today)) {
       newErrors.startDate =
-        "La date de début ne peut pas être antérieure à aujourd'hui";
-    }
-
-    if (!dateKnown && !endDate) {
-      newErrors.endDate = "La fin de la plage de dates est obligatoire";
-    }
-    if (endDate && startDate && endDate < startDate) {
-      newErrors.endDate =
-        "La date de fin ne peut pas être antérieure à la date de début";
-    }
-    if (!dateKnown && startDate && endDate && endDate === startDate) {
-      newErrors.endDate =
-        "La plage doit couvrir au moins deux jours pour laisser le choix aux participants";
+        "Une date sélectionnée est antérieure à aujourd'hui";
+    } else if (!dateKnown && selectedDates.length < 2) {
+      newErrors.startDate =
+        "Proposez au moins deux dates pour laisser le choix aux participants";
     }
 
     if (!startTime) newErrors.startTime = "L'heure de début est obligatoire";
@@ -214,7 +215,8 @@ const EventDetailsStep: FC<EventDetailsStepProps> = ({
       costPerPerson,
       dateKnown,
       startDate,
-      endDate: dateKnown ? endDate || startDate : endDate,
+      endDate: endDate || startDate,
+      proposedDates: selectedDates,
       startTime,
       endTime,
       maxPersons,
@@ -302,36 +304,34 @@ const EventDetailsStep: FC<EventDetailsStepProps> = ({
         </div>
       </div>
 
-      {/* Dates : calendrier clic-glissé (sélection par défaut) */}
+      {/* Dates : calendrier clic-glissé (sélection par défaut, dates multiples) */}
       <div id="startDate" className="mb-4">
         <label className={labelClass}>
           {dateKnown
-            ? "Date de l'événement (glissez pour plusieurs jours) *"
-            : "Plage de dates — glissez pour la sélectionner *"}
+            ? "Date(s) de l'événement — cliquez ou glissez *"
+            : "Dates proposées au vote — cliquez/glissez plusieurs jours (non consécutifs possibles) *"}
         </label>
         <div className="border-2 border-[var(--color-grey-two)] rounded-lg p-2 bg-white">
           <DragRangeCalendar
-            startDate={startDate || undefined}
-            endDate={endDate || undefined}
+            selectedDates={selectedDates}
             minDate={today}
-            singleDay={false}
-            onChange={(s, e) => {
-              setStartDate(s);
-              setEndDate(e);
+            onChange={(dates) => {
+              setSelectedDates(dates);
               clearError("startDate");
-              clearError("endDate");
             }}
           />
         </div>
-        {startDate && (
+        {selectedDates.length > 0 && (
           <p className="mt-2 text-body-small font-poppins text-[var(--color-grey-three)]">
-            {startDate === endDate || !endDate
-              ? `Sélectionné : ${formatDayLabel(startDate)}`
-              : `Du ${formatDayLabel(startDate)} au ${formatDayLabel(endDate)}`}
+            {selectedDates.length === 1
+              ? `Sélectionné : ${formatDayLabel(selectedDates[0])}`
+              : `${selectedDates.length} dates : ${selectedDates
+                  .slice(0, 4)
+                  .map(formatDayLabel)
+                  .join(", ")}${selectedDates.length > 4 ? "…" : ""}`}
           </p>
         )}
         {fieldError("startDate")}
-        {fieldError("endDate")}
       </div>
 
       {/* Heures */}

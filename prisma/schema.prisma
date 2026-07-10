@@ -86,6 +86,7 @@ model Event {
   description                  String                        @default("")
   additionalInfo               String                        @default("") @map("additional_info")
   dateKnown                    Boolean                       @default(true) @map("date_known")
+  proposedDates                String[]                      @default([]) @map("proposed_dates")
   categoryId                   BigInt?                       @map("category_id")
   blacklistedPlaces            BlacklistedPlace[]
   category                     EventCategory?                @relation(fields: [categoryId], references: [id])

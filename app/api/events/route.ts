@@ -24,6 +24,7 @@ export async function POST(request: Request) {
       description = "",
       additionalInfo = "",
       dateKnown = true,
+      proposedDates = [],
       startDate,
       endDate,
       startTime,
@@ -102,6 +103,9 @@ export async function POST(request: Request) {
         description: String(description || ""),
         additionalInfo: String(additionalInfo || ""),
         dateKnown: Boolean(dateKnown),
+        proposedDates: Array.isArray(proposedDates)
+          ? proposedDates.map(String)
+          : [],
         startDate: createDateOnly(startDate),
         endDate: createDateOnly(endDate),
         startTime: createTimeOnly(startTime),

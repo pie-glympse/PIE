@@ -29,6 +29,7 @@ type QuestionnaireData = {
     dateKnown: boolean;
     startDate?: string | null;
     endDate?: string | null;
+    proposedDates?: string[];
     isSpecificPlace: boolean;
     category?: { id: string; name: string; slug: string } | null;
   };
@@ -126,10 +127,18 @@ export default function EventPreferencesPage() {
   const hasDateStep = data ? !data.event.dateKnown : false;
   const questions = data?.questions ?? [];
   const totalSteps = (hasDateStep ? 1 : 0) + questions.length;
-  const rangeDays = useMemo(
-    () => buildRangeDays(data?.event.startDate, data?.event.endDate),
-    [data?.event.startDate, data?.event.endDate],
-  );
+  // Dates proposées explicites (non consécutives) si présentes, sinon la plage
+  const rangeDays = useMemo(() => {
+    const proposed = data?.event.proposedDates;
+    if (proposed && proposed.length > 0) {
+      return [...proposed].map(dayKey).sort();
+    }
+    return buildRangeDays(data?.event.startDate, data?.event.endDate);
+  }, [
+    data?.event.proposedDates,
+    data?.event.startDate,
+    data?.event.endDate,
+  ]);
 
   const currentQuestion: Question | null = (() => {
     const questionIndex = stepIndex - (hasDateStep ? 1 : 0);

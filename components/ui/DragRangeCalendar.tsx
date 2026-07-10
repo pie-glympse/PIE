@@ -1,21 +1,17 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import type { ReactElement, PointerEvent as ReactPointerEvent } from "react";
 
 type DragRangeCalendarProps = {
-  /** Date de début sélectionnée (YYYY-MM-DD) */
-  startDate?: string;
-  /** Date de fin sélectionnée (YYYY-MM-DD) */
-  endDate?: string;
-  /** Appelé à chaque changement de plage (start <= end, format YYYY-MM-DD) */
-  onChange: (start: string, end: string) => void;
+  /** Dates sélectionnées (YYYY-MM-DD), potentiellement non consécutives */
+  selectedDates: string[];
+  /** Appelé à chaque changement (tableau trié de YYYY-MM-DD) */
+  onChange: (dates: string[]) => void;
   /** Première date sélectionnable (défaut : aujourd'hui) */
   minDate?: string;
   /** Nombre de mois affichés à partir du mois courant (défaut 12) */
   monthsCount?: number;
-  /** true : la sélection se limite à un seul jour (clic) ; false : plage par glissement */
-  singleDay?: boolean;
 };
 
 const MONTH_NAMES = [
@@ -31,26 +27,65 @@ const todayKey = () => {
   return toKey(t.getFullYear(), t.getMonth(), t.getDate());
 };
 
-// Calendrier « à la Gcalendar » (mois en scroll horizontal, cases compactes)
-// mais interactif : clic-glissé pour sélectionner une plage de dates.
+// Petit "tic" généré via Web Audio (aucun asset), joué au clic-glissé.
+let _audioCtx: AudioContext | null = null;
+function playTick() {
+  if (typeof window === "undefined") return;
+  try {
+    const Ctx =
+      window.AudioContext ||
+      (window as unknown as { webkitAudioContext?: typeof AudioContext })
+        .webkitAudioContext;
+    if (!Ctx) return;
+    _audioCtx ??= new Ctx();
+    const ctx = _audioCtx;
+    if (ctx.state === "suspended") void ctx.resume();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = "square";
+    osc.frequency.value = 1650;
+    const t = ctx.currentTime;
+    gain.gain.setValueAtTime(0.06, t);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.025);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(t);
+    osc.stop(t + 0.03);
+  } catch {
+    /* audio indisponible : on ignore */
+  }
+}
+
+// Calendrier « à la Gcalendar » (mois en scroll horizontal, cases grises,
+// chiffre au survol), interactif : clic pour (dé)sélectionner un jour,
+// clic-glissé pour ajouter/retirer plusieurs jours (non consécutifs possibles).
 export default function DragRangeCalendar({
-  startDate,
-  endDate,
+  selectedDates,
   onChange,
   minDate,
   monthsCount = 12,
-  singleDay = false,
 }: DragRangeCalendarProps) {
   const min = minDate || todayKey();
   const today = todayKey();
-  const [anchor, setAnchor] = useState<string | null>(null); // début du glissement
 
-  // Fin de sélection quand on relâche n'importe où
+  const draggingRef = useRef(false);
+  const dragModeRef = useRef<"add" | "remove">("add");
+  // Set de travail mis à jour synchroniquement pendant le glissement
+  const workingRef = useRef<Set<string>>(new Set(selectedDates));
+
   useEffect(() => {
-    const stop = () => setAnchor(null);
+    workingRef.current = new Set(selectedDates);
+  }, [selectedDates]);
+
+  useEffect(() => {
+    const stop = () => {
+      draggingRef.current = false;
+    };
     document.addEventListener("pointerup", stop);
     return () => document.removeEventListener("pointerup", stop);
   }, []);
+
+  const selectedSet = useMemo(() => new Set(selectedDates), [selectedDates]);
 
   const months = useMemo(() => {
     const now = new Date();
@@ -62,16 +97,15 @@ export default function DragRangeCalendar({
     return list;
   }, [monthsCount]);
 
-  const inRange = (key: string) =>
-    !!startDate && !!endDate && key >= startDate && key <= endDate;
-
-  const select = (key: string, from: string) => {
-    if (singleDay) {
-      onChange(key, key);
-      return;
-    }
-    const [s, e] = key < from ? [key, from] : [from, key];
-    onChange(s, e);
+  const applyToggle = (key: string, mode: "add" | "remove"): boolean => {
+    const set = workingRef.current;
+    const has = set.has(key);
+    if (mode === "add" && has) return false;
+    if (mode === "remove" && !has) return false;
+    if (mode === "add") set.add(key);
+    else set.delete(key);
+    onChange(Array.from(set).sort());
+    return true;
   };
 
   const handlePointerDown = (
@@ -80,22 +114,20 @@ export default function DragRangeCalendar({
     disabled: boolean,
   ) => {
     if (disabled) return;
-    // Libérer la capture implicite : sinon en tactile le glissement ne
-    // déclenche pas onPointerEnter sur les autres cases.
     (e.target as HTMLElement).releasePointerCapture?.(e.pointerId);
-    setAnchor(key);
-    onChange(key, key);
+    draggingRef.current = true;
+    dragModeRef.current = workingRef.current.has(key) ? "remove" : "add";
+    if (applyToggle(key, dragModeRef.current)) playTick();
   };
 
   const handlePointerEnter = (key: string, disabled: boolean) => {
-    if (disabled || anchor === null || singleDay) return;
-    select(key, anchor);
+    if (disabled || !draggingRef.current) return;
+    if (applyToggle(key, dragModeRef.current)) playTick();
   };
 
   const renderMonth = (month: number, year: number): ReactElement => {
     const daysInMonth = new Date(year, month + 1, 0).getDate();
-    // Décalage lundi-first : getDay() 0=dimanche → (x+6)%7
-    const firstOffset = (new Date(year, month, 1).getDay() + 6) % 7;
+    const firstOffset = (new Date(year, month, 1).getDay() + 6) % 7; // lundi-first
     const cells: ReactElement[] = [];
 
     for (let i = 0; i < firstOffset; i++) {
@@ -105,7 +137,7 @@ export default function DragRangeCalendar({
     for (let day = 1; day <= daysInMonth; day++) {
       const key = toKey(year, month, day);
       const disabled = key < min;
-      const selected = key === startDate || key === endDate || inRange(key);
+      const selected = selectedSet.has(key);
       const isToday = key === today;
 
       cells.push(
@@ -118,10 +150,10 @@ export default function DragRangeCalendar({
           className={[
             "w-8 h-8 rounded-md text-xs font-medium flex items-center justify-center transition-colors select-none touch-none",
             disabled
-              ? "text-gray-300 cursor-not-allowed"
+              ? "bg-gray-100 text-transparent cursor-not-allowed"
               : selected
-                ? "bg-[var(--color-main)] text-white"
-                : "text-[var(--color-text)] hover:bg-[var(--color-main)]/20 cursor-pointer",
+                ? "bg-[var(--color-main)] text-white animate-plop cursor-pointer"
+                : "bg-gray-200 text-transparent hover:bg-gray-300 hover:text-gray-700 cursor-pointer",
             !selected && isToday && !disabled
               ? "ring-1 ring-[var(--color-main)]"
               : "",

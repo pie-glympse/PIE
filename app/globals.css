@@ -216,3 +216,28 @@ input[type="checkbox"]:focus {
     transform: scale(1.06);
   }
 }
+
+/* Calendrier de sélection de dates (DragRangeCalendar) */
+@keyframes plop {
+  0% {
+    transform: scale(0.55);
+  }
+  60% {
+    transform: scale(1.18);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.animate-plop {
+  animation: plop 200ms ease-out;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-hide {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
