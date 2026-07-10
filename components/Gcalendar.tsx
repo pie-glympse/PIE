@@ -418,10 +418,12 @@ const MiniCalendar = ({ eventsData = [] }: MiniCalendarProps) => {
     return events.filter((event) => event.date === dateKey);
   };
 
-  // Style d'une case selon les événements du jour :
-  //  - aucun : gris clair (via className)
-  //  - une seule couleur de catégorie : aplat de couleur
-  //  - plusieurs catégories qui se chevauchent : damier des couleurs
+  // Style d'une case selon les catégories distinctes présentes ce jour-là :
+  //  - aucune : gris clair (via className)
+  //  - 1 : aplat de couleur
+  //  - 2 : case coupée en deux (diagonale)
+  //  - 3 : bandes diagonales tricolores
+  //  - 4+ : éventail radial depuis le coin (façon drapeau des Seychelles)
   const getDayStyle = (
     day: number,
     month: number,
@@ -430,22 +432,34 @@ const MiniCalendar = ({ eventsData = [] }: MiniCalendarProps) => {
     const dayEvents = getDayEvents(day, month, year);
     if (dayEvents.length === 0) return undefined;
 
-    const distinctColors = Array.from(
+    const colors = Array.from(
       new Set(dayEvents.map((e) => colorForSlug(e.categorySlug))),
     );
 
-    if (distinctColors.length === 1) {
-      return { backgroundColor: distinctColors[0] };
+    if (colors.length === 1) {
+      return { backgroundColor: colors[0] };
     }
 
-    // Damier 2 couleurs (les deux premières catégories distinctes présentes)
-    const [a, b] = distinctColors;
-    return {
-      backgroundColor: b,
-      backgroundImage: `linear-gradient(45deg, ${a} 25%, transparent 25%, transparent 75%, ${a} 75%), linear-gradient(45deg, ${a} 25%, transparent 25%, transparent 75%, ${a} 75%)`,
-      backgroundSize: "10px 10px",
-      backgroundPosition: "0 0, 5px 5px",
-    };
+    if (colors.length === 2) {
+      // Coupée en deux en diagonale
+      const [a, b] = colors;
+      return { background: `linear-gradient(135deg, ${a} 0 50%, ${b} 50% 100%)` };
+    }
+
+    if (colors.length === 3) {
+      // Trois bandes diagonales
+      const [a, b, c] = colors;
+      return {
+        background: `linear-gradient(135deg, ${a} 0 33.33%, ${b} 33.33% 66.66%, ${c} 66.66% 100%)`,
+      };
+    }
+
+    // 4+ : rayons partant du coin bas-gauche (drapeau des Seychelles)
+    const step = 90 / colors.length;
+    const stops = colors
+      .map((color, i) => `${color} ${i * step}deg ${(i + 1) * step}deg`)
+      .join(", ");
+    return { background: `conic-gradient(from 0deg at 0% 100%, ${stops})` };
   };
 
   // Fonction pour gérer le clic sur un jour avec événement
