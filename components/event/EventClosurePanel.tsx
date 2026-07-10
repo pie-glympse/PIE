@@ -157,6 +157,8 @@ export default function EventClosurePanel({
       if (!response.ok) {
         throw new Error(data?.message || "Erreur lors du choix du lieu");
       }
+      setShowProposals(false);
+      await fetchStatus();
       window.dispatchEvent(new Event("eventsUpdated"));
       onConfirmed();
     } catch (err) {
@@ -166,9 +168,12 @@ export default function EventClosurePanel({
     }
   };
 
-  // Rien à afficher : lieu précis, non-créateur, ou événement déjà confirmé
-  if (isSpecificPlace || !isCreator || state === "confirmed") return null;
+  // Rien à afficher : lieu précis ou non-créateur. Après confirmation, on garde
+  // l'accès aux propositions pour permettre de CHANGER de lieu.
+  if (isSpecificPlace || !isCreator) return null;
   if (!status) return null;
+
+  const votesClosed = state === "closed" || state === "confirmed";
 
   const renderStars = (rating?: number | null) => {
     if (!rating) return null;
@@ -181,7 +186,7 @@ export default function EventClosurePanel({
 
   return (
     <>
-      {state !== "closed" ? (
+      {!votesClosed ? (
         <div className="mt-4 w-full p-5 rounded-xl border-2 border-[var(--color-grey-two)] bg-white">
           <div className="flex flex-col md:flex-row md:items-center gap-3 md:justify-between">
             <div>
@@ -231,18 +236,22 @@ export default function EventClosurePanel({
           />
           <div>
             <p className="text-body-large font-poppins font-medium text-[var(--color-text)]">
-              Vos propositions de lieux sont prêtes 🎁
+              {state === "confirmed"
+                ? "Changer le lieu de l'événement 🎁"
+                : "Vos propositions de lieux sont prêtes 🎁"}
             </p>
             <p className="text-body-small font-poppins text-[var(--color-grey-three)]">
-              {status.proposals.length} lieux — cliquez pour choisir le lieu
-              final
+              {status.proposals.length} lieux —{" "}
+              {state === "confirmed"
+                ? "cliquez pour choisir une autre destination"
+                : "cliquez pour choisir le lieu final"}
             </p>
           </div>
         </button>
       )}
 
       {/* Modale des 5 propositions */}
-      {state === "closed" && showProposals && (
+      {votesClosed && showProposals && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
           onClick={() => setShowProposals(false)}
@@ -254,7 +263,9 @@ export default function EventClosurePanel({
             <div className="flex items-start justify-between gap-4 mb-4">
               <div>
                 <h3 className="text-h3 font-urbanist text-[var(--color-text)] mb-1">
-                  Choisissez le lieu final
+                  {state === "confirmed"
+                    ? "Changer le lieu de l'événement"
+                    : "Choisissez le lieu final"}
                 </h3>
                 <p className="text-body-small font-poppins text-[var(--color-grey-three)]">
                   {status.proposals.length} proposition
@@ -307,9 +318,18 @@ export default function EventClosurePanel({
               {status.proposals.map((proposal) => (
                 <div
                   key={proposal.id}
-                  className="flex flex-col justify-between rounded-xl border-2 border-[var(--color-grey-two)] p-4 hover:border-[var(--color-main)] transition-all"
+                  className={`flex flex-col justify-between rounded-xl border-2 p-4 transition-all ${
+                    proposal.chosen
+                      ? "border-green-500 bg-green-50"
+                      : "border-[var(--color-grey-two)] hover:border-[var(--color-main)]"
+                  }`}
                 >
                   <div>
+                    {proposal.chosen && (
+                      <span className="inline-block mb-1 px-2 py-0.5 rounded-full bg-green-500 text-white text-[11px] font-poppins">
+                        Lieu actuel
+                      </span>
+                    )}
                     <div className="flex items-start justify-between gap-2 mb-1">
                       <h4 className="text-body-large font-semibold font-urbanist text-[var(--color-text)]">
                         {proposal.rank}. {proposal.name}
@@ -348,16 +368,20 @@ export default function EventClosurePanel({
                   <button
                     type="button"
                     onClick={() => handleChoose(proposal.id)}
-                    disabled={choosingId !== null}
+                    disabled={choosingId !== null || proposal.chosen}
                     className={`w-full px-4 py-2 rounded-md font-poppins text-white transition-opacity ${
-                      choosingId === null
-                        ? "bg-[var(--color-text)] hover:opacity-90 cursor-pointer"
-                        : "bg-[var(--color-grey-two)] cursor-not-allowed"
+                      proposal.chosen
+                        ? "bg-green-500 cursor-default"
+                        : choosingId === null
+                          ? "bg-[var(--color-text)] hover:opacity-90 cursor-pointer"
+                          : "bg-[var(--color-grey-two)] cursor-not-allowed"
                     }`}
                   >
-                    {choosingId === proposal.id
-                      ? "Confirmation..."
-                      : "Choisir ce lieu"}
+                    {proposal.chosen
+                      ? "Lieu actuel ✓"
+                      : choosingId === proposal.id
+                        ? "Confirmation..."
+                        : "Choisir ce lieu"}
                   </button>
                 </div>
               ))}

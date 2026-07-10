@@ -50,12 +50,9 @@ export async function POST(
         { status: 403 },
       );
     }
-    if (event.state?.toLowerCase() === "confirmed") {
-      return NextResponse.json(
-        { message: "L'événement est déjà confirmé" },
-        { status: 400 },
-      );
-    }
+    // Le créateur peut CHANGER de lieu même après confirmation (on ré-écrit
+    // simplement le lieu retenu et on re-notifie les participants).
+    const isChange = event.state?.toLowerCase() === "confirmed";
 
     const proposal = await prisma.eventPlaceProposal.findUnique({
       where: { id: BigInt(proposalId) },
@@ -118,7 +115,9 @@ export async function POST(
       await prisma.notification.createMany({
         data: recipients.map((u) => ({
           userId: u.id,
-          message: `Événement confirmé : "${event.title}" aura lieu à ${proposal.name}${eventDate ? ` le ${eventDate}` : ""}`,
+          message: isChange
+            ? `Nouveau lieu pour "${event.title}" : ${proposal.name}${eventDate ? ` le ${eventDate}` : ""}`
+            : `Événement confirmé : "${event.title}" aura lieu à ${proposal.name}${eventDate ? ` le ${eventDate}` : ""}`,
           type: "EVENT_CONFIRMED",
           eventId,
         })),

@@ -141,12 +141,8 @@ export async function POST(
         { status: 400 },
       );
     }
-    if (event.state?.toLowerCase() === "confirmed") {
-      return NextResponse.json(
-        { message: "L'événement est déjà confirmé" },
-        { status: 400 },
-      );
-    }
+    // Note : on autorise la (re)génération même si l'événement est déjà
+    // confirmé, pour permettre au créateur de "Relancer" et changer de lieu.
 
     const progress = await getQuestionnaireProgress(prisma, eventId);
     if (progress.respondedCount < 1) {
