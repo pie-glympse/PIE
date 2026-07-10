@@ -138,7 +138,7 @@ const CreateEventPage = () => {
           />
 
           {/* Barre de progression segmentée (maquettes) */}
-          <div className="flex items-center gap-2 mb-4 w-full max-w-xs">
+          <div className="flex items-center gap-2 mb-4 w-full max-w-xs mx-auto">
             {Array.from({ length: totalSteps }, (_, i) => i + 1).map((step) => (
               <div
                 key={step}
@@ -151,7 +151,7 @@ const CreateEventPage = () => {
             ))}
           </div>
 
-          <div className="w-full flex flex-col">
+          <div className="w-full flex flex-col items-center">
             {currentStep === 1 && (
               <EventVisibilityStep
                 value={visibility}
@@ -200,7 +200,7 @@ const CreateEventPage = () => {
           </div>
 
           {currentStep === 4 && !isPublic && (
-            <div className="w-1/6">
+            <div className="w-1/6 mx-auto">
               <MainButton
                 text={isSubmitting ? "Création..." : "Terminer"}
                 onClick={() => handleCreate()}
