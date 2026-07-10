@@ -8,6 +8,7 @@ import SimpleAutocomplete, {
   type SelectedPlace,
 } from "@/components/ui/SimpleAutocomplete";
 import StepperInput from "@/components/ui/StepperInput";
+import DragRangeCalendar from "@/components/ui/DragRangeCalendar";
 
 export type EventDetailsData = {
   title: string;
@@ -54,6 +55,16 @@ for (let hour = 0; hour < 24; hour++) {
     );
   }
 }
+
+// "YYYY-MM-DD" → "lun. 1 septembre"
+const formatDayLabel = (key: string) => {
+  const [y, m, d] = key.split("-").map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString("fr-FR", {
+    weekday: "short",
+    day: "numeric",
+    month: "long",
+  });
+};
 
 const EventDetailsStep: FC<EventDetailsStepProps> = ({
   mode,
@@ -291,42 +302,36 @@ const EventDetailsStep: FC<EventDetailsStepProps> = ({
         </div>
       </div>
 
-      {/* Dates : précises ou plage */}
-      <div className="flex flex-col md:flex-row gap-4 mb-4">
-        <div className="flex-1">
-          <label htmlFor="startDate" className={labelClass}>
-            {dateKnown ? "Date de début *" : "Plage de dates — Du *"}
-          </label>
-          <input
-            id="startDate"
-            type="date"
-            value={startDate}
-            min={today}
-            onChange={(e) => {
-              setStartDate(e.target.value);
+      {/* Dates : calendrier clic-glissé (sélection par défaut) */}
+      <div id="startDate" className="mb-4">
+        <label className={labelClass}>
+          {dateKnown
+            ? "Date de l'événement (glissez pour plusieurs jours) *"
+            : "Plage de dates — glissez pour la sélectionner *"}
+        </label>
+        <div className="border-2 border-[var(--color-grey-two)] rounded-lg p-2 bg-white">
+          <DragRangeCalendar
+            startDate={startDate || undefined}
+            endDate={endDate || undefined}
+            minDate={today}
+            singleDay={false}
+            onChange={(s, e) => {
+              setStartDate(s);
+              setEndDate(e);
               clearError("startDate");
-            }}
-            className={inputClass}
-          />
-          {fieldError("startDate")}
-        </div>
-        <div className="flex-1">
-          <label htmlFor="endDate" className={labelClass}>
-            {dateKnown ? "Date de fin" : "Au *"}
-          </label>
-          <input
-            id="endDate"
-            type="date"
-            value={endDate}
-            min={startDate || today}
-            onChange={(e) => {
-              setEndDate(e.target.value);
               clearError("endDate");
             }}
-            className={inputClass}
           />
-          {fieldError("endDate")}
         </div>
+        {startDate && (
+          <p className="mt-2 text-body-small font-poppins text-[var(--color-grey-three)]">
+            {startDate === endDate || !endDate
+              ? `Sélectionné : ${formatDayLabel(startDate)}`
+              : `Du ${formatDayLabel(startDate)} au ${formatDayLabel(endDate)}`}
+          </p>
+        )}
+        {fieldError("startDate")}
+        {fieldError("endDate")}
       </div>
 
       {/* Heures */}
