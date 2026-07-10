@@ -48,6 +48,8 @@ export type EventType = {
   };
   isPublic?: boolean;
   publicStatus?: string;
+  description?: string;
+  documentCount?: number;
   participantCount?: number;
   maxParticipants?: number | null;
   isParticipant?: boolean;

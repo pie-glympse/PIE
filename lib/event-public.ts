@@ -71,6 +71,7 @@ export function enrichEventForClient<
       photoUrl?: string;
     }[];
     _count?: { users: number };
+    photos?: unknown[];
     User_Event_createdByIdToUser?: {
       id: bigint;
       firstName: string;
@@ -97,6 +98,7 @@ export function enrichEventForClient<
     ...event,
     participantCount,
     maxParticipants,
+    documentCount: event.photos?.length ?? 0,
     isCreator,
     isParticipant,
     canJoin: canJoinPublicEvent({

@@ -43,6 +43,7 @@ export type EventType = {
   publicStatus?: string;
   participantCount?: number;
   maxParticipants?: number | null;
+  documentCount?: number;
   isParticipant?: boolean;
   canJoin?: boolean;
   isFull?: boolean;

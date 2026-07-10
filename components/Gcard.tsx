@@ -3,6 +3,7 @@ import { useRef, useEffect } from "react";
 import type { MouseEvent as ReactMouseEvent } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import { Plus, User as UserIcon, FileText } from "lucide-react";
 import PublicEventParticipateButton from "@/components/event/PublicEventParticipateButton";
 
 interface Participant {
@@ -17,6 +18,8 @@ interface EventCardProps {
   eventId: string;
   title: string;
   date: string;
+  description?: string;
+  documentCount?: number;
   participants?: Participant[];
   backgroundUrl: string;
   backgroundSize?: number;
@@ -43,12 +46,19 @@ interface EventCardProps {
   onParticipate?: () => void;
   hideParticipateButton?: boolean;
   isNew?: boolean;
+  // Cas invitation : affiche les boutons Décliner / Accepter
+  isInvited?: boolean;
+  inviteLoading?: boolean;
+  onAcceptInvite?: () => void;
+  onDeclineInvite?: () => void;
 }
 
 export default function EventCard({
   eventId,
   title,
   date,
+  description,
+  documentCount = 0,
   participants = [],
   backgroundUrl,
   backgroundSize = 200,
@@ -74,6 +84,10 @@ export default function EventCard({
   onParticipate,
   hideParticipateButton = false,
   isNew = false,
+  isInvited = false,
+  inviteLoading = false,
+  onAcceptInvite,
+  onDeclineInvite,
 }: EventCardProps) {
   const router = useRouter();
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -121,19 +135,26 @@ export default function EventCard({
     onDropdownToggle?.();
   };
 
-  // ✅ Fonction pour obtenir la couleur de la pastille selon l'état
-  const getStateColor = (eventState: string) => {
+  // Nombre de segments remplis dans la barre de progression selon l'étape de l'event
+  const TOTAL_STEPS = 3;
+  const getStep = (eventState?: string) => {
     switch (eventState?.toLowerCase()) {
-      case "pending":
-        return "bg-yellow-500";
       case "confirmed":
-        return "bg-green-500";
+        return 3;
       case "planned":
-        return "bg-blue-500";
+        return 2;
+      case "pending":
+        return 1;
       default:
-        return "bg-gray-500";
+        return 1;
     }
   };
+  const filledSteps = getStep(state);
+
+  const formattedDate = new Date(date).toLocaleString("fr-FR", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  });
 
   return (
     <div
@@ -157,52 +178,84 @@ export default function EventCard({
 
       {/* Contenu principal */}
       <div
-        className={`relative z-10 transition-all duration-300 ${
+        className={`relative z-10 flex flex-col h-full transition-all duration-300 ${
           needsVote ? "group-hover:opacity-25 group-hover:scale-[0.98]" : ""
         }`}
       >
-        <div className="flex">
-          <div className="flex flex-col gap-1 min-w-0 flex-1">
-            {isPublic && (
-              <span className="inline-flex w-fit px-2 py-0.5 rounded-full bg-[#E9F1FE] text-xs font-poppins text-[var(--color-text)]">
-                Public
-              </span>
-            )}
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">
-              {title}
-            </h3>
-          </div>
-
-          {/* Container pour la pastille d'état et le menu */}
-          <div className="ml-auto flex items-center gap-2">
-            {/* ✅ Pastille d'état */}
-            {state && (
-              <div
-                className={`w-3 h-3 rounded-full ${getStateColor(state)}`}
-              ></div>
-            )}
-          </div>
+        {/* Barre de progression (étape de l'event) */}
+        <div className="flex items-center gap-1.5">
+          {Array.from({ length: TOTAL_STEPS }).map((_, i) => (
+            <span
+              key={i}
+              className="h-1.5 flex-1 rounded-full"
+              style={{
+                backgroundColor:
+                  i < filledSteps
+                    ? "var(--color-main)"
+                    : "var(--color-grey-two)",
+              }}
+            />
+          ))}
         </div>
 
         {/* Date */}
-        <p className="text-sm text-gray-500 mb-4 drop-shadow">
-          {new Date(date).toLocaleString("fr-FR", {
-            dateStyle: "medium",
-            timeStyle: "short",
-          })}
+        <p className="mt-3 text-sm text-[var(--color-grey-three)]">
+          {formattedDate}
         </p>
 
-        {/* Avatars des participants - adaptés selon la hauteur */}
-        <div
-          className={`flex items-center gap-2 ${className?.includes("h-24") || className?.includes("h-20") ? "scale-50 origin-left" : ""}`}
-        >
-          {participants.length > 0 ? (
-            <>
-              <div className="flex -space-x-3">
+        {/* Icône + titre */}
+        <div className="mt-1 flex items-center gap-2 min-w-0">
+          {backgroundUrl && (
+            <Image
+              src={backgroundUrl}
+              alt=""
+              aria-hidden="true"
+              width={24}
+              height={24}
+              className="w-6 h-6 object-contain flex-shrink-0"
+            />
+          )}
+          <h3 className="text-lg font-semibold text-[var(--color-text)] truncate">
+            {title}
+          </h3>
+          {isPublic && (
+            <span className="ml-1 inline-flex w-fit flex-shrink-0 px-2 py-0.5 rounded-full bg-[#E9F1FE] text-xs font-poppins text-[var(--color-text)]">
+              Public
+            </span>
+          )}
+        </div>
+
+        {/* Description (affichée seulement si fournie) */}
+        {description && (
+          <p className="mt-2 text-sm text-[var(--color-grey-three)] line-clamp-2">
+            {description}
+          </p>
+        )}
+
+        {/* Séparateur + footer, poussés en bas de la carte */}
+        <div className="mt-auto pt-4">
+          <hr className="border-[var(--color-grey-two)]" />
+
+          <div className="mt-3 flex items-center justify-between">
+            {/* Avatars + bouton d'ajout */}
+            <div className="flex items-center">
+              <button
+                type="button"
+                aria-label="Inviter des participants"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onShare?.();
+                }}
+                className="w-9 h-9 flex items-center justify-center rounded-full border border-dashed border-[var(--color-grey-three)] text-[var(--color-grey-three)] hover:border-[var(--color-text)] hover:text-[var(--color-text)] transition-colors cursor-pointer"
+              >
+                <Plus size={16} />
+              </button>
+
+              <div className="flex -space-x-3 ml-2">
                 {displayParticipants.map((participant) => (
                   <div
                     key={participant.id}
-                    className="w-10 h-10 rounded-full border-2 border-white bg-gray-300 overflow-hidden relative"
+                    className="w-9 h-9 rounded-full border-2 border-white bg-[var(--color-grey-two)] overflow-hidden relative"
                     title={`${participant.firstName} ${participant.lastName}`}
                   >
                     {participant.photoUrl &&
@@ -210,48 +263,81 @@ export default function EventCard({
                       <Image
                         src={participant.photoUrl}
                         alt={`Photo de profil de ${participant.firstName} ${participant.lastName}`}
-                        width={40}
-                        height={40}
+                        width={36}
+                        height={36}
                         className="rounded-full object-cover w-full h-full"
-                        sizes="40px"
+                        sizes="36px"
                         quality={75}
                       />
                     ) : null}
                   </div>
                 ))}
-
-                {/* Affichage du nombre restant si plus de 5 participants */}
                 {remainingCount > 0 && (
-                  <div className="w-10 h-10 z-10 rounded-full border-2 border-white bg-gray-300 flex items-center justify-center">
-                    <span className="text-xs text-gray-600 font-medium">
+                  <div className="w-9 h-9 z-10 rounded-full border-2 border-white bg-[var(--color-grey-two)] flex items-center justify-center">
+                    <span className="text-xs text-[var(--color-grey-three)] font-medium">
                       +{remainingCount}
                     </span>
                   </div>
                 )}
               </div>
-            </>
+            </div>
+
+            {/* Compteurs participants / documents */}
+            <div className="flex items-center gap-3 text-[var(--color-grey-three)]">
+              <span className="flex items-center gap-1 text-sm">
+                <UserIcon size={16} />
+                {participantCount || participants.length}
+              </span>
+              <span className="flex items-center gap-1 text-sm">
+                <FileText size={16} />
+                {documentCount}
+              </span>
+            </div>
+          </div>
+
+          {/* Cas invitation : Décliner / Accepter */}
+          {isInvited ? (
+            <div className="mt-4 flex items-center gap-3">
+              <button
+                type="button"
+                disabled={inviteLoading}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDeclineInvite?.();
+                }}
+                className="px-4 py-3 font-poppins text-body-large text-[var(--color-text)] rounded-lg hover:bg-[var(--color-grey-one)] transition-colors cursor-pointer disabled:opacity-50"
+              >
+                Décliner
+              </button>
+              <button
+                type="button"
+                disabled={inviteLoading}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onAcceptInvite?.();
+                }}
+                className="flex-1 py-3 px-4 font-poppins text-body-large rounded-lg bg-[var(--color-text)] text-white hover:opacity-90 transition-colors cursor-pointer disabled:opacity-50"
+              >
+                {inviteLoading ? "Chargement..." : "Accepter"}
+              </button>
+            </div>
           ) : (
-            <p
-              className={`text-gray-500 italic ${className?.includes("h-24") || className?.includes("h-20") ? "text-xs" : "text-sm"}`}
-            >
-              Encore aucun participant
-            </p>
+            isPublic &&
+            !hideParticipateButton && (
+              <PublicEventParticipateButton
+                participantCount={participantCount}
+                maxParticipants={maxParticipants}
+                isParticipant={isParticipant}
+                isCreator={isCreator}
+                isFull={isFull}
+                isPublic={isPublic}
+                loading={joinLoading}
+                onParticipate={onParticipate}
+                size="card"
+              />
+            )
           )}
         </div>
-
-        {isPublic && !hideParticipateButton && (
-          <PublicEventParticipateButton
-            participantCount={participantCount}
-            maxParticipants={maxParticipants}
-            isParticipant={isParticipant}
-            isCreator={isCreator}
-            isFull={isFull}
-            isPublic={isPublic}
-            loading={joinLoading}
-            onParticipate={onParticipate}
-            size="card"
-          />
-        )}
       </div>
 
       {needsVote && (
