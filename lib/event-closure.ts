@@ -182,11 +182,29 @@ export type ScoredPlace = {
 //    Parc des Princes, Roland Garros… qui matchent le tag "stadium" du sport)
 //  - trop chers pour le budget indiqué (priceLevel > budget)
 
-// Types PRINCIPAUX écartés : grands équipements pro non privatisables. On ne
-// filtre que sur le type principal (primaryType) pour ne pas exclure un lieu
-// réservable qui aurait "stadium" en type secondaire. Un stade/arène pro
-// (Parc des Princes, Roland Garros) a "stadium" en type principal.
-const EXCLUDED_PRIMARY_TYPES = new Set<string>(["stadium", "arena"]);
+// Types PRINCIPAUX écartés : lieux inadaptés à un événement d'entreprise. On
+// ne filtre que sur le type principal (primaryType) pour ne pas exclure un
+// lieu réservable qui aurait ce type en secondaire.
+//  - stade/arène pro non privatisables (Parc des Princes, Roland Garros)
+//  - lieux publics / non-réservables sans intérêt : aire de jeux enfants,
+//    attraction touristique générique, administratif, transports
+// (Les parcs/jardins/aires nature sont volontairement CONSERVÉS.)
+const EXCLUDED_PRIMARY_TYPES = new Set<string>([
+  "stadium",
+  "arena",
+  "playground",
+  "tourist_attraction",
+  "city_hall",
+  "local_government_office",
+  "courthouse",
+  "embassy",
+  "parking",
+  "bus_station",
+  "subway_station",
+  "train_station",
+  "light_rail_station",
+  "transit_station",
+]);
 
 /** Budget indicatif par personne (€) → niveau de prix Google maximal toléré (0..4). */
 export function budgetToMaxPriceLevel(

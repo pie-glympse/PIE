@@ -19,7 +19,15 @@ const prisma = new PrismaClient({ adapter: new PrismaPg(pool) });
 // Corrections validées : cinema→movie_theater, skatepark→skateboard_park,
 // museum_like_places→museum. "Peu importe" → allCategoryTags (+1 sur tous
 // les tags de la catégorie, départage des ex æquo).
+//
+// Bundles TRANSVERSAUX : familles d'activités partagées entre catégories pour
+// lever la rigidité des silos. Une intention (aventure, plein air…) doit mener
+// aux mêmes lieux qu'on ait choisi Sport OU Divertissement — ainsi l'accrobranche
+// (adventure_sports_center) est atteignable depuis les deux.
 // ───────────────────────────────────────────────────────────────────────────
+const ADVENTURE = ["adventure_sports_center", "water_park", "amusement_park"];
+const OUTDOOR = ["hiking_area", "off_roading_area", "cycling_park"];
+
 const CATEGORIES = [
   {
     name: "Gastronomie",
@@ -183,27 +191,27 @@ const CATEGORIES = [
         text: "Quel type d'effort préfères-tu ?",
         options: [
           { label: "Cardio / Endurance", weight: 2, tags: ["fitness_center", "gym", "athletic_field"] },
-          { label: "Doux / Relax", weight: 2, tags: ["swimming_pool", "fishing_pond", "sports_activity_location"] },
-          { label: "Adrénaline / Fun", weight: 2, tags: ["ice_skating_rink", "ski_resort", "arena"] },
-          { label: "Sport collectif", weight: 2, tags: ["sports_club", "stadium", "sports_complex"] },
+          { label: "Doux / Relax", weight: 2, tags: ["swimming_pool", "sports_activity_location", "fishing_pond"] },
+          { label: "Adrénaline / Fun", weight: 2, tags: [...ADVENTURE, "ice_skating_rink", "arena"] },
+          { label: "Sport collectif", weight: 2, tags: ["sports_club", "sports_complex", "athletic_field"] },
           { label: "Technique / Ciblé", weight: 2, tags: ["sports_coaching", "golf_course"] },
         ],
       },
       {
         text: "Tu aimerais faire cette activité :",
         options: [
-          { label: "En intérieur", weight: 2, tags: ["gym", "fitness_center", "sports_complex", "arena", "ice_skating_rink"] },
-          { label: "En extérieur", weight: 2, tags: ["athletic_field", "golf_course", "fishing_pond", "playground"] },
-          { label: "En nature", weight: 2, tags: ["ski_resort", "fishing_charter", "fishing_pond"] },
+          { label: "En intérieur", weight: 2, tags: ["gym", "fitness_center", "sports_complex", "ice_skating_rink"] },
+          { label: "En extérieur", weight: 2, tags: ["athletic_field", "golf_course", ...OUTDOOR] },
+          { label: "En nature", weight: 2, tags: [...OUTDOOR, "adventure_sports_center", "ski_resort"] },
           { label: "Peu importe", weight: 1, allCategoryTags: true, tags: [] },
         ],
       },
       {
         text: "Tu préfères une activité :",
         options: [
-          { label: "Très dynamique", weight: 2, tags: ["arena", "sports_complex", "stadium"] },
+          { label: "Très dynamique", weight: 2, tags: ["adventure_sports_center", "sports_complex", "athletic_field"] },
           { label: "Modérée", weight: 2, tags: ["sports_club", "gym", "swimming_pool"] },
-          { label: "Très chill", weight: 2, tags: ["fishing_pond", "fishing_charter", "playground"] },
+          { label: "Très chill", weight: 2, tags: ["fishing_pond", "swimming_pool", "hiking_area"] },
         ],
       },
       {
@@ -211,20 +219,20 @@ const CATEGORIES = [
         multiSelect: true,
         maxChoices: 2,
         options: [
-          { label: "Sport en équipe", weight: 3, tags: ["sports_club", "stadium", "sports_complex"] },
+          { label: "Sport en équipe", weight: 3, tags: ["sports_club", "sports_complex", "athletic_field"] },
           { label: "Sport individuel", weight: 3, tags: ["gym", "fitness_center", "golf_course"] },
-          { label: "Activité ludique", weight: 3, tags: ["ice_skating_rink", "playground"] },
+          { label: "Activité fun / sensations", weight: 3, tags: [...ADVENTURE, "ice_skating_rink"] },
           { label: "Activité bien-être", weight: 3, tags: ["swimming_pool", "sports_activity_location"] },
-          { label: "Activité de pleine nature", weight: 3, tags: ["fishing_charter", "fishing_pond", "ski_resort"] },
+          { label: "Activité de pleine nature", weight: 3, tags: [...OUTDOOR, "adventure_sports_center"] },
         ],
       },
       {
         text: "Qu'est-ce qui te motive le plus ?",
         options: [
           { label: "Se dépasser physiquement", weight: 4, tags: ["athletic_field", "gym", "fitness_center"] },
-          { label: "S'amuser sans pression", weight: 4, tags: ["playground", "ice_skating_rink"] },
-          { label: "Déconnecter / se détendre", weight: 4, tags: ["fishing_pond", "swimming_pool"] },
-          { label: "Vivre une expérience rare", weight: 4, tags: ["fishing_charter", "ski_resort"] },
+          { label: "S'amuser sans pression", weight: 4, tags: [...ADVENTURE, "ice_skating_rink"] },
+          { label: "Déconnecter / se détendre", weight: 4, tags: ["fishing_pond", "swimming_pool", "hiking_area"] },
+          { label: "Vivre une expérience rare", weight: 4, tags: ["adventure_sports_center", "ski_resort", "water_park"] },
           { label: "Apprendre ou progresser", weight: 4, tags: ["sports_coaching", "sports_club"] },
         ],
       },
