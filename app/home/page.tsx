@@ -449,6 +449,8 @@ function HomePageContent() {
                                 event.id,
                               ),
                               state: event.state,
+                              dateKnown: event.dateKnown,
+                              isSpecificPlace: event.isSpecificPlace,
                             })}
                             isNew={newEventId === event.id}
                             isPublic={event.isPublic}
