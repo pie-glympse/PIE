@@ -100,7 +100,7 @@ export async function GET(
       }),
       prisma.eventUserPreference.findUnique({
         where: { userId_eventId: { userId, eventId } },
-        select: { preferredDate: true },
+        select: { preferredDate: true, preferredDates: true },
       }),
     ]);
 
@@ -120,6 +120,7 @@ export async function GET(
         questions,
         myAnswerOptionIds: myAnswers.map((a) => a.optionId),
         myPreferredDate: myPreference?.preferredDate ?? null,
+        myPreferredDates: myPreference?.preferredDates ?? [],
         hasAnswered: myPreference != null,
       }),
       { status: 200 },
@@ -142,7 +143,12 @@ export async function POST(
     const { id } = await params;
     const eventId = BigInt(id);
 
-    const { userId, optionIds = [], preferredDate } = await request.json();
+    const {
+      userId,
+      optionIds = [],
+      preferredDate,
+      preferredDates,
+    } = await request.json();
     const auth = await requireAuthUser(request, userId);
     if (!auth.ok) {
       return NextResponse.json({ message: auth.error }, { status: auth.status });
@@ -186,41 +192,56 @@ export async function POST(
       );
     }
 
-    // ── Date préférée
-    let preferredDateValue: Date;
+    // ── Dates préférées (plusieurs jours possibles, non consécutifs)
+    let preferredDateKeys: string[];
     if (event.dateKnown) {
-      // Date déjà fixée par le créateur : elle sert de préférence
-      preferredDateValue = event.startDate ?? new Date();
+      // Date déjà fixée par le créateur : elle sert de préférence unique
+      preferredDateKeys = [dayKey(event.startDate ?? new Date())];
     } else {
-      if (!preferredDate) {
+      // Nouveau format : tableau de dates. Compat : ancienne date unique.
+      const rawDates: unknown[] = Array.isArray(preferredDates)
+        ? preferredDates
+        : preferredDate
+          ? [preferredDate]
+          : [];
+      if (rawDates.length === 0) {
         return NextResponse.json(
-          { message: "Veuillez choisir une date dans la plage proposée" },
+          { message: "Veuillez choisir au moins une date parmi celles proposées" },
           { status: 400 },
         );
       }
-      preferredDateValue = new Date(preferredDate);
-      if (Number.isNaN(preferredDateValue.getTime())) {
-        return NextResponse.json({ message: "Date invalide" }, { status: 400 });
+      const keys = new Set<string>();
+      for (const raw of rawDates) {
+        const parsed = new Date(String(raw));
+        if (Number.isNaN(parsed.getTime())) {
+          return NextResponse.json({ message: "Date invalide" }, { status: 400 });
+        }
+        keys.add(dayKey(parsed));
       }
-      const chosenKey = dayKey(preferredDateValue);
-      if (event.proposedDates && event.proposedDates.length > 0) {
-        // Dates proposées explicites (potentiellement non consécutives)
-        if (!event.proposedDates.includes(chosenKey)) {
+      preferredDateKeys = Array.from(keys).sort();
+
+      for (const chosenKey of preferredDateKeys) {
+        if (event.proposedDates && event.proposedDates.length > 0) {
+          // Dates proposées explicites (potentiellement non consécutives)
+          if (!event.proposedDates.includes(chosenKey)) {
+            return NextResponse.json(
+              { message: "Choisissez uniquement des dates proposées par l'organisateur" },
+              { status: 400 },
+            );
+          }
+        } else if (
+          (event.startDate && chosenKey < dayKey(event.startDate)) ||
+          (event.endDate && chosenKey > dayKey(event.endDate))
+        ) {
           return NextResponse.json(
-            { message: "Choisissez une des dates proposées par l'organisateur" },
+            { message: "Les dates choisies doivent être dans la plage proposée par l'organisateur" },
             { status: 400 },
           );
         }
-      } else if (
-        (event.startDate && chosenKey < dayKey(event.startDate)) ||
-        (event.endDate && chosenKey > dayKey(event.endDate))
-      ) {
-        return NextResponse.json(
-          { message: "La date choisie doit être dans la plage proposée par l'organisateur" },
-          { status: 400 },
-        );
       }
     }
+    // Colonne DateTime historique : on garde la plus proche comme repère.
+    const preferredDateValue = new Date(`${preferredDateKeys[0]}T00:00:00.000Z`);
 
     // ── Réponses au questionnaire (branche catégorie uniquement)
     if (event.categoryId) {
@@ -280,8 +301,16 @@ export async function POST(
     await prisma.$transaction(async (tx) => {
       await tx.eventUserPreference.upsert({
         where: { userId_eventId: { userId: userIdBigInt, eventId } },
-        update: { preferredDate: preferredDateValue },
-        create: { userId: userIdBigInt, eventId, preferredDate: preferredDateValue },
+        update: {
+          preferredDate: preferredDateValue,
+          preferredDates: preferredDateKeys,
+        },
+        create: {
+          userId: userIdBigInt,
+          eventId,
+          preferredDate: preferredDateValue,
+          preferredDates: preferredDateKeys,
+        },
       });
 
       await tx.eventQuestionnaireAnswer.deleteMany({

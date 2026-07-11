@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useUser } from "@/context/UserContext";
 import BackArrow from "@/components/ui/BackArrow";
 import MainButton from "@/components/ui/MainButton";
+import DragRangeCalendar from "@/components/ui/DragRangeCalendar";
 
 type QuestionOption = {
   id: string;
@@ -36,6 +37,7 @@ type QuestionnaireData = {
   questions: Question[];
   myAnswerOptionIds: string[];
   myPreferredDate?: string | null;
+  myPreferredDates?: string[];
   hasAnswered: boolean;
 };
 
@@ -54,13 +56,6 @@ function buildRangeDays(start?: string | null, end?: string | null): string[] {
   return days;
 }
 
-const formatDay = (iso: string) =>
-  new Date(iso).toLocaleDateString("fr-FR", {
-    weekday: "short",
-    day: "numeric",
-    month: "short",
-  });
-
 // Questionnaire participant : le moteur de la future requête Google Places.
 // Étapes : [date dans la plage si non connue] puis une question par étape.
 export default function EventPreferencesPage() {
@@ -73,7 +68,7 @@ export default function EventPreferencesPage() {
   const [loading, setLoading] = useState(true);
   const [accessDenied, setAccessDenied] = useState<string | null>(null);
   const [stepIndex, setStepIndex] = useState(0);
-  const [preferredDate, setPreferredDate] = useState("");
+  const [preferredDates, setPreferredDates] = useState<string[]>([]);
   const [selectedByQuestion, setSelectedByQuestion] = useState<
     Record<string, string[]>
   >({});
@@ -105,8 +100,10 @@ export default function EventPreferencesPage() {
         setData(payload);
 
         // Pré-remplir avec mes réponses précédentes (re-vote possible)
-        if (payload.myPreferredDate) {
-          setPreferredDate(dayKey(payload.myPreferredDate));
+        if (payload.myPreferredDates && payload.myPreferredDates.length > 0) {
+          setPreferredDates([...payload.myPreferredDates].map(dayKey).sort());
+        } else if (payload.myPreferredDate) {
+          setPreferredDates([dayKey(payload.myPreferredDate)]);
         }
         if (payload.myAnswerOptionIds.length > 0) {
           const prefill: Record<string, string[]> = {};
@@ -163,7 +160,7 @@ export default function EventPreferencesPage() {
   };
 
   const canContinue = isDateStep
-    ? preferredDate.length > 0
+    ? preferredDates.length > 0
     : currentQuestion
       ? (selectedByQuestion[currentQuestion.id]?.length ?? 0) > 0
       : false;
@@ -181,7 +178,7 @@ export default function EventPreferencesPage() {
         body: JSON.stringify({
           userId: user.id,
           optionIds,
-          preferredDate: hasDateStep ? preferredDate : undefined,
+          preferredDates: hasDateStep ? preferredDates : undefined,
         }),
       });
       if (!response.ok) {
@@ -253,7 +250,7 @@ export default function EventPreferencesPage() {
         />
 
         {/* Barre de progression segmentée (cohérente avec la création) */}
-        <div className="flex items-center gap-2 w-full max-w-xs">
+        <div className="flex items-center gap-2 w-full max-w-xs mx-auto">
           {Array.from({ length: totalSteps }, (_, i) => (
             <div
               key={i}
@@ -264,7 +261,7 @@ export default function EventPreferencesPage() {
           ))}
         </div>
 
-        <div className="w-full max-w-3xl">
+        <div className="w-full max-w-3xl mx-auto">
           <h1 className="text-h1 mb-2 text-left font-urbanist">
             {data.event.title}
           </h1>
@@ -275,35 +272,25 @@ export default function EventPreferencesPage() {
 
           {isDateStep ? (
             <>
-              <p className="text-h3 mb-4 font-poppins text-[var(--color-grey-three)]">
-                Quelle date vous conviendrait le mieux ?
+              <p className="text-h3 mb-1 font-poppins text-[var(--color-text)]">
+                Quelles dates vous conviendraient ?
               </p>
-              {rangeDays.length > 0 && rangeDays.length <= 21 ? (
-                <div className="flex flex-wrap gap-2">
-                  {rangeDays.map((day) => (
-                    <button
-                      type="button"
-                      key={day}
-                      onClick={() => setPreferredDate(day)}
-                      className={`px-4 py-2 rounded-lg border-2 font-poppins transition-all ${
-                        preferredDate === day
-                          ? "bg-[var(--color-main)] text-white border-[var(--color-main)]"
-                          : "bg-white text-[var(--color-text)] border-[var(--color-grey-two)] hover:border-[var(--color-main)]"
-                      }`}
-                    >
-                      {formatDay(day)}
-                    </button>
-                  ))}
-                </div>
-              ) : (
-                <input
-                  type="date"
-                  value={preferredDate}
-                  min={data.event.startDate ? dayKey(data.event.startDate) : undefined}
-                  max={data.event.endDate ? dayKey(data.event.endDate) : undefined}
-                  onChange={(e) => setPreferredDate(e.target.value)}
-                  className="px-4 py-2 border-2 border-[var(--color-grey-two)] rounded"
+              <p className="text-body-small mb-4 font-poppins text-[var(--color-grey-three)]">
+                Cliquez ou glissez pour cocher tous les jours qui vous vont —{" "}
+                {preferredDates.length} sélectionné
+                {preferredDates.length > 1 ? "s" : ""}
+              </p>
+              {rangeDays.length > 0 ? (
+                <DragRangeCalendar
+                  selectedDates={preferredDates}
+                  onChange={setPreferredDates}
+                  allowedDates={rangeDays}
+                  minDate={rangeDays[0]}
                 />
+              ) : (
+                <p className="text-body-small font-poppins text-[var(--color-grey-three)]">
+                  Aucune date proposée par l&apos;organisateur.
+                </p>
               )}
             </>
           ) : currentQuestion ? (
@@ -371,7 +358,7 @@ export default function EventPreferencesPage() {
           ) : null}
         </div>
 
-        <div className="w-1/6 min-w-[160px]">
+        <div className="w-1/6 min-w-[160px] mx-auto">
           <MainButton
             text={
               stepIndex < totalSteps - 1

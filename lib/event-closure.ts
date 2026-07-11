@@ -133,6 +133,45 @@ export async function pickWinningDate(
   )[0].preferredDate;
 }
 
+// ─── Matchmaking des dates ───────────────────────────────────────────────────
+// Chaque votant peut cocher plusieurs jours (DragRangeCalendar). On calcule,
+// pour chaque jour, le taux de présence = votants l'ayant coché / total votants.
+// Sert au créateur pour retenir les dates qui conviennent au plus grand nombre.
+export type DatePresence = {
+  date: string; // YYYY-MM-DD
+  count: number; // votants ayant coché ce jour
+  percentage: number; // count / totalVoters * 100 (arrondi)
+};
+
+export async function aggregateDatePresence(
+  prisma: PrismaClient,
+  eventId: bigint,
+): Promise<{ totalVoters: number; presence: DatePresence[] }> {
+  const prefs = await prisma.eventUserPreference.findMany({
+    where: { eventId },
+    select: { preferredDate: true, preferredDates: true },
+  });
+  const totalVoters = prefs.length;
+  const counts = new Map<string, number>();
+  for (const p of prefs) {
+    // Compat : anciennes lignes sans tableau → on retombe sur la date unique.
+    const days =
+      p.preferredDates.length > 0
+        ? p.preferredDates
+        : [p.preferredDate.toISOString().split("T")[0]];
+    const unique = new Set(days.map((d) => d.slice(0, 10)));
+    for (const day of unique) counts.set(day, (counts.get(day) ?? 0) + 1);
+  }
+  const presence = Array.from(counts.entries())
+    .map(([date, count]) => ({
+      date,
+      count,
+      percentage: totalVoters > 0 ? Math.round((count / totalVoters) * 100) : 0,
+    }))
+    .sort((a, b) => b.count - a.count || a.date.localeCompare(b.date));
+  return { totalVoters, presence };
+}
+
 // Nombre de participants ayant répondu au questionnaire (clôture dès 1 réponse)
 export async function getQuestionnaireProgress(
   prisma: PrismaClient,

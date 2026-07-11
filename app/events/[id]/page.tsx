@@ -25,6 +25,8 @@ type EventDetails = {
   endDate?: string;
   startTime?: string;
   endTime?: string;
+  proposedDates?: string[];
+  confirmedDates?: string[];
   maxPersons?: string;
   costPerPerson?: string;
   isSpecificPlace?: boolean;
@@ -520,23 +522,47 @@ export default function SingleEventPage() {
                           </div>
                         </div>
                       )}
-                      {(event.date || event.startDate) && (
-                        <div className="flex items-center gap-3">
-                          <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                      {event.confirmedDates && event.confirmedDates.length > 0 ? (
+                        <div className="flex items-start gap-3">
+                          <div className="w-2 h-2 mt-2 bg-green-500 rounded-full"></div>
                           <div>
                             <span className="text-body-large font-poppins font-medium text-[var(--color-text)]">
-                              Date retenue :
+                              {event.confirmedDates.length > 1
+                                ? "Dates retenues :"
+                                : "Date retenue :"}
                             </span>
                             <span className="ml-2 text-body-large font-poppins text-green-700 font-semibold">
-                              {new Date(event.date || event.startDate!).toLocaleDateString("fr-FR", {
-                                weekday: "long",
-                                year: "numeric",
-                                month: "long",
-                                day: "numeric",
-                              })}
+                              {[...event.confirmedDates]
+                                .sort()
+                                .map((d) =>
+                                  new Date(`${d.slice(0, 10)}T00:00:00.000Z`).toLocaleDateString(
+                                    "fr-FR",
+                                    { weekday: "short", day: "numeric", month: "long" },
+                                  ),
+                                )
+                                .join(" · ")}
                             </span>
                           </div>
                         </div>
+                      ) : (
+                        (event.date || event.startDate) && (
+                          <div className="flex items-center gap-3">
+                            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                            <div>
+                              <span className="text-body-large font-poppins font-medium text-[var(--color-text)]">
+                                Date retenue :
+                              </span>
+                              <span className="ml-2 text-body-large font-poppins text-green-700 font-semibold">
+                                {new Date(event.date || event.startDate!).toLocaleDateString("fr-FR", {
+                                  weekday: "long",
+                                  year: "numeric",
+                                  month: "long",
+                                  day: "numeric",
+                                })}
+                              </span>
+                            </div>
+                          </div>
+                        )
                       )}
                     </div>
                     <div className="mt-4 pt-3 border-t border-green-200">

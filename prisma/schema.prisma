@@ -87,6 +87,7 @@ model Event {
   additionalInfo               String                        @default("") @map("additional_info")
   dateKnown                    Boolean                       @default(true) @map("date_known")
   proposedDates                String[]                      @default([]) @map("proposed_dates")
+  confirmedDates               String[]                      @default([]) @map("confirmed_dates")
   categoryId                   BigInt?                       @map("category_id")
   blacklistedPlaces            BlacklistedPlace[]
   category                     EventCategory?                @relation(fields: [categoryId], references: [id])
@@ -157,11 +158,12 @@ model GoogleTag {
 }
 
 model EventUserPreference {
-  userId        BigInt
-  eventId       BigInt
-  preferredDate DateTime
-  event         Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  user          User     @relation(fields: [userId], references: [id])
+  userId         BigInt
+  eventId        BigInt
+  preferredDate  DateTime
+  preferredDates String[] @default([]) @map("preferred_dates")
+  event          Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user           User     @relation(fields: [userId], references: [id])
 
   @@id([userId, eventId])
 }

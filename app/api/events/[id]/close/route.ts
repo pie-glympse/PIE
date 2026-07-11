@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import {
   aggregateTagScores,
+  aggregateDatePresence,
   pickWinningDate,
   getQuestionnaireProgress,
   rankPlaces,
@@ -51,6 +52,9 @@ export async function GET(
         id: true,
         state: true,
         isSpecificPlace: true,
+        dateKnown: true,
+        proposedDates: true,
+        confirmedDates: true,
         categoryId: true,
         createdById: true,
       },
@@ -70,10 +74,20 @@ export async function GET(
         })
       : [];
 
+    // Matchmaking des dates : taux de présence par jour (créateur uniquement),
+    // uniquement si la date n'était pas fixée d'avance.
+    const dateMatchmaking =
+      isCreator && !event.dateKnown
+        ? await aggregateDatePresence(prisma, eventId)
+        : { totalVoters: 0, presence: [] };
+
     return NextResponse.json(
       toJson({
         state: event.state,
         isSpecificPlace: event.isSpecificPlace,
+        dateKnown: event.dateKnown,
+        proposedDates: event.proposedDates,
+        confirmedDates: event.confirmedDates,
         isCreator,
         participantCount: progress.participantCount,
         respondedCount: progress.respondedCount,
@@ -83,6 +97,8 @@ export async function GET(
           event.state?.toLowerCase() === "pending" &&
           progress.respondedCount >= 1,
         proposals,
+        datePresence: dateMatchmaking.presence,
+        dateVoterCount: dateMatchmaking.totalVoters,
       }),
       { status: 200 },
     );

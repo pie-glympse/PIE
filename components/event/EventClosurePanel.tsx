@@ -1,8 +1,15 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import { useUser } from "@/context/UserContext";
+import DragRangeCalendar from "@/components/ui/DragRangeCalendar";
+
+type DatePresence = {
+  date: string;
+  count: number;
+  percentage: number;
+};
 
 type Proposal = {
   id: string;
@@ -20,11 +27,16 @@ type Proposal = {
 type ClosureStatus = {
   state?: string;
   isSpecificPlace: boolean;
+  dateKnown?: boolean;
+  proposedDates?: string[];
+  confirmedDates?: string[];
   isCreator: boolean;
   participantCount: number;
   respondedCount: number;
   canClose: boolean;
   proposals: Proposal[];
+  datePresence?: DatePresence[];
+  dateVoterCount?: number;
 };
 
 type EventClosurePanelProps = {
@@ -55,8 +67,23 @@ export default function EventClosurePanel({
   const [seenIds, setSeenIds] = useState<Set<string>>(new Set());
   // Modale des 5 propositions (ouverte à la clôture, rouvrable via l'icône cadeau)
   const [showProposals, setShowProposals] = useState(false);
+  // Dates finales retenues par le créateur (matchmaking des dates)
+  const [chosenDates, setChosenDates] = useState<string[]>([]);
+  const [isSavingDates, setIsSavingDates] = useState(false);
+  const [datesSaved, setDatesSaved] = useState(false);
 
   const state = (status?.state ?? eventState ?? "").toLowerCase();
+
+  // Le créateur peut voter des dates (matchmaking) tant que la date n'est pas
+  // figée d'avance et qu'il y a des dates proposées.
+  const showDateMatchmaking =
+    !status?.dateKnown && (status?.proposedDates?.length ?? 0) > 0;
+
+  const dateHeatmap = useMemo(() => {
+    const map: Record<string, number> = {};
+    for (const d of status?.datePresence ?? []) map[d.date] = d.percentage;
+    return map;
+  }, [status?.datePresence]);
 
   const fetchStatus = useCallback(async () => {
     if (!user?.id) return;
@@ -79,6 +106,17 @@ export default function EventClosurePanel({
     return () =>
       window.removeEventListener("preferencesUpdated", onPreferencesUpdated);
   }, [fetchStatus]);
+
+  // Pré-remplir la sélection de dates avec les dates déjà retenues (le cas
+  // échéant), sinon avec le jour de plus forte présence.
+  useEffect(() => {
+    if (!status) return;
+    if (status.confirmedDates && status.confirmedDates.length > 0) {
+      setChosenDates([...status.confirmedDates].map((d) => d.slice(0, 10)).sort());
+    } else if ((status.datePresence?.length ?? 0) > 0) {
+      setChosenDates([status.datePresence![0].date]);
+    }
+  }, [status]);
 
   const handleClose = async () => {
     if (!user?.id) return;
@@ -140,6 +178,32 @@ export default function EventClosurePanel({
       setError(err instanceof Error ? err.message : "Erreur inconnue");
     } finally {
       setIsRelaunching(false);
+    }
+  };
+
+  const handleConfirmDates = async () => {
+    if (!user?.id || chosenDates.length === 0) return;
+    setIsSavingDates(true);
+    setDatesSaved(false);
+    setError(null);
+    try {
+      const response = await fetch(`/api/events/${eventId}/choose-dates`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: user.id, dates: chosenDates }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data?.message || "Erreur lors du choix des dates");
+      }
+      await fetchStatus();
+      setDatesSaved(true);
+      window.dispatchEvent(new Event("eventsUpdated"));
+      onConfirmed();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erreur inconnue");
+    } finally {
+      setIsSavingDates(false);
     }
   };
 
@@ -313,6 +377,56 @@ export default function EventClosurePanel({
                 </button>
               </div>
             </div>
+
+            {/* Matchmaking des dates : heatmap de présence + choix des jours */}
+            {showDateMatchmaking && (
+              <div className="mb-6 p-4 rounded-xl border-2 border-[var(--color-grey-two)]">
+                <h4 className="text-body-large font-semibold font-urbanist text-[var(--color-text)] mb-1">
+                  Dates qui conviennent au plus grand nombre
+                </h4>
+                <p className="text-body-small font-poppins text-[var(--color-grey-three)] mb-3">
+                  Survolez un jour pour voir le taux de présence
+                  {typeof status.dateVoterCount === "number" &&
+                    ` (${status.dateVoterCount} votant${status.dateVoterCount > 1 ? "s" : ""})`}
+                  . Cliquez pour retenir les jours de l&apos;événement.
+                </p>
+                <DragRangeCalendar
+                  selectedDates={chosenDates}
+                  onChange={(d) => {
+                    setChosenDates(d);
+                    setDatesSaved(false);
+                  }}
+                  allowedDates={status.proposedDates}
+                  heatmap={dateHeatmap}
+                  minDate={
+                    status.proposedDates && status.proposedDates.length > 0
+                      ? [...status.proposedDates].sort()[0]
+                      : undefined
+                  }
+                />
+                <div className="mt-3 flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={handleConfirmDates}
+                    disabled={chosenDates.length === 0 || isSavingDates}
+                    className={`px-4 py-2 rounded-md font-poppins text-white transition-opacity ${
+                      chosenDates.length > 0 && !isSavingDates
+                        ? "bg-[var(--color-main)] hover:opacity-90 cursor-pointer"
+                        : "bg-[var(--color-grey-two)] cursor-not-allowed"
+                    }`}
+                  >
+                    {isSavingDates
+                      ? "Enregistrement..."
+                      : `Retenir ${chosenDates.length} date${chosenDates.length > 1 ? "s" : ""}`}
+                  </button>
+                  {datesSaved && (
+                    <span className="text-body-small font-poppins text-green-600">
+                      Dates retenues ✓
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {status.proposals.map((proposal) => (

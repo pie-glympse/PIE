@@ -12,6 +12,21 @@ type DragRangeCalendarProps = {
   minDate?: string;
   /** Nombre de mois affichés à partir du mois courant (défaut 12) */
   monthsCount?: number;
+  /**
+   * Restreint les jours sélectionnables à cet ensemble (YYYY-MM-DD). Utilisé
+   * côté participant (voter dans les dates proposées) et côté créateur (choisir
+   * la date finale parmi les dates proposées). Les mois affichés se limitent
+   * alors à la fenêtre couverte par ces dates.
+   */
+  allowedDates?: string[];
+  /**
+   * Taux de présence par jour (YYYY-MM-DD → pourcentage 0..100). Colore les
+   * cases (intensité verte) et affiche le pourcentage au survol. Sert au
+   * créateur pour repérer les jours qui conviennent au plus grand nombre.
+   */
+  heatmap?: Record<string, number>;
+  /** Lecture seule : affiche la heatmap sans permettre la (dé)sélection. */
+  readOnly?: boolean;
 };
 
 const MONTH_NAMES = [
@@ -59,14 +74,24 @@ function playTick() {
 // Calendrier « à la Gcalendar » (mois en scroll horizontal, cases grises,
 // chiffre au survol), interactif : clic pour (dé)sélectionner un jour,
 // clic-glissé pour ajouter/retirer plusieurs jours (non consécutifs possibles).
+// Deux modes optionnels : restriction à un ensemble de dates (allowedDates) et
+// heatmap de présence (heatmap) affichée au survol.
 export default function DragRangeCalendar({
   selectedDates,
   onChange,
   minDate,
   monthsCount = 12,
+  allowedDates,
+  heatmap,
+  readOnly = false,
 }: DragRangeCalendarProps) {
   const min = minDate || todayKey();
   const today = todayKey();
+
+  const allowedSet = useMemo(
+    () => (allowedDates ? new Set(allowedDates.map((d) => d.slice(0, 10))) : null),
+    [allowedDates],
+  );
 
   const draggingRef = useRef(false);
   const dragModeRef = useRef<"add" | "remove">("add");
@@ -87,15 +112,30 @@ export default function DragRangeCalendar({
 
   const selectedSet = useMemo(() => new Set(selectedDates), [selectedDates]);
 
+  // Fenêtre de mois : couvre les allowedDates si fournies, sinon N mois depuis
+  // le mois courant.
   const months = useMemo(() => {
-    const now = new Date();
     const list: { month: number; year: number }[] = [];
+    if (allowedSet && allowedSet.size > 0) {
+      const keys = Array.from(allowedSet).sort();
+      const first = new Date(`${keys[0]}T00:00:00`);
+      const last = new Date(`${keys[keys.length - 1]}T00:00:00`);
+      let y = first.getFullYear();
+      let m = first.getMonth();
+      while (y < last.getFullYear() || (y === last.getFullYear() && m <= last.getMonth())) {
+        list.push({ month: m, year: y });
+        m += 1;
+        if (m > 11) { m = 0; y += 1; }
+      }
+      return list;
+    }
+    const now = new Date();
     for (let i = 0; i < monthsCount; i++) {
       const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
       list.push({ month: d.getMonth(), year: d.getFullYear() });
     }
     return list;
-  }, [monthsCount]);
+  }, [monthsCount, allowedSet]);
 
   const applyToggle = (key: string, mode: "add" | "remove"): boolean => {
     const set = workingRef.current;
@@ -113,7 +153,7 @@ export default function DragRangeCalendar({
     key: string,
     disabled: boolean,
   ) => {
-    if (disabled) return;
+    if (disabled || readOnly) return;
     (e.target as HTMLElement).releasePointerCapture?.(e.pointerId);
     draggingRef.current = true;
     dragModeRef.current = workingRef.current.has(key) ? "remove" : "add";
@@ -121,8 +161,14 @@ export default function DragRangeCalendar({
   };
 
   const handlePointerEnter = (key: string, disabled: boolean) => {
-    if (disabled || !draggingRef.current) return;
+    if (disabled || readOnly || !draggingRef.current) return;
     if (applyToggle(key, dragModeRef.current)) playTick();
+  };
+
+  // Vert d'intensité proportionnelle au taux de présence (heatmap).
+  const heatStyle = (pct: number) => {
+    const alpha = 0.15 + (Math.max(0, Math.min(100, pct)) / 100) * 0.75;
+    return { backgroundColor: `rgba(22, 163, 74, ${alpha.toFixed(3)})` };
   };
 
   const renderMonth = (month: number, year: number): ReactElement => {
@@ -136,31 +182,56 @@ export default function DragRangeCalendar({
 
     for (let day = 1; day <= daysInMonth; day++) {
       const key = toKey(year, month, day);
-      const disabled = key < min;
+      const outOfRange = allowedSet ? !allowedSet.has(key) : false;
+      const disabled = key < min || outOfRange;
       const selected = selectedSet.has(key);
       const isToday = key === today;
+      const pct = heatmap?.[key];
+      const hasHeat = typeof pct === "number";
+
+      // En mode allowedDates, on masque totalement les jours hors plage pour ne
+      // pas noyer les jours pertinents (surtout côté créateur avec la heatmap).
+      if (allowedSet && outOfRange) {
+        cells.push(<div key={key} className="w-8 h-8" />);
+        continue;
+      }
+
+      const base =
+        "w-8 h-8 rounded-md text-xs font-medium flex items-center justify-center transition-colors select-none touch-none";
+      const interactive = !disabled && !readOnly;
 
       cells.push(
-        <button
-          type="button"
-          key={key}
-          disabled={disabled}
-          onPointerDown={(e) => handlePointerDown(e, key, disabled)}
-          onPointerEnter={() => handlePointerEnter(key, disabled)}
-          className={[
-            "w-8 h-8 rounded-md text-xs font-medium flex items-center justify-center transition-colors select-none touch-none",
-            disabled
-              ? "bg-gray-100 text-transparent cursor-not-allowed"
-              : selected
-                ? "bg-[var(--color-main)] text-white animate-plop cursor-pointer"
-                : "bg-gray-200 text-transparent hover:bg-gray-300 hover:text-gray-700 cursor-pointer",
-            !selected && isToday && !disabled
-              ? "ring-1 ring-[var(--color-main)]"
-              : "",
-          ].join(" ")}
-        >
-          {day}
-        </button>,
+        <div key={key} className="relative group flex items-center justify-center">
+          <button
+            type="button"
+            disabled={disabled}
+            title={hasHeat ? `${Math.round(pct!)}% présents` : undefined}
+            onPointerDown={(e) => handlePointerDown(e, key, disabled)}
+            onPointerEnter={() => handlePointerEnter(key, disabled)}
+            style={!selected && hasHeat ? heatStyle(pct!) : undefined}
+            className={[
+              base,
+              disabled
+                ? "bg-gray-100 text-transparent cursor-not-allowed"
+                : selected
+                  ? "bg-[var(--color-main)] text-white animate-plop"
+                  : hasHeat
+                    ? "text-gray-800 hover:ring-1 hover:ring-[var(--color-main)]"
+                    : "bg-gray-200 text-transparent hover:bg-gray-300 hover:text-gray-700",
+              interactive ? "cursor-pointer" : readOnly ? "cursor-default" : "",
+              !selected && isToday && !disabled ? "ring-1 ring-[var(--color-main)]" : "",
+            ].join(" ")}
+          >
+            {day}
+          </button>
+          {hasHeat && (
+            <span
+              className="pointer-events-none absolute -top-7 left-1/2 -translate-x-1/2 z-20 hidden group-hover:block whitespace-nowrap rounded bg-[var(--color-text)] px-1.5 py-0.5 text-[10px] font-poppins text-white shadow"
+            >
+              {Math.round(pct!)}% présents
+            </span>
+          )}
+        </div>,
       );
     }
 
