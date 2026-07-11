@@ -244,6 +244,47 @@ export function isPlaceEligible(
   return true;
 }
 
+// ─── Garde-fou de PERTINENCE (relatif à l'intention votée) ───────────────────
+// Le fast-food/les chaînes ne doivent sortir que si l'intention "sur le pouce"
+// a été votée (sinon McDonald's remonte sur une recherche indienne/exotique).
+// Les lieux hors-domaine (magasin, supermarché, station-service…) au nom
+// trompeur ("Le Monde du Couteau Japonais") sont toujours écartés.
+const FAST_FOOD_TYPES = new Set<string>([
+  "fast_food_restaurant",
+  "hamburger_restaurant",
+  "meal_takeaway",
+]);
+
+const OFF_DOMAIN_PRIMARY = new Set<string>([
+  "store",
+  "grocery_store",
+  "grocery_or_supermarket",
+  "supermarket",
+  "convenience_store",
+  "department_store",
+  "shopping_mall",
+  "market",
+  "gas_station",
+  "service",
+  "wholesaler",
+  "food_store",
+]);
+
+export function isRelevantToVotes(
+  place: { primaryType: string | null },
+  votedTypes: Set<string>,
+): boolean {
+  const pt = place.primaryType;
+  if (!pt) return true; // pas d'info de type → on garde
+  if (OFF_DOMAIN_PRIMARY.has(pt)) return false;
+  // Fast-food : autorisé uniquement si un tag fast-food a été voté
+  if (FAST_FOOD_TYPES.has(pt)) {
+    const fastFoodVoted = [...FAST_FOOD_TYPES].some((t) => votedTypes.has(t));
+    if (!fastFoodVoted) return false;
+  }
+  return true;
+}
+
 // ─── Requête textuelle depuis les tags votés ────────────────────────────────
 // La taxonomie de types Google ne distingue pas certaines activités (accrobranche,
 // escape game, karting… tous tagués amusement_park/sports_complex comme les

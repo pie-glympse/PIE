@@ -7,6 +7,7 @@ import {
   rankPlaces,
   budgetToMaxPriceLevel,
   isPlaceEligible,
+  isRelevantToVotes,
   getActivityKeywords,
   interleave,
 } from "@/lib/event-closure";
@@ -188,9 +189,13 @@ export async function POST(
     const maxPriceLevel = budgetToMaxPriceLevel(
       event.costPerPerson != null ? Number(event.costPerPerson) : null,
     );
+    // Types Google réellement votés → sert au garde-fou de pertinence
+    // (ex. écarter le fast-food si personne n'a voté "sur le pouce").
+    const votedTypes = new Set(tagScores.map((t) => t.techName));
     const isEligible = (p: { placeId: string; primaryType: string | null; businessStatus: string | null; priceLevel: number | null }) =>
       !excludeSet.has(p.placeId) &&
-      isPlaceEligible(p, { maxPriceLevel, blacklistedIds });
+      isPlaceEligible(p, { maxPriceLevel, blacklistedIds }) &&
+      isRelevantToVotes(p, votedTypes);
 
     type ProposalCandidate = {
       placeId: string;
