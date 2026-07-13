@@ -1,35 +1,5 @@
 import { NextResponse } from "next/server";
 
-// #region agent log helper
-const DEBUG_ENDPOINT =
-  "http://127.0.0.1:7773/ingest/51dfda39-ea5c-484b-878e-b2b6e1dcd353";
-const DEBUG_SESSION_ID = "e1f16e";
-
-function sendPlacesDebugLog(
-  runId: string,
-  hypothesisId: string,
-  location: string,
-  message: string,
-  data: Record<string, unknown>,
-) {
-  fetch(DEBUG_ENDPOINT, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "X-Debug-Session-Id": DEBUG_SESSION_ID,
-    },
-    body: JSON.stringify({
-      sessionId: DEBUG_SESSION_ID,
-      runId,
-      hypothesisId,
-      location,
-      message,
-      data,
-      timestamp: Date.now(),
-    }),
-  }).catch(() => {});
-}
-// #endregion
 
 // ✅ Mapping des types de lieux vers des types valides pour Nearby Search
 // Certains types peuvent ne pas être supportés directement par Nearby Search
@@ -86,7 +56,6 @@ export async function POST(request: Request) {
   const startTime = Date.now();
   try {
     const { city, placeTypes, radius = 5000, eventId } = await request.json();
-    const debugRunId = `places-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
     // Log de début de requête
     console.log(
@@ -115,24 +84,6 @@ export async function POST(request: Request) {
       process.env.GOOGLE_MAPS_API_KEY ||
       process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
-    // #region agent log
-    sendPlacesDebugLog(
-      debugRunId,
-      "A",
-      "app/api/places/nearby/route.ts:103",
-      "Places route received request",
-      {
-        eventId: eventId || null,
-        cityLength: typeof city === "string" ? city.length : 0,
-        placeTypesCount: Array.isArray(placeTypes) ? placeTypes.length : 0,
-        radius,
-        hasServerApiKey: !!process.env.GOOGLE_MAPS_API_KEY,
-        hasPublicApiKey: !!process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY,
-        selectedApiKeyPresent: !!apiKey,
-        selectedApiKeyLength: apiKey?.length ?? 0,
-      },
-    );
-    // #endregion
 
     if (!apiKey) {
       console.error("❌ [Places API] Aucune clé API trouvée");
@@ -220,23 +171,6 @@ export async function POST(request: Request) {
 
     const geocodeData = await geocodeResponse.json();
 
-    // #region agent log
-    sendPlacesDebugLog(
-      debugRunId,
-      geocodeData.status === "REQUEST_DENIED" ? "C" : "E",
-      "app/api/places/nearby/route.ts:181",
-      "Geocoding API responded",
-      {
-        geocodeStatus: geocodeData.status ?? null,
-        resultsCount: geocodeData.results?.length ?? 0,
-        hasErrorMessage: !!geocodeData.error_message,
-        errorMessagePreview:
-          typeof geocodeData.error_message === "string"
-            ? geocodeData.error_message.slice(0, 160)
-            : null,
-      },
-    );
-    // #endregion
 
     // Log détaillé pour le geocoding
     console.log("📍 [Geocoding API] Réponse:", {
@@ -252,21 +186,6 @@ export async function POST(request: Request) {
         "💡 Vérifiez que la Geocoding API est activée dans Google Cloud Console",
       );
       console.error("Détails:", geocodeData.error_message);
-      // #region agent log
-      sendPlacesDebugLog(
-        debugRunId,
-        "D",
-        "app/api/places/nearby/route.ts:202",
-        "Geocoding request denied",
-        {
-          geocodeStatus: geocodeData.status,
-          errorMessagePreview:
-            typeof geocodeData.error_message === "string"
-              ? geocodeData.error_message.slice(0, 160)
-              : null,
-        },
-      );
-      // #endregion
       return NextResponse.json(
         {
           error:
@@ -354,23 +273,6 @@ export async function POST(request: Request) {
           placesData.status !== "OK" &&
           placesData.status !== "ZERO_RESULTS"
         ) {
-          // #region agent log
-          sendPlacesDebugLog(
-            debugRunId,
-            placesData.status === "REQUEST_DENIED" ? "D" : "E",
-            "app/api/places/nearby/route.ts:280",
-            "Places API returned non-success status",
-            {
-              type,
-              placesStatus: placesData.status ?? null,
-              hasErrorMessage: !!placesData.error_message,
-              errorMessagePreview:
-                typeof placesData.error_message === "string"
-                  ? placesData.error_message.slice(0, 160)
-                  : null,
-            },
-          );
-          // #endregion
         }
 
         // ✅ Gérer les erreurs de l'API Places
@@ -487,23 +389,6 @@ export async function POST(request: Request) {
         });
 
         if (placesResponse.status >= 400) {
-          // #region agent log
-          sendPlacesDebugLog(
-            debugRunId,
-            placesResponse.status === 403 ? "D" : "E",
-            "app/api/places/nearby/route.ts:364",
-            "Places API HTTP error response",
-            {
-              type,
-              httpStatus: placesResponse.status,
-              httpStatusText: placesResponse.statusText,
-              errorPreview:
-                typeof errorData?.error === "string"
-                  ? errorData.error.slice(0, 160)
-                  : null,
-            },
-          );
-          // #endregion
         }
 
         if (placesResponse.status === 403) {

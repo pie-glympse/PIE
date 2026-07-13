@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { addCacheHeaders, CACHE_STRATEGIES } from "@/lib/cache-utils";
 import { enrichEventForClient } from "@/lib/event-public";
-import { sendEmailTemplate } from "@/lib/brevo";
+import { requireAuthUser } from "@/lib/server-auth";
 
 const toJson = (data: unknown) =>
   JSON.parse(
@@ -21,6 +21,10 @@ export async function POST(request: Request) {
     const body = await request.json();
     const {
       title,
+      description = "",
+      additionalInfo = "",
+      dateKnown = true,
+      proposedDates = [],
       startDate,
       endDate,
       startTime,
@@ -32,8 +36,11 @@ export async function POST(request: Request) {
       maxDistance,
       placeName,
       placeAddress,
+      placeId,
+      placeLat,
+      placeLng,
       isSpecificPlace = false,
-      googleTagGroupIds = [],
+      categoryId = null,
       googleTagIds = [],
       recurring,
       duration,
@@ -43,37 +50,49 @@ export async function POST(request: Request) {
       isPublic = false,
     } = body;
 
-    if (!userId) {
-      return NextResponse.json({ error: "userId manquant" }, { status: 400 });
+    // L'identité vient de la session (cookie JWT), jamais du client
+    const auth = await requireAuthUser(request, userId);
+    if (!auth.ok) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status });
     }
 
-    if (isPublic && (!maxPersons || Number(maxPersons) <= 0)) {
+    if (!title || !String(title).trim()) {
       return NextResponse.json(
-        {
-          error:
-            "Le nombre maximum de participants est obligatoire pour un événement public",
-        },
+        { error: "Le nom de l'événement est obligatoire" },
         { status: 400 },
       );
     }
 
-    const userIdBigInt = BigInt(userId);
-    const parsedGoogleTagGroupIds = Array.isArray(googleTagGroupIds)
-      ? googleTagGroupIds.map((id: string | number) => BigInt(id))
-      : Array.isArray(googleTagIds)
-        ? []
-        : [];
+    if (isPublic && (!maxPersons || Number(maxPersons) <= 0)) {
+      return NextResponse.json(
+        { error: "Le nombre maximum de participants est obligatoire pour un événement public" },
+        { status: 400 },
+      );
+    }
+
+    const userIdBigInt = auth.userId;
     const parsedGoogleTagIds = Array.isArray(googleTagIds)
       ? googleTagIds.map((id: string | number) => BigInt(id))
       : [];
 
-    if (
-      !isSpecificPlace &&
-      parsedGoogleTagGroupIds.length === 0 &&
-      parsedGoogleTagIds.length === 0
-    ) {
+    if (isSpecificPlace) {
+      if (!placeName || !placeAddress) {
+        return NextResponse.json(
+          { error: "Le nom et l'adresse du lieu sont obligatoires" },
+          { status: 400 },
+        );
+      }
+    } else if (!categoryId && parsedGoogleTagIds.length === 0) {
       return NextResponse.json(
-        { error: "Au moins un groupe d'activité est requis" },
+        { error: "Une catégorie d'événement est requise" },
+        { status: 400 },
+      );
+    }
+
+    // Plage de dates (date non connue) : les participants votent une date dedans
+    if (!dateKnown && (!startDate || !endDate)) {
+      return NextResponse.json(
+        { error: "Une plage de dates (début et fin) est requise quand la date n'est pas connue" },
         { status: 400 },
       );
     }
@@ -81,6 +100,12 @@ export async function POST(request: Request) {
     const event = await prisma.event.create({
       data: {
         title,
+        description: String(description || ""),
+        additionalInfo: String(additionalInfo || ""),
+        dateKnown: Boolean(dateKnown),
+        proposedDates: Array.isArray(proposedDates)
+          ? proposedDates.map(String)
+          : [],
         startDate: createDateOnly(startDate),
         endDate: createDateOnly(endDate),
         startTime: createTimeOnly(startTime),
@@ -100,48 +125,44 @@ export async function POST(request: Request) {
         recurringRate: recurringRate || null,
         updatedAt: new Date(),
         createdById: userIdBigInt,
+        ...(categoryId ? { categoryId: BigInt(categoryId) } : {}),
         users: {
           connect: [{ id: userIdBigInt }],
         },
-        ...(isSpecificPlace
+        ...(isSpecificPlace || parsedGoogleTagIds.length === 0
           ? {}
-          : parsedGoogleTagGroupIds.length > 0
-            ? {
-                selectedGoogleTagGroups: {
-                  connect: parsedGoogleTagGroupIds.map((id) => ({ id })),
-                },
-              }
-            : {
-                selectedGoogleTags: {
-                  connect: parsedGoogleTagIds.map((id) => ({ id })),
-                },
-              }),
+          : {
+              selectedGoogleTags: {
+                connect: parsedGoogleTagIds.map((id) => ({ id })),
+              },
+            }),
       },
       include: {
-        selectedGoogleTagGroups: {
-          include: {
-            subGroups: {
-              where: { isActive: true },
-              orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
-            },
-          },
-        },
         selectedGoogleTags: true,
         confirmedGoogleTag: true,
-        confirmedGoogleTagSubGroup: true,
+        category: true,
         users: true,
         _count: { select: { users: true } },
         User_Event_createdByIdToUser: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            email: true,
-            companyId: true,
-          },
+          select: { id: true, firstName: true, lastName: true, email: true, companyId: true },
         },
       },
     });
+
+    // Lieu précis (« je sais ce que je veux ») : enregistrer le lieu structuré
+    if (isSpecificPlace) {
+      await prisma.eventLocation.create({
+        data: {
+          id: event.id,
+          eventId: event.id,
+          placeId: placeId || null,
+          name: placeName,
+          address: placeAddress,
+          lat: typeof placeLat === "number" ? placeLat : null,
+          lng: typeof placeLng === "number" ? placeLng : null,
+        },
+      });
+    }
 
     if (!isPublic && Array.isArray(invitedUsers) && invitedUsers.length > 0) {
       await prisma.notification.createMany({
@@ -159,7 +180,7 @@ export async function POST(request: Request) {
     if (isPublic) {
       const creator = await prisma.user.findUnique({
         where: { id: userIdBigInt },
-        select: { companyId: true, firstName: true, lastName: true },
+        select: { companyId: true },
       });
       if (creator?.companyId) {
         const companyUsers = await prisma.user.findMany({
@@ -167,7 +188,7 @@ export async function POST(request: Request) {
             companyId: creator.companyId,
             id: { not: userIdBigInt },
           },
-          select: { id: true, email: true, firstName: true, lastName: true },
+          select: { id: true },
         });
         if (companyUsers.length > 0) {
           await prisma.notification.createMany({
@@ -177,17 +198,6 @@ export async function POST(request: Request) {
               type: "EVENT_PUBLIC_AVAILABLE",
               eventId: event.id,
             })),
-          });
-
-          const isDev = process.env.NODE_ENV === "development";
-          const creatorName = `${creator.firstName} ${creator.lastName}`;
-          companyUsers.forEach((u) => {
-            const recipient = isDev ? process.env.BREVO_TEST_EMAIL || "glyms.app@gmail.com" : u.email;
-            sendEmailTemplate({
-              to: [{ email: recipient, name: `${u.firstName} ${u.lastName}` }],
-              templateId: Number(process.env.BREVO_TEMPLATE_ID_NEW_EVENT),
-              params: { FIRSTNAME: u.firstName, EVENT_TITLE: title, CREATOR_NAME: creatorName },
-            }).catch((err) => console.error("Erreur mail nouvel event:", err));
           });
         }
       }
@@ -202,9 +212,10 @@ export async function POST(request: Request) {
       event.id,
     ).catch(() => {});
 
-    return NextResponse.json(toJson(enrichEventForClient(event, userId)), {
-      status: 201,
-    });
+    return NextResponse.json(
+      toJson(enrichEventForClient(event, userIdBigInt.toString())),
+      { status: 201 },
+    );
   } catch (error) {
     console.error("Erreur création event:", error);
     return NextResponse.json(
@@ -244,17 +255,9 @@ export async function GET(request: NextRequest) {
         ],
       },
       include: {
-        selectedGoogleTagGroups: {
-          include: {
-            subGroups: {
-              where: { isActive: true },
-              orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
-            },
-          },
-        },
         selectedGoogleTags: true,
         confirmedGoogleTag: true,
-        confirmedGoogleTagSubGroup: true,
+        category: true,
         users: {
           select: {
             id: true,

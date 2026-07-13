@@ -17,6 +17,9 @@ export type EventType = {
   city?: string;
   maxDistance?: string;
   isSpecificPlace?: boolean;
+  dateKnown?: boolean;
+  proposedDates?: string[];
+  confirmedDates?: string[];
   recurring?: boolean;
   duration?: string;
   recurringRate?: string;

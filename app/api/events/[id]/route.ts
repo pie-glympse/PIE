@@ -1,18 +1,14 @@
 import { NextResponse, NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
-import {
-    generateETag,
-    isNotModified,
-    addCacheHeaders,
-    CACHE_STRATEGIES,
-} from "@/lib/cache-utils";
+import { generateETag, isNotModified, addCacheHeaders, CACHE_STRATEGIES } from "@/lib/cache-utils";
 import { enrichEventForClient } from "@/lib/event-public";
+import { requireAuthUser } from "@/lib/server-auth";
 
 function safeJson(obj: unknown) {
   return JSON.parse(
     JSON.stringify(obj, (_, value) =>
-      typeof value === "bigint" ? value.toString() : value,
-    ),
+      typeof value === "bigint" ? value.toString() : value
+    )
   );
 }
 
@@ -27,7 +23,7 @@ function getEventIdFromUrl(req: Request): number | null {
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const resolvedParams = await params;
@@ -37,25 +33,9 @@ export async function GET(
     const event = await prisma.event.findUnique({
       where: { id: eventId },
       include: {
-        selectedGoogleTagGroups: {
-          include: {
-            subGroups: {
-              where: { isActive: true },
-              orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
-            },
-          },
-        },
         selectedGoogleTags: true,
         confirmedGoogleTag: true,
-        confirmedGoogleTagSubGroup: {
-          include: {
-            tags: {
-              where: { isActive: true },
-              orderBy: [{ sortOrder: "asc" }, { techName: "asc" }],
-              take: 8,
-            },
-          },
-        },
+        category: true,
         users: {
           select: {
             id: true,
@@ -87,10 +67,7 @@ export async function GET(
     });
 
     if (!event) {
-      return NextResponse.json(
-        { error: "Événement non trouvé" },
-        { status: 404 },
-      );
+      return NextResponse.json({ error: "Événement non trouvé" }, { status: 404 });
     }
 
     const eventObj = enrichEventForClient(event, userId ?? undefined);
@@ -104,15 +81,18 @@ export async function GET(
       return new NextResponse(null, { status: 304 });
     }
 
-    // Créer la réponse avec les headers de cache (semi-statique car peut changer)
-    const response = NextResponse.json({ event: eventJson }, { status: 200 });
-    return addCacheHeaders(response, CACHE_STRATEGIES.SEMI_STATIC, etag);
+    // Le détail d'un événement change (confirmation, lieu retenu, participants) :
+    // on revalide systématiquement via l'ETag (304 si inchangé, sinon données
+    // fraîches) au lieu de garder 30 min en cache navigateur — sinon après la
+    // confirmation, les participants voyaient encore l'ancienne version.
+    const response = NextResponse.json(
+      { event: eventJson },
+      { status: 200 }
+    );
+    return addCacheHeaders(response, CACHE_STRATEGIES.REVALIDATE, etag);
   } catch (error) {
     console.error("Erreur récupération event:", error);
-    return NextResponse.json(
-      { error: "Erreur récupération event" },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: "Erreur récupération event" }, { status: 500 });
   }
 }
 
@@ -141,7 +121,7 @@ export async function PATCH(req: Request) {
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const resolvedParams = await params;
@@ -157,55 +137,38 @@ export async function PUT(
     if (!existingEvent) {
       return NextResponse.json(
         { message: "Événement non trouvé" },
-        { status: 404 },
+        { status: 404 }
       );
     }
 
-    // Vérifier que l'utilisateur est le créateur de l'événement
-    if (body.userId && existingEvent.createdById !== BigInt(body.userId)) {
+    // Seul le créateur (identifié par la session) peut modifier l'événement
+    const auth = await requireAuthUser(request, body.userId);
+    if (!auth.ok) {
+      return NextResponse.json({ message: auth.error }, { status: auth.status });
+    }
+    if (existingEvent.createdById !== auth.userId) {
       return NextResponse.json(
         { message: "Vous n'êtes pas autorisé à modifier cet événement" },
-        { status: 403 },
+        { status: 403 }
       );
     }
 
     // Préparer les données à mettre à jour
     const updateData: any = {};
-
+    
     if (body.title !== undefined) updateData.title = body.title;
-    if (body.startDate !== undefined)
-      updateData.startDate = body.startDate ? new Date(body.startDate) : null;
-    if (body.endDate !== undefined)
-      updateData.endDate = body.endDate ? new Date(body.endDate) : null;
-    if (body.startTime !== undefined)
-      updateData.startTime = body.startTime ? new Date(body.startTime) : null;
-    if (body.endTime !== undefined)
-      updateData.endTime = body.endTime ? new Date(body.endTime) : null;
+    if (body.startDate !== undefined) updateData.startDate = body.startDate ? new Date(body.startDate) : null;
+    if (body.endDate !== undefined) updateData.endDate = body.endDate ? new Date(body.endDate) : null;
+    if (body.startTime !== undefined) updateData.startTime = body.startTime ? new Date(body.startTime) : null;
+    if (body.endTime !== undefined) updateData.endTime = body.endTime ? new Date(body.endTime) : null;
     if (body.city !== undefined) updateData.city = body.city;
 
     const updatedEvent = await prisma.event.update({
       where: { id: eventId },
       data: updateData,
       include: {
-        selectedGoogleTagGroups: {
-          include: {
-            subGroups: {
-              where: { isActive: true },
-              orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
-            },
-          },
-        },
         selectedGoogleTags: true,
         confirmedGoogleTag: true,
-        confirmedGoogleTagSubGroup: {
-          include: {
-            tags: {
-              where: { isActive: true },
-              orderBy: [{ sortOrder: "asc" }, { techName: "asc" }],
-              take: 8,
-            },
-          },
-        },
         users: {
           select: {
             id: true,
@@ -218,15 +181,12 @@ export async function PUT(
       },
     });
 
-    return NextResponse.json(
-      { event: safeJson(updatedEvent) },
-      { status: 200 },
-    );
+    return NextResponse.json({ event: safeJson(updatedEvent) }, { status: 200 });
   } catch (error) {
     console.error("Erreur lors de la modification de l'événement:", error);
     return NextResponse.json(
       { message: "Erreur lors de la modification de l'événement" },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }
@@ -239,12 +199,12 @@ export async function DELETE(req: Request) {
   }
 
   try {
-    // Récupérer le userId depuis le body de la requête
     const body = await req.json().catch(() => ({}));
-    const { userId } = body;
 
-    if (!userId) {
-      return NextResponse.json({ error: "userId est requis" }, { status: 400 });
+    // L'identité vient de la session (cookie JWT), jamais du client
+    const auth = await requireAuthUser(req, body.userId);
+    if (!auth.ok) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status });
     }
 
     // Vérifier que l'événement existe et récupérer le créateur
@@ -256,17 +216,14 @@ export async function DELETE(req: Request) {
     });
 
     if (!event) {
-      return NextResponse.json(
-        { error: "Événement non trouvé" },
-        { status: 404 },
-      );
+      return NextResponse.json({ error: "Événement non trouvé" }, { status: 404 });
     }
 
     // Vérifier que l'utilisateur est le créateur
-    if (event.createdById?.toString() !== userId) {
+    if (event.createdById !== auth.userId) {
       return NextResponse.json(
         { error: "Seul le créateur de l'événement peut le supprimer" },
-        { status: 403 },
+        { status: 403 }
       );
     }
 
@@ -280,7 +237,7 @@ export async function DELETE(req: Request) {
     console.error("Erreur lors de la suppression de l'événement:", error);
     return NextResponse.json(
       { error: "Erreur lors de la suppression de l'événement" },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }

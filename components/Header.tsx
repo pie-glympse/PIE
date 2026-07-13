@@ -2,12 +2,29 @@
 
 import Link from "next/link";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { useUser } from "../context/UserContext";
 
 export default function Header() {
-  const { user } = useUser();
+  const { user, logout } = useUser();
+  const router = useRouter();
   const [isMenuHovered, setIsMenuHovered] = useState(false);
+
+  // Toujours disponible, même si l'état local est désynchronisé du cookie
+  // (session "fantôme" : cookie encore valide mais localStorage vide) —
+  // sans ça, /profile et /settings s'affichent vides et il n'y a plus
+  // aucun moyen de se déconnecter.
+  const handleLogout = async () => {
+    try {
+      await fetch("/api/logout", { method: "POST" });
+    } catch {
+      // on efface quand même l'état local et on redirige
+    } finally {
+      logout();
+      router.push("/login");
+    }
+  };
   const [unreadCount, setUnreadCount] = useState(0);
   const [companyName, setCompanyName] = useState<string>("");
   const [userPhotoUrl, setUserPhotoUrl] = useState<string>(
@@ -256,6 +273,27 @@ export default function Header() {
                 </svg>
                 <span className="font-medium">Profil</span>
               </Link>
+
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="w-full flex items-center px-4 py-3 text-red-600 hover:bg-red-50 transition-colors duration-200 group text-left cursor-pointer"
+              >
+                <svg
+                  className="w-5 h-5 mr-3 text-red-500 transition-colors duration-200"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+                  />
+                </svg>
+                <span className="font-medium">Se déconnecter</span>
+              </button>
             </div>
           </div>
 

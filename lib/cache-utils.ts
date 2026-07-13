@@ -85,6 +85,11 @@ export const CACHE_STRATEGIES = {
   
   // Données semi-statiques (events, users) - Cache navigateur 30min, CDN 1min (optimisé client)
   SEMI_STATIC: "private, max-age=1800, s-maxage=60",
+
+  // Données qui doivent toujours refléter le dernier état (détail d'un event) :
+  // le navigateur garde une copie mais revalide via l'ETag à chaque accès
+  // (304 si inchangé). Assure que tout le monde voit la version à jour.
+  REVALIDATE: "private, no-cache, must-revalidate",
   
   // Données dynamiques (notifications) - Pas de cache
   DYNAMIC: "no-cache, no-store, must-revalidate",

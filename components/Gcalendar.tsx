@@ -1,13 +1,9 @@
 "use client";
 
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
-import type { MouseEvent, ReactElement } from "react";
+import type { ReactNode, MouseEvent, ReactElement, CSSProperties } from "react";
 import { useUser } from "../context/UserContext";
 import { useRouter } from "next/navigation";
-import {
-    getEventThemeColor,
-    getEventThemeHoverColor,
-} from "@/lib/event-display";
 
 // Type pour les événements de l'API
 interface APIEvent {
@@ -23,13 +19,8 @@ interface APIEvent {
   recurring?: boolean;
   duration?: number;
   recurringRate?: string;
-  tags?: { id: string; name: string; techName?: string }[];
-  selectedGoogleTags?: {
-    id: string;
-    techName: string;
-    displayName?: string | null;
-  }[];
-  createdAt?: string;
+  tags?: { id: string; name: string }[];
+  category?: { id: string; name: string; slug: string } | null;
 }
 
 // Type pour les événements du calendrier
@@ -39,7 +30,8 @@ interface Event {
   title: string;
   description: string;
   time: string;
-  tags?: { id: string; name: string; techName?: string }[];
+  tags?: { id: string; name: string }[];
+  categorySlug?: string | null;
   isMultiDay?: boolean;
   originalStartDate?: string;
   originalEndDate?: string;
@@ -48,6 +40,18 @@ interface Event {
   recurringRate?: string;
   duration?: number;
 }
+
+// Code couleur par catégorie d'événement (couleur "autre" par défaut)
+const CATEGORY_COLORS: Record<string, string> = {
+  gastronomie: "#FF5B5B", // rouge
+  sport: "#FCC638", // jaune
+  divertissement: "#F78AFF", // rose
+  culture: "#067FF2", // bleu
+};
+const DEFAULT_EVENT_COLOR = "#B383DE"; // autre (violet)
+
+const colorForSlug = (slug?: string | null): string =>
+  (slug && CATEGORY_COLORS[slug]) || DEFAULT_EVENT_COLOR;
 
 interface HoveredDay {
   day: number;
@@ -71,10 +75,7 @@ const MiniCalendar = ({ eventsData = [] }: MiniCalendarProps) => {
   const { user, isLoading } = useUser();
   const router = useRouter();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const [hoveredDayNumber, setHoveredDayNumber] = useState<{
-    day: number;
-    month: number;
-  } | null>(null);
+  const [hoveredDayNumber, setHoveredDayNumber] = useState<{day: number, month: number} | null>(null);
   const [hoveredDay, setHoveredDay] = useState<HoveredDay | null>(null);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [events, setEvents] = useState<Event[]>([]);
@@ -83,23 +84,20 @@ const MiniCalendar = ({ eventsData = [] }: MiniCalendarProps) => {
   const [canScrollRight, setCanScrollRight] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
 
-  const monthNames = useMemo(
-    () => [
-      "Janvier",
-      "Février",
-      "Mars",
-      "Avril",
-      "Mai",
-      "Juin",
-      "Juillet",
-      "Août",
-      "Septembre",
-      "Octobre",
-      "Novembre",
-      "Décembre",
-    ],
-    [],
-  );
+  const monthNames = useMemo(() => [
+    "Janvier",
+    "Février",
+    "Mars",
+    "Avril",
+    "Mai",
+    "Juin",
+    "Juillet",
+    "Août",
+    "Septembre",
+    "Octobre",
+    "Novembre",
+    "Décembre",
+  ], []);
 
   // Mois du calendrier (d'aujourd'hui à dans un an) — calculés dès le premier rendu pour éviter le CLS
   const calendarMonths = useMemo(() => {
@@ -114,11 +112,7 @@ const MiniCalendar = ({ eventsData = [] }: MiniCalendarProps) => {
         month: currentDate.getMonth(),
         year: currentDate.getFullYear(),
       });
-      currentDate = new Date(
-        currentDate.getFullYear(),
-        currentDate.getMonth() + 1,
-        1,
-      );
+      currentDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1);
     }
     return months;
   }, [monthNames]);
@@ -128,204 +122,176 @@ const MiniCalendar = ({ eventsData = [] }: MiniCalendarProps) => {
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 768);
     };
-
+    
     checkMobile();
-    window.addEventListener("resize", checkMobile);
-
-    return () => window.removeEventListener("resize", checkMobile);
+    window.addEventListener('resize', checkMobile);
+    
+    return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
   // Fonction pour générer tous les jours entre deux dates
-  const generateDateRange = useCallback(
-    (startDate: string, endDate: string): string[] => {
-      const dates: string[] = [];
-      const start = new Date(startDate);
-      const end = new Date(endDate);
+  const generateDateRange = useCallback((startDate: string, endDate: string): string[] => {
+    const dates: string[] = [];
+    const start = new Date(startDate);
+    const end = new Date(endDate);
 
-      const current = new Date(start);
-      while (current <= end) {
-        dates.push(current.toISOString().split("T")[0]);
-        current.setDate(current.getDate() + 1);
-      }
+    const current = new Date(start);
+    while (current <= end) {
+      dates.push(current.toISOString().split('T')[0]);
+      current.setDate(current.getDate() + 1);
+    }
 
-      return dates;
-    },
-    [],
-  );
+    return dates;
+  }, []);
 
   // Fonction pour générer les occurrences récurrentes
-  const generateRecurringDates = useCallback(
-    (
-      startDate: Date,
-      recurringRate: string,
-      duration: number,
-      maxDate: Date,
-    ): Date[] => {
-      const dates: Date[] = [];
-      const current = new Date(startDate);
-      const eventDuration = duration || 1; // Durée en jours
-
-      // Limiter à 2 ans dans le futur pour les événements récurrents
-      const limitDate = new Date(maxDate);
-      limitDate.setFullYear(limitDate.getFullYear() + 2);
-
-      // Ne générer que les occurrences jusqu'à la date limite
-      while (current <= limitDate) {
-        // Ajouter l'occurrence de début
-        dates.push(new Date(current));
-
-        // Si l'événement s'étend sur plusieurs jours, ajouter aussi les jours suivants
-        if (eventDuration > 1) {
-          for (let i = 1; i < eventDuration; i++) {
-            const nextDay = new Date(current);
-            nextDay.setDate(nextDay.getDate() + i);
-            if (nextDay <= limitDate) {
-              dates.push(nextDay);
-            }
+  const generateRecurringDates = useCallback((
+    startDate: Date,
+    recurringRate: string,
+    duration: number,
+    maxDate: Date
+  ): Date[] => {
+    const dates: Date[] = [];
+    const current = new Date(startDate);
+    const eventDuration = duration || 1; // Durée en jours
+    
+    // Limiter à 2 ans dans le futur pour les événements récurrents
+    const limitDate = new Date(maxDate);
+    limitDate.setFullYear(limitDate.getFullYear() + 2);
+    
+    // Ne générer que les occurrences jusqu'à la date limite
+    while (current <= limitDate) {
+      // Ajouter l'occurrence de début
+      dates.push(new Date(current));
+      
+      // Si l'événement s'étend sur plusieurs jours, ajouter aussi les jours suivants
+      if (eventDuration > 1) {
+        for (let i = 1; i < eventDuration; i++) {
+          const nextDay = new Date(current);
+          nextDay.setDate(nextDay.getDate() + i);
+          if (nextDay <= limitDate) {
+            dates.push(nextDay);
           }
         }
-
-        // Calculer la prochaine occurrence selon le taux de récurrence
-        const nextDate = new Date(current);
-        switch (recurringRate) {
-          case "day":
-            nextDate.setDate(nextDate.getDate() + 1);
-            break;
-          case "week":
-            nextDate.setDate(nextDate.getDate() + 7);
-            break;
-          case "month":
-            nextDate.setMonth(nextDate.getMonth() + 1);
-            break;
-          case "year":
-            nextDate.setFullYear(nextDate.getFullYear() + 1);
-            break;
-          default:
-            return dates; // Si le taux n'est pas reconnu, arrêter
-        }
-
-        current.setTime(nextDate.getTime());
       }
-
-      return dates;
-    },
-    [],
-  );
+      
+      // Calculer la prochaine occurrence selon le taux de récurrence
+      const nextDate = new Date(current);
+      switch (recurringRate) {
+        case 'day':
+          nextDate.setDate(nextDate.getDate() + 1);
+          break;
+        case 'week':
+          nextDate.setDate(nextDate.getDate() + 7);
+          break;
+        case 'month':
+          nextDate.setMonth(nextDate.getMonth() + 1);
+          break;
+        case 'year':
+          nextDate.setFullYear(nextDate.getFullYear() + 1);
+          break;
+        default:
+          return dates; // Si le taux n'est pas reconnu, arrêter
+      }
+      
+      current.setTime(nextDate.getTime());
+    }
+    
+    return dates;
+  }, []);
 
   // Fonction pour convertir les événements de l'API au format du calendrier
-  const convertAPIEventToCalendarEvent = useCallback(
-    (apiEvent: APIEvent): Event[] => {
-      const getTimeFromDate = (dateString?: string): string => {
-        if (!dateString) return "00:00";
-        const date = new Date(dateString);
-        return date.toLocaleTimeString("fr-FR", {
-          hour: "2-digit",
-          minute: "2-digit",
-        });
-      };
+  const convertAPIEventToCalendarEvent = useCallback((apiEvent: APIEvent): Event[] => {
+    const getTimeFromDate = (dateString?: string): string => {
+      if (!dateString) return '00:00';
+      const date = new Date(dateString);
+      return date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+    };
 
-      // Formater la date pour le calendrier (YYYY-MM-DD)
-      const formatDateForCalendar = (dateString?: string): string | null => {
-        if (!dateString) return null;
-        const date = new Date(dateString);
-        if (Number.isNaN(date.getTime())) return null;
-        return date.toISOString().split("T")[0];
-      };
+    // Formater la date pour le calendrier (YYYY-MM-DD)
+    const formatDateForCalendar = (dateString?: string): string => {
+      if (!dateString) return new Date().toISOString().split('T')[0];
+      return new Date(dateString).toISOString().split('T')[0];
+    };
 
-      const eventTags =
-        apiEvent.selectedGoogleTags?.map((tag) => ({
-          id: tag.id,
-          name: tag.displayName || tag.techName,
-          techName: tag.techName,
-        })) ||
-        apiEvent.tags ||
-        [];
+    const startDate = formatDateForCalendar(apiEvent.startDate);
+    const endDate = apiEvent.endDate ? formatDateForCalendar(apiEvent.endDate) : startDate;
+    const isMultiDay = startDate !== endDate;
 
-      const startDate =
-        formatDateForCalendar(apiEvent.startDate) ||
-        formatDateForCalendar(apiEvent.createdAt);
-      if (!startDate) return [];
+    // Si l'événement est récurrent
+    if (apiEvent.recurring && apiEvent.recurringRate && apiEvent.duration) {
+      const start = new Date(startDate);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      // Obtenir la date maximale à afficher (1 an depuis aujourd'hui pour le calendrier)
+      const maxDisplayDate = new Date(today);
+      maxDisplayDate.setFullYear(maxDisplayDate.getFullYear() + 1);
+      
+      const eventDuration = apiEvent.duration || 1;
+      
+      // Générer toutes les occurrences récurrentes
+      const recurringDates = generateRecurringDates(
+        start,
+        apiEvent.recurringRate,
+        eventDuration,
+        maxDisplayDate
+      );
+      
+      // Convertir les dates en format YYYY-MM-DD et créer les événements
+      return recurringDates.map((date) => {
+        const dateStr = date.toISOString().split('T')[0];
+        return {
+          id: parseInt(apiEvent.id),
+          date: dateStr,
+          title: apiEvent.title,
+          description: apiEvent.description || '',
+          time: getTimeFromDate(apiEvent.startDate),
+          tags: apiEvent.tags || [],
+          categorySlug: apiEvent.category?.slug ?? null,
+          isMultiDay: eventDuration > 1,
+          originalStartDate: startDate,
+          originalEndDate: endDate,
+          uuid: apiEvent.uuid,
+          recurring: true,
+          recurringRate: apiEvent.recurringRate,
+          duration: eventDuration
+        };
+      });
+    }
 
-      const endDate = apiEvent.endDate
-        ? formatDateForCalendar(apiEvent.endDate) || startDate
-        : startDate;
-      const isMultiDay = startDate !== endDate;
-
-      // Si l'événement est récurrent
-      if (apiEvent.recurring && apiEvent.recurringRate && apiEvent.duration) {
-        const start = new Date(startDate);
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-
-        // Obtenir la date maximale à afficher (1 an depuis aujourd'hui pour le calendrier)
-        const maxDisplayDate = new Date(today);
-        maxDisplayDate.setFullYear(maxDisplayDate.getFullYear() + 1);
-
-        const eventDuration = apiEvent.duration || 1;
-
-        // Générer toutes les occurrences récurrentes
-        const recurringDates = generateRecurringDates(
-          start,
-          apiEvent.recurringRate,
-          eventDuration,
-          maxDisplayDate,
-        );
-
-        // Convertir les dates en format YYYY-MM-DD et créer les événements
-        return recurringDates.map((date) => {
-          const dateStr = date.toISOString().split("T")[0];
-          return {
-            id: parseInt(apiEvent.id),
-            date: dateStr,
-            title: apiEvent.title,
-            description: apiEvent.description || "",
-            time: getTimeFromDate(apiEvent.startDate),
-            tags: eventTags,
-            isMultiDay: eventDuration > 1,
-            originalStartDate: startDate,
-            originalEndDate: endDate,
-            uuid: apiEvent.uuid,
-            recurring: true,
-            recurringRate: apiEvent.recurringRate,
-            duration: eventDuration,
-          };
-        });
-      }
-
-      // Si l'événement n'est pas récurrent ou s'étend sur plusieurs jours, créer un événement pour chaque jour
-      const dateRange = generateDateRange(startDate, endDate);
-
-      return dateRange.map((date) => ({
-        id: parseInt(apiEvent.id),
-        date: date,
-        title: apiEvent.title,
-        description: apiEvent.description || "",
-        time: getTimeFromDate(apiEvent.startDate),
-        tags: eventTags,
-        isMultiDay: isMultiDay,
-        originalStartDate: startDate,
-        originalEndDate: endDate,
-        uuid: apiEvent.uuid,
-        recurring: apiEvent.recurring || false,
-        recurringRate: apiEvent.recurringRate,
-        duration: apiEvent.duration,
-      }));
-    },
-    [generateDateRange, generateRecurringDates],
-  );
+    // Si l'événement n'est pas récurrent ou s'étend sur plusieurs jours, créer un événement pour chaque jour
+    const dateRange = generateDateRange(startDate, endDate);
+    
+    return dateRange.map((date) => ({
+      id: parseInt(apiEvent.id),
+      date: date,
+      title: apiEvent.title,
+      description: apiEvent.description || '',
+      time: getTimeFromDate(apiEvent.startDate),
+      tags: apiEvent.tags || [],
+      categorySlug: apiEvent.category?.slug ?? null,
+      isMultiDay: isMultiDay,
+      originalStartDate: startDate,
+      originalEndDate: endDate,
+      uuid: apiEvent.uuid,
+      recurring: apiEvent.recurring || false,
+      recurringRate: apiEvent.recurringRate,
+      duration: apiEvent.duration
+    }));
+  }, [generateDateRange, generateRecurringDates]);
 
   // Récupérer les événements depuis l'API
   useEffect(() => {
     if (!isLoading && user) {
       fetch(`/api/events?userId=${user.id}`)
         .then((res) => {
-          if (!res.ok)
-            throw new Error("Erreur lors de la récupération des événements");
+          if (!res.ok) throw new Error("Erreur lors de la récupération des événements");
           return res.json();
         })
         .then((data: APIEvent[]) => {
           const convertedEvents: Event[] = [];
-          data.forEach((apiEvent) => {
+          data.forEach(apiEvent => {
             const eventDays = convertAPIEventToCalendarEvent(apiEvent);
             convertedEvents.push(...eventDays);
           });
@@ -351,14 +317,14 @@ const MiniCalendar = ({ eventsData = [] }: MiniCalendarProps) => {
     if (scrollContainerRef.current && !isMobile) {
       const container = scrollContainerRef.current;
       const { scrollLeft, scrollWidth, clientWidth } = container;
-
+      
       // Vérifier si on peut scroller vers la gauche (avec marge pour les valeurs décimales)
       const canScrollBack = scrollLeft > 1;
-
+      
       // Vérifier si on peut scroller vers la droite (avec marge pour les valeurs décimales)
       const maxScroll = scrollWidth - clientWidth;
       const canScrollForward = scrollLeft < maxScroll - 1;
-
+      
       setCanScrollLeft(canScrollBack);
       setCanScrollRight(canScrollForward);
     }
@@ -379,20 +345,20 @@ const MiniCalendar = ({ eventsData = [] }: MiniCalendarProps) => {
           ticking = true;
         }
       };
-
-      scrollContainer.addEventListener("scroll", handleScroll);
+      
+      scrollContainer.addEventListener('scroll', handleScroll);
       // Support pour scrollend (certains navigateurs)
-      if ("onscrollend" in scrollContainer) {
-        scrollContainer.addEventListener("scrollend", checkScrollPosition);
+      if ('onscrollend' in scrollContainer) {
+        scrollContainer.addEventListener('scrollend', checkScrollPosition);
       }
-
+      
       // Vérifier l'état initial
       checkScrollPosition();
-
+      
       return () => {
-        scrollContainer.removeEventListener("scroll", handleScroll);
-        if ("onscrollend" in scrollContainer) {
-          scrollContainer.removeEventListener("scrollend", checkScrollPosition);
+        scrollContainer.removeEventListener('scroll', handleScroll);
+        if ('onscrollend' in scrollContainer) {
+          scrollContainer.removeEventListener('scrollend', checkScrollPosition);
         }
       };
     }
@@ -414,35 +380,28 @@ const MiniCalendar = ({ eventsData = [] }: MiniCalendarProps) => {
   }, [calendarMonths.length, isMobile, checkScrollPosition]);
 
   // Navigation avec les boutons flèches (seulement pour desktop)
-  const scrollToDirection = useCallback(
-    (direction: "left" | "right") => {
-      if (scrollContainerRef.current && !isMobile) {
-        const container = scrollContainerRef.current;
-        const scrollAmount = 264; // Largeur d'un mois + gap
-        const currentScroll = container.scrollLeft;
-        const newScroll =
-          direction === "left"
-            ? Math.max(0, currentScroll - scrollAmount)
-            : Math.min(
-                container.scrollWidth - container.clientWidth,
-                currentScroll + scrollAmount,
-              );
-
-        container.scrollTo({
-          left: newScroll,
-          behavior: "smooth",
-        });
-
-        // Vérifier plusieurs fois après le scroll pour s'assurer que l'état est à jour
-        // Le scroll smooth prend du temps, donc on vérifie plusieurs fois
-        checkScrollPosition(); // Immédiat
-        setTimeout(() => checkScrollPosition(), 100);
-        setTimeout(() => checkScrollPosition(), 300);
-        setTimeout(() => checkScrollPosition(), 600); // Après la fin du smooth scroll
-      }
-    },
-    [isMobile, checkScrollPosition],
-  );
+  const scrollToDirection = useCallback((direction: 'left' | 'right') => {
+    if (scrollContainerRef.current && !isMobile) {
+      const container = scrollContainerRef.current;
+      const scrollAmount = 264; // Largeur d'un mois + gap
+      const currentScroll = container.scrollLeft;
+      const newScroll = direction === 'left' 
+        ? Math.max(0, currentScroll - scrollAmount)
+        : Math.min(container.scrollWidth - container.clientWidth, currentScroll + scrollAmount);
+      
+      container.scrollTo({
+        left: newScroll,
+        behavior: 'smooth'
+      });
+      
+      // Vérifier plusieurs fois après le scroll pour s'assurer que l'état est à jour
+      // Le scroll smooth prend du temps, donc on vérifie plusieurs fois
+      checkScrollPosition(); // Immédiat
+      setTimeout(() => checkScrollPosition(), 100);
+      setTimeout(() => checkScrollPosition(), 300);
+      setTimeout(() => checkScrollPosition(), 600); // Après la fin du smooth scroll
+    }
+  }, [isMobile, checkScrollPosition]);
 
   const getDaysInMonth = (month: number, year: number): number => {
     return new Date(year, month + 1, 0).getDate();
@@ -454,24 +413,53 @@ const MiniCalendar = ({ eventsData = [] }: MiniCalendarProps) => {
 
   const getDayEvents = (day: number, month: number, year: number): Event[] => {
     const dateKey = `${year}-${String(month + 1).padStart(2, "0")}-${String(
-      day,
+      day
     ).padStart(2, "0")}`;
     return events.filter((event) => event.date === dateKey);
   };
 
-  const getDayColor = (
+  // Style d'une case selon les catégories distinctes présentes ce jour-là :
+  //  - aucune : gris clair (via className)
+  //  - 1 : aplat de couleur
+  //  - 2 : case coupée en deux (diagonale)
+  //  - 3 : bandes diagonales tricolores
+  //  - 4+ : éventail radial depuis le coin (façon drapeau des Seychelles)
+  const getDayStyle = (
     day: number,
     month: number,
     year: number,
-  ): { bg: string; hover: string } | null => {
+  ): CSSProperties | undefined => {
     const dayEvents = getDayEvents(day, month, year);
-    if (dayEvents.length === 0) return null;
+    if (dayEvents.length === 0) return undefined;
 
-    const firstEvent = dayEvents[0];
-    return {
-      bg: getEventThemeColor(firstEvent.tags || []),
-      hover: getEventThemeHoverColor(firstEvent.tags || []),
-    };
+    const colors = Array.from(
+      new Set(dayEvents.map((e) => colorForSlug(e.categorySlug))),
+    );
+
+    if (colors.length === 1) {
+      return { backgroundColor: colors[0] };
+    }
+
+    if (colors.length === 2) {
+      // Coupée en deux en diagonale
+      const [a, b] = colors;
+      return { background: `linear-gradient(135deg, ${a} 0 50%, ${b} 50% 100%)` };
+    }
+
+    if (colors.length === 3) {
+      // Trois bandes diagonales
+      const [a, b, c] = colors;
+      return {
+        background: `linear-gradient(135deg, ${a} 0 33.33%, ${b} 33.33% 66.66%, ${c} 66.66% 100%)`,
+      };
+    }
+
+    // 4+ : rayons partant du coin bas-gauche (drapeau des Seychelles)
+    const step = 90 / colors.length;
+    const stops = colors
+      .map((color, i) => `${color} ${i * step}deg ${(i + 1) * step}deg`)
+      .join(", ");
+    return { background: `conic-gradient(from 0deg at 0% 100%, ${stops})` };
   };
 
   // Fonction pour gérer le clic sur un jour avec événement
@@ -489,7 +477,7 @@ const MiniCalendar = ({ eventsData = [] }: MiniCalendarProps) => {
     day: number,
     month: number,
     year: number,
-    event: MouseEvent<HTMLDivElement>,
+    event: MouseEvent<HTMLDivElement>
   ) => {
     setHoveredDayNumber({ day, month });
     const dayEvents = getDayEvents(day, month, year);
@@ -522,36 +510,24 @@ const MiniCalendar = ({ eventsData = [] }: MiniCalendarProps) => {
 
     // Ajouter les jours du mois
     for (let day = 1; day <= daysInMonth; day++) {
-      const dayColors = getDayColor(day, month, year);
       const dayEvents = getDayEvents(day, month, year);
       const hasEvents = dayEvents.length > 0;
+      const dayStyle = getDayStyle(day, month, year);
 
       days.push(
         <div
           key={day}
-          className={`w-6 h-6 cursor-pointer rounded-sm transition-colors duration-200 flex items-center justify-center text-xs font-medium text-white hover:transition-all hover:duration-300 hover:ease-in-out ${
-            hasEvents ? "hover:scale-110" : "bg-gray-200 hover:bg-gray-300"
+          style={dayStyle}
+          className={`w-6 h-6 cursor-pointer rounded-sm transition-transform duration-200 flex items-center justify-center text-xs font-medium text-white hover:transition-all hover:duration-300 hover:ease-in-out ${
+            hasEvents ? 'hover:scale-110' : 'bg-gray-200 hover:bg-gray-300'
           }`}
-          style={dayColors ? { backgroundColor: dayColors.bg } : undefined}
-          onMouseEnter={(e) => {
-            if (dayColors) {
-              e.currentTarget.style.backgroundColor = dayColors.hover;
-            }
-            handleMouseEnter(day, month, year, e);
-          }}
-          onMouseLeave={(e) => {
-            if (dayColors) {
-              e.currentTarget.style.backgroundColor = dayColors.bg;
-            }
-            handleMouseLeave();
-          }}
+          onMouseEnter={(e) => handleMouseEnter(day, month, year, e)}
           onMouseMove={handleMouseMove}
+          onMouseLeave={handleMouseLeave}
           onClick={() => handleDayClick(day, month, year)}
         >
-          {hoveredDayNumber?.day === day && hoveredDayNumber?.month === month
-            ? day
-            : ""}
-        </div>,
+          {hoveredDayNumber?.day === day && hoveredDayNumber?.month === month ? day : ''}
+        </div>
       );
     }
 
@@ -569,64 +545,42 @@ const MiniCalendar = ({ eventsData = [] }: MiniCalendarProps) => {
 
   return (
     <div>
-      <div className="flex justify-between items-center">
-        <h2 className="text-xl font-bold text-gray-800">
-          Calendrier des Evènements
-        </h2>
+      <div className="flex justify-between items-center flex-wrap gap-2">
+        <h2 className="text-xl font-bold text-gray-800">Calendrier des Evènements</h2>
         {/* Boutons de navigation - cachés sur mobile */}
         {!isMobile && (
           <div className="flex gap-2">
             <button
               onClick={() => {
                 if (canScrollLeft) {
-                  scrollToDirection("left");
+                  scrollToDirection('left');
                 }
               }}
               disabled={!canScrollLeft}
               className={`z-10 p-2 rounded transition-all ${
-                canScrollLeft
-                  ? "bg-gray-200 hover:bg-gray-300 text-gray-700 cursor-pointer"
-                  : "bg-gray-100 text-gray-400 cursor-not-allowed opacity-50"
+                canScrollLeft 
+                  ? 'bg-gray-200 hover:bg-gray-300 text-gray-700 cursor-pointer' 
+                  : 'bg-gray-100 text-gray-400 cursor-not-allowed opacity-50'
               }`}
               aria-label="Mois précédent"
             >
-              <svg
-                className="w-5 h-5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M15 19l-7-7 7-7"
-                />
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
               </svg>
             </button>
 
             <button
-              onClick={() => scrollToDirection("right")}
+              onClick={() => scrollToDirection('right')}
               disabled={!canScrollRight}
               className={`z-10 p-2 rounded transition-all ${
-                canScrollRight
-                  ? "bg-gray-200 hover:bg-gray-300 text-gray-700"
-                  : "bg-gray-100 text-gray-400 cursor-not-allowed"
+                canScrollRight 
+                  ? 'bg-gray-200 hover:bg-gray-300 text-gray-700' 
+                  : 'bg-gray-100 text-gray-400 cursor-not-allowed'
               }`}
               aria-label="Mois suivant"
             >
-              <svg
-                className="w-5 h-5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M9 5l7 7-7 7"
-                />
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
               </svg>
             </button>
           </div>
@@ -634,19 +588,21 @@ const MiniCalendar = ({ eventsData = [] }: MiniCalendarProps) => {
       </div>
 
       {/* Container de scroll avec tous les mois */}
-      <div
+      <div 
         ref={scrollContainerRef}
         className={`flex space-x-4 snap-x snap-mandatory px-1 py-5 gap-6 scrollbar-hide ${
-          isMobile ? "overflow-x-auto" : "overflow-x-auto"
+          isMobile 
+            ? 'overflow-x-auto'
+            : 'overflow-x-auto' 
         }`}
         style={{
-          WebkitOverflowScrolling: "touch",
-          scrollBehavior: "smooth",
+          WebkitOverflowScrolling: 'touch',
+          scrollBehavior: 'smooth',
           // S'assurer que le conteneur a une largeur maximale pour forcer le scroll
-          maxWidth: "100%",
+          maxWidth: '100%',
           // Masquer la scrollbar sur tous les navigateurs
-          scrollbarWidth: "none", // Firefox
-          msOverflowStyle: "none", // IE et Edge
+          scrollbarWidth: 'none', // Firefox
+          msOverflowStyle: 'none', // IE et Edge
         }}
         onScroll={() => {
           // Forcer une vérification immédiate lors du scroll manuel
@@ -667,6 +623,28 @@ const MiniCalendar = ({ eventsData = [] }: MiniCalendarProps) => {
               {generateMonthDays(monthInfo.month, monthInfo.year)}
             </div>
           </div>
+        ))}
+      </div>
+
+      {/* Légende des couleurs par catégorie */}
+      <div className="flex items-center gap-4 flex-wrap mt-2">
+        {[
+          { slug: "gastronomie", label: "Gastronomie" },
+          { slug: "sport", label: "Sport" },
+          { slug: "divertissement", label: "Divertissement" },
+          { slug: "culture", label: "Culture" },
+          { slug: "autre", label: "Autre" },
+        ].map((c) => (
+          <span
+            key={c.slug}
+            className="flex items-center gap-1.5 text-xs text-gray-500"
+          >
+            <span
+              className="w-3 h-3 rounded-sm"
+              style={{ backgroundColor: colorForSlug(c.slug) }}
+            />
+            {c.label}
+          </span>
         ))}
       </div>
 
@@ -701,17 +679,10 @@ const MiniCalendar = ({ eventsData = [] }: MiniCalendarProps) => {
                 )}
                 {event.recurring && (
                   <div className="text-gray-400 text-xs">
-                    🔁 Récurrent (
-                    {event.recurringRate === "day"
-                      ? "Quotidien"
-                      : event.recurringRate === "week"
-                        ? "Hebdomadaire"
-                        : event.recurringRate === "month"
-                          ? "Mensuel"
-                          : event.recurringRate === "year"
-                            ? "Annuel"
-                            : "Récurrent"}
-                    )
+                    🔁 Récurrent ({event.recurringRate === 'day' ? 'Quotidien' : 
+                                   event.recurringRate === 'week' ? 'Hebdomadaire' :
+                                   event.recurringRate === 'month' ? 'Mensuel' :
+                                   event.recurringRate === 'year' ? 'Annuel' : 'Récurrent'})
                   </div>
                 )}
                 {event.time && (
@@ -721,7 +692,7 @@ const MiniCalendar = ({ eventsData = [] }: MiniCalendarProps) => {
                 {(event.tags?.length || 0) > 0 && (
                   <div className="flex flex-wrap gap-1 mt-1">
                     {(event.tags || []).map((tag) => (
-                      <span
+                      <span 
                         key={tag.id}
                         className="px-1.5 py-0.5 text-xs rounded-full bg-gray-200 text-gray-700"
                       >

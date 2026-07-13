@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getRepresentativeGoogleTagId } from "@/lib/google-tags/sub-group-assignment";
-import { getEventVotingStatus } from "@/lib/event-voting";
-import { sendEmailTemplate } from "@/lib/brevo";
+import { getAuthUser } from "@/lib/server-auth";
 
 function safeJson(obj: unknown) {
   return JSON.parse(
@@ -12,20 +10,6 @@ function safeJson(obj: unknown) {
   );
 }
 
-const eventInclude = {
-  confirmedGoogleTag: true,
-  confirmedGoogleTagSubGroup: true,
-  selectedGoogleTagGroups: {
-    include: {
-      subGroups: {
-        where: { isActive: true },
-        orderBy: [{ sortOrder: "asc" as const }, { name: "asc" as const }],
-      },
-    },
-  },
-  selectedGoogleTags: true,
-};
-
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
@@ -33,16 +17,12 @@ export async function PATCH(
   try {
     const resolvedParams = await params;
     const eventId = BigInt(resolvedParams.id);
-    const { state: newStateRaw } = await request.json();
-    const newState = String(newStateRaw || "").toLowerCase();
+    const { state: newState } = await request.json();
 
     const validStates = ["pending", "confirmed", "planned"];
-    if (!newState || !validStates.includes(newState)) {
+    if (!newState || !validStates.includes(newState.toLowerCase())) {
       return NextResponse.json(
-        {
-          message:
-            "État invalide. États autorisés: pending, confirmed, planned",
-        },
+        { message: "État invalide. États autorisés: pending, confirmed, planned" },
         { status: 400 },
       );
     }
@@ -51,66 +31,52 @@ export async function PATCH(
       where: { id: eventId },
       select: {
         id: true,
+        createdById: true,
         isSpecificPlace: true,
-        selectedGoogleTagGroups: {
-          select: {
-            subGroups: {
-              select: { id: true },
-              where: { isActive: true },
-              take: 1,
-            },
-          },
-        },
+        categoryId: true,
         selectedGoogleTags: { select: { id: true } },
       },
     });
     if (!currentEvent) {
+      return NextResponse.json({ message: "Événement non trouvé" }, { status: 404 });
+    }
+
+    // Seul le créateur ou un admin peut changer l'état
+    const auth = await getAuthUser(request);
+    if (!auth) {
       return NextResponse.json(
-        { message: "Événement non trouvé" },
-        { status: 404 },
+        { message: "Authentification requise" },
+        { status: 401 },
+      );
+    }
+    const isCreator = currentEvent.createdById === auth.id;
+    const isAdmin = ["ADMIN", "SUPER_ADMIN"].includes(auth.role ?? "");
+    if (!isCreator && !isAdmin) {
+      return NextResponse.json(
+        { message: "Seul le créateur ou un administrateur peut changer l'état" },
+        { status: 403 },
       );
     }
 
-    if (newState === "confirmed") {
-      const votingStatus = await getEventVotingStatus(prisma, eventId);
-      if (!votingStatus.allVoted) {
-        return NextResponse.json(
-          {
-            message: `Tous les participants doivent voter avant de confirmer (${votingStatus.votedCount}/${votingStatus.participantCount} ont répondu).`,
-            votingStatus,
-          },
-          { status: 400 },
-        );
-      }
-
-      const votes = await prisma.eventThemeVote.groupBy({
-        by: ["googleTagSubGroupId"],
-        where: { eventId },
-        _count: { googleTagSubGroupId: true },
-        orderBy: {
-          _count: { googleTagSubGroupId: "desc" },
+    // Les events à catégorie se confirment via la clôture + choix du lieu
+    if (
+      newState.toLowerCase() === "confirmed" &&
+      !currentEvent.isSpecificPlace &&
+      currentEvent.categoryId != null
+    ) {
+      return NextResponse.json(
+        {
+          message:
+            "Clôturez les votes puis choisissez un lieu pour confirmer cet événement",
         },
-      });
+        { status: 400 },
+      );
+    }
 
-      const winnerSubGroupId =
-        votes[0]?.googleTagSubGroupId ||
-        currentEvent.selectedGoogleTagGroups[0]?.subGroups[0]?.id ||
-        null;
-
-      const winnerGoogleTagId = winnerSubGroupId
-        ? await getRepresentativeGoogleTagId(prisma, winnerSubGroupId)
-        : currentEvent.selectedGoogleTags[0]?.id || null;
-
-      if (!currentEvent.isSpecificPlace && !winnerSubGroupId) {
-        return NextResponse.json(
-          {
-            message:
-              "Impossible de confirmer : aucun vote de sous-groupe enregistré.",
-          },
-          { status: 400 },
-        );
-      }
-
+    // Confirmation manuelle : réservée aux lieux précis / events sans catégorie
+    // (les events à catégorie passent par la clôture + choix du lieu, bloqués
+    // plus haut). On retient la date la plus votée si elle existe.
+    if (newState.toLowerCase() === "confirmed") {
       const mostVotedDate = await prisma.eventUserPreference.groupBy({
         by: ["preferredDate"],
         where: { eventId },
@@ -123,37 +89,16 @@ export async function PATCH(
         where: { id: eventId },
         data: {
           state: newState,
-          confirmedGoogleTagSubGroupId: winnerSubGroupId,
-          confirmedGoogleTagId: winnerGoogleTagId,
           ...(mostVotedDate.length > 0
             ? { startDate: mostVotedDate[0].preferredDate }
             : {}),
         },
-        include: eventInclude,
-      });
-
-      const eventWithUsers = await prisma.event.findUnique({
-        where: { id: eventId },
-        select: {
-          title: true,
-          startDate: true,
-          users: { select: { email: true, firstName: true, lastName: true } },
+        include: {
+          confirmedGoogleTag: true,
+          selectedGoogleTags: true,
+          location: true,
         },
       });
-      if (eventWithUsers) {
-        const isDev = process.env.NODE_ENV === "development";
-        const eventDate = eventWithUsers.startDate
-          ? new Date(eventWithUsers.startDate).toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" })
-          : "";
-        eventWithUsers.users.forEach((u) => {
-          const recipient = isDev ? process.env.BREVO_TEST_EMAIL || "glyms.app@gmail.com" : u.email;
-          sendEmailTemplate({
-            to: [{ email: recipient, name: `${u.firstName} ${u.lastName}` }],
-            templateId: Number(process.env.BREVO_TEMPLATE_ID_EVENT_CONFIRMED),
-            params: { FIRSTNAME: u.firstName, EVENT_TITLE: eventWithUsers.title, EVENT_DATE: eventDate },
-          }).catch((err) => console.error("Erreur mail event confirmé:", err));
-        });
-      }
 
       return NextResponse.json(safeJson(updatedEvent), { status: 200 });
     }
@@ -161,7 +106,7 @@ export async function PATCH(
     const updatedEvent = await prisma.event.update({
       where: { id: eventId },
       data: { state: newState },
-      include: eventInclude,
+      include: { confirmedGoogleTag: true, selectedGoogleTags: true },
     });
 
     return NextResponse.json(safeJson(updatedEvent), { status: 200 });
