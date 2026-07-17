@@ -1,16 +1,28 @@
-import { Body, Button, Container, Head, Heading, Html, Img, Preview, Section, Tailwind, Text } from '@react-email/components';
+import {
+    Body,
+    Button,
+    Container,
+    Head,
+    Heading,
+    Html,
+    Img,
+    Preview,
+    Section,
+    Tailwind,
+    Text,
+} from "react-email";
 
 interface PasswordResetEmailTemplateProps {
   readonly resetLink: string;
   readonly userEmail: string;
 }
 
-export function PasswordResetEmailTemplate({ 
-  resetLink, 
-  userEmail 
+export function PasswordResetEmailTemplate({
+  resetLink,
+  userEmail,
 }: Readonly<PasswordResetEmailTemplateProps>) {
   const previewText = `Réinitialisation de votre mot de passe Glyms`;
-  
+
   // URL du logo via la variable d'environnement
   const logoUrl = `${process.env.NEXT_PUBLIC_URL}/images/logo/Logotype.svg`;
 
@@ -46,11 +58,14 @@ export function PasswordResetEmailTemplate({
 
               {/* Main Message */}
               <Text className="text-start text-base text-gray-700 leading-relaxed mb-4">
-                Vous avez demandé la réinitialisation de votre mot de passe pour votre compte <strong className="text-blue-600">{userEmail}</strong>.
+                Vous avez demandé la réinitialisation de votre mot de passe pour
+                votre compte{" "}
+                <strong className="text-blue-600">{userEmail}</strong>.
               </Text>
 
               <Text className="text-start text-base text-gray-700 leading-relaxed mb-6">
-                Cliquez sur le bouton ci-dessous pour créer un nouveau mot de passe :
+                Cliquez sur le bouton ci-dessous pour créer un nouveau mot de
+                passe :
               </Text>
 
               {/* CTA Button */}
@@ -65,9 +80,10 @@ export function PasswordResetEmailTemplate({
 
               {/* Alternative Link */}
               <Text className="text-start text-sm text-gray-600 leading-relaxed mb-2">
-                Si le bouton ne fonctionne pas, copiez et collez ce lien dans votre navigateur :
+                Si le bouton ne fonctionne pas, copiez et collez ce lien dans
+                votre navigateur :
               </Text>
-              
+
               <Section className="bg-gray-100 rounded-md p-3 mb-6">
                 <Text className="text-xs text-blue-600 break-all font-mono">
                   {resetLink}
@@ -80,7 +96,8 @@ export function PasswordResetEmailTemplate({
                   ⚠️ Important
                 </Text>
                 <Text className="text-sm text-amber-700 m-0">
-                  Ce lien expire dans 15 minutes. Si vous n&apos;avez pas demandé cette réinitialisation, ignorez cet email.
+                  Ce lien expire dans 15 minutes. Si vous n&apos;avez pas
+                  demandé cette réinitialisation, ignorez cet email.
                 </Text>
               </Section>
             </Section>
@@ -88,7 +105,9 @@ export function PasswordResetEmailTemplate({
             {/* Footer */}
             <Section className="text-center mt-8 pt-6 border-t border-gray-200">
               <Text className="text-xs text-gray-500 m-0">
-                Cet email a été envoyé par <strong>Glyms</strong>. Si vous avez des questions, contactez notre support : <strong>contact@glyms-app.fr</strong>
+                Cet email a été envoyé par <strong>Glyms</strong>. Si vous avez
+                des questions, contactez notre support :{" "}
+                <strong>contact@glyms-app.fr</strong>
               </Text>
               <Text className="text-xs text-gray-400 mt-2 m-0">
                 © 2025 Glyms. Tous droits réservés.
