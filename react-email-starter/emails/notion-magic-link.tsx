@@ -1,14 +1,14 @@
 import {
-  Body,
-  Container,
-  Head,
-  Heading,
-  Html,
-  Img,
-  Link,
-  Preview,
-  Text,
-} from '@react-email/components';
+    Body,
+    Container,
+    Head,
+    Heading,
+    Html,
+    Img,
+    Link,
+    Preview,
+    Text,
+} from 'react-email';
 
 interface NotionMagicLinkEmailProps {
   loginCode?: string;

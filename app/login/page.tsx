@@ -3,18 +3,27 @@ import { useRouter } from "next/navigation";
 import LoginForm from "@/components/forms/LoginForm";
 import Link from "next/link";
 import Image from "next/image";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useUser } from "@/context/UserContext";
 
 export default function LoginPage() {
   const router = useRouter();
-  const { user, isLoading } = useUser();
+  const { user, isLoading, logout } = useUser();
+  const hasPurgedStaleSession = useRef(false);
 
+  // Si /login s'affiche, le middleware a déjà déterminé que le cookie de
+  // session est invalide (sinon il aurait redirigé vers /home avant le rendu).
+  // Un `user` encore présent dans le localStorage AU CHARGEMENT est donc périmé :
+  // on le purge une seule fois au montage (via useRef), au lieu de renvoyer vers
+  // /home (boucle /login <-> /home). On ne refait PAS la purge ensuite, sinon
+  // elle déconnecte l'utilisateur juste après une connexion réussie.
   useEffect(() => {
-    if (!isLoading && user) {
-      router.replace("/home");
+    if (isLoading || hasPurgedStaleSession.current) return;
+    hasPurgedStaleSession.current = true;
+    if (user) {
+      logout();
     }
-  }, [user, isLoading, router]);
+  }, [isLoading, user, logout]);
 
   useEffect(() => {
     document.body.style.overflow = "hidden";

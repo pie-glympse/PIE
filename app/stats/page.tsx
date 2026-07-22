@@ -215,6 +215,8 @@ export default function StatsPage() {
       }
     : null;
 
+  const responseRate = Math.min(100, stats.participation?.responseRate ?? 0);
+
   // Données pour les créneaux horaires
   const timeSlotData = stats.participation?.timeSlotCounts
     ? {
@@ -390,14 +392,14 @@ export default function StatsPage() {
                     Taux de réponse
                   </span>
                   <span className="text-body-large font-poppins font-semibold text-[var(--color-text)]">
-                    {stats.participation?.responseRate || 0}%
+                    {responseRate}%
                   </span>
                 </div>
-                <div className="w-full bg-[var(--color-grey-two)] rounded-full h-3">
+                <div className="w-full bg-[var(--color-grey-two)] rounded-full h-3 overflow-hidden">
                   <div
-                    className="bg-[var(--color-validate)] h-3 rounded-full transition-all"
+                    className="bg-[var(--color-validate)] h-3 rounded-full transition-all max-w-full"
                     style={{
-                      width: `${stats.participation?.responseRate || 0}%`,
+                      width: `${responseRate}%`,
                     }}
                   ></div>
                 </div>

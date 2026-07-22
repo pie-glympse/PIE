@@ -14,6 +14,9 @@ export type EventType = {
   city?: string;
   maxDistance?: number;
   isSpecificPlace?: boolean;
+  dateKnown?: boolean;
+  proposedDates?: string[];
+  confirmedDates?: string[];
   createdById?: string;
   selectedGoogleTags?: {
     id: string;

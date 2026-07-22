@@ -50,10 +50,17 @@ export function canShowEventPreferencesVote(params: {
   isCreator: boolean;
   hasPreferences: boolean;
   state?: string | null;
+  /** Date déjà fixée par le créateur (rien à voter côté date). */
+  dateKnown?: boolean | null;
+  /** Lieu précis déjà défini (rien à voter côté questionnaire). */
+  isSpecificPlace?: boolean | null;
 }): boolean {
   if (!params.isParticipant && !params.isCreator) return false;
   if (params.hasPreferences) return false;
   if (params.state?.toLowerCase() === "confirmed") return false;
+  // Rien à voter : date connue ET lieu précis → aucun questionnaire ni choix de
+  // date. On ne montre pas l'indicateur « Voter » sur ces événements figés.
+  if (params.dateKnown === true && params.isSpecificPlace === true) return false;
   return true;
 }
 

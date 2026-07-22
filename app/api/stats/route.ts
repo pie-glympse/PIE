@@ -96,6 +96,11 @@ export async function GET(request: NextRequest) {
             },
           },
         },
+        notifications: {
+          select: {
+            type: true,
+          },
+        },
       },
       orderBy: {
         createdAt: "desc",
@@ -152,17 +157,25 @@ export async function GET(request: NextRequest) {
       .slice(0, 3)
       .map(([name, count]) => ({ name, count }));
 
-    // Statistiques de participation
-    const totalInvitations = events.reduce(
-      (sum, event) => sum + event.preferences.length,
-      0
-    );
-    const totalResponses = events.reduce(
-      (sum, event) => sum + event.users.length,
-      0
-    );
-    const responseRate =
+    // Statistiques de participation (invitations envoyées vs réponses accept/refus)
+    let totalInvitations = 0;
+    let totalResponses = 0;
+    events.forEach((event) => {
+      event.notifications.forEach((notification) => {
+        if (notification.type === "EVENT_INVITATION") {
+          totalInvitations++;
+        }
+        if (
+          notification.type === "EVENT_INVITATION_ACCEPTED" ||
+          notification.type === "EVENT_INVITATION_DECLINED"
+        ) {
+          totalResponses++;
+        }
+      });
+    });
+    const rawResponseRate =
       totalInvitations > 0 ? (totalResponses / totalInvitations) * 100 : 0;
+    const responseRate = Math.min(100, rawResponseRate);
 
     // Distribution des notes
     const ratingDistribution = {

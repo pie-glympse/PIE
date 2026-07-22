@@ -216,3 +216,46 @@ input[type="checkbox"]:focus {
     transform: scale(1.06);
   }
 }
+
+/* Calendrier de sélection de dates (DragRangeCalendar) */
+@keyframes plop {
+  0% {
+    transform: scale(0.55);
+  }
+  60% {
+    transform: scale(1.18);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.animate-plop {
+  animation: plop 200ms ease-out;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-hide {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+/* Icône cadeau (propositions de lieux) : secousse périodique */
+@keyframes gift-shake {
+  0%, 58%, 100% {
+    transform: rotate(0deg);
+  }
+  62% { transform: rotate(-14deg); }
+  67% { transform: rotate(12deg); }
+  72% { transform: rotate(-9deg); }
+  78% { transform: rotate(7deg); }
+  84% { transform: rotate(-4deg); }
+  90% { transform: rotate(2deg); }
+}
+
+.animate-gift-shake {
+  animation: gift-shake 2.6s ease-in-out infinite;
+  transform-origin: 50% 85%;
+}

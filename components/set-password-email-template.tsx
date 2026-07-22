@@ -1,4 +1,16 @@
-import { Body, Button, Container, Head, Heading, Html, Img, Preview, Section, Tailwind, Text } from '@react-email/components';
+import {
+    Body,
+    Button,
+    Container,
+    Head,
+    Heading,
+    Html,
+    Img,
+    Preview,
+    Section,
+    Tailwind,
+    Text,
+} from "react-email";
 
 interface SetPasswordEmailTemplateProps {
   readonly setPasswordLink: string;
@@ -7,14 +19,14 @@ interface SetPasswordEmailTemplateProps {
   readonly isOwner: boolean;
 }
 
-export function SetPasswordEmailTemplate({ 
-  setPasswordLink, 
+export function SetPasswordEmailTemplate({
+  setPasswordLink,
   userEmail,
   firstName,
-  isOwner
+  isOwner,
 }: Readonly<SetPasswordEmailTemplateProps>) {
   const previewText = `Créez votre mot de passe pour accéder à Glyms`;
-  
+
   const logoUrl = `${process.env.NEXT_PUBLIC_URL}/images/logo/Logotype.svg`;
 
   return (
@@ -44,19 +56,19 @@ export function SetPasswordEmailTemplate({
             <Section className="bg-white rounded-lg shadow-lg p-8 my-6">
               {/* Greeting */}
               <Text className="text-start text-base text-gray-700 leading-relaxed mb-4">
-                Bonjour {firstName || 'Cher utilisateur'},
+                Bonjour {firstName || "Cher utilisateur"},
               </Text>
 
               {/* Main Message */}
               <Text className="text-start text-base text-gray-700 leading-relaxed mb-4">
-                {isOwner 
+                {isOwner
                   ? `Votre compte administrateur a été créé pour votre entreprise sur Glyms.`
-                  : `Votre compte a été créé par votre entreprise sur Glyms.`
-                }
+                  : `Votre compte a été créé par votre entreprise sur Glyms.`}
               </Text>
 
               <Text className="text-start text-base text-gray-700 leading-relaxed mb-6">
-                Pour commencer, vous devez créer votre mot de passe en cliquant sur le bouton ci-dessous :
+                Pour commencer, vous devez créer votre mot de passe en cliquant
+                sur le bouton ci-dessous :
               </Text>
 
               {/* CTA Button */}
@@ -71,9 +83,10 @@ export function SetPasswordEmailTemplate({
 
               {/* Alternative Link */}
               <Text className="text-start text-sm text-gray-600 leading-relaxed mb-2">
-                Si le bouton ne fonctionne pas, copiez et collez ce lien dans votre navigateur :
+                Si le bouton ne fonctionne pas, copiez et collez ce lien dans
+                votre navigateur :
               </Text>
-              
+
               <Section className="bg-gray-100 rounded-md p-3 mb-6">
                 <Text className="text-xs text-blue-600 break-all font-mono">
                   {setPasswordLink}
@@ -86,7 +99,8 @@ export function SetPasswordEmailTemplate({
                   ⚠️ Important
                 </Text>
                 <Text className="text-sm text-amber-700 m-0">
-                  Ce lien expire dans 7 jours. Si vous n&apos;avez pas demandé ce compte, contactez votre administrateur.
+                  Ce lien expire dans 7 jours. Si vous n&apos;avez pas demandé
+                  ce compte, contactez votre administrateur.
                 </Text>
               </Section>
             </Section>
@@ -94,7 +108,9 @@ export function SetPasswordEmailTemplate({
             {/* Footer */}
             <Section className="text-center mt-8 pt-6 border-t border-gray-200">
               <Text className="text-xs text-gray-500 m-0">
-                Cet email a été envoyé par <strong>Glyms</strong>. Si vous avez des questions, contactez notre support : <strong>contact@glyms-app.fr</strong>
+                Cet email a été envoyé par <strong>Glyms</strong>. Si vous avez
+                des questions, contactez notre support :{" "}
+                <strong>contact@glyms-app.fr</strong>
               </Text>
               <Text className="text-xs text-gray-400 mt-2 m-0">
                 © 2025 Glyms. Tous droits réservés.

@@ -31,18 +31,16 @@ const Gcard = dynamic(() => import("@/components/Gcard"), {
 
 function EventActionsColumn() {
   return (
-    <div className="flex flex-col gap-2 w-full md:flex-1 md:min-w-0 h-60">
-      <Link
-        href="/events"
-        className="flex-1 flex items-center justify-center rounded-xl bg-[var(--color-tertiary)] text-white font-poppins text-body-small font-medium shadow-md hover:opacity-90 transition"
-      >
-        Tous les événements
-      </Link>
+    <div className="flex w-full md:w-28 md:flex-none shrink-0 h-20 md:h-60">
       <Link
         href="/create-event"
-        className="flex-1 flex items-center justify-center rounded-xl bg-[var(--color-main)] text-[var(--color-text)] font-poppins text-body-small font-medium shadow-md hover:opacity-90 transition"
+        aria-label="Créer un événement"
+        title="Créer un événement"
+        className="flex-1 flex items-center justify-center rounded-xl border-2 border-dashed border-[var(--color-main)] text-[var(--color-main-text)] hover:bg-[var(--color-main)]/10 transition"
       >
-        Créer un événement
+        <span className="flex items-center justify-center w-11 h-11 rounded-full border-2 border-dashed border-[var(--color-main)] text-3xl leading-none">
+          +
+        </span>
       </Link>
     </div>
   );
@@ -372,12 +370,9 @@ function HomePageContent() {
           </div>
         </section>
 
-        {/* Calendrier */}
+        {/* Calendrier (la légende des couleurs est intégrée au calendrier) */}
         <section>
           <GCalendar year={2025} />
-          <div className="mt-4 text-sm text-gray-500">
-            Les jours avec événements sont affichés en couleur selon leur type.
-          </div>
         </section>
 
         {/* Évènements à venir */}
@@ -390,11 +385,22 @@ function HomePageContent() {
             >
               {({ events, error }) => (
                 <>
-                  <h2 className="text-xl font-bold text-gray-800 mb-4">
-                    {events.length > 0
-                      ? "Évènements à venir"
-                      : "Pas d'évènement à venir"}
-                  </h2>
+                  <div className="flex items-center justify-between gap-4 mb-4">
+                    <h2 className="text-xl font-bold text-gray-800">
+                      {events.length > 0
+                        ? "Évènements à venir"
+                        : "Pas d'évènement à venir"}
+                    </h2>
+                    {events.length > 0 && (
+                      <Link
+                        href="/events"
+                        className="shrink-0 inline-flex items-center gap-1 font-poppins text-body-small text-[var(--color-grey-three)] underline-offset-4 hover:text-[var(--color-text)] hover:underline transition-colors"
+                      >
+                        Voir tous
+                        <span aria-hidden>→</span>
+                      </Link>
+                    )}
+                  </div>
                   {error && (
                     <p className="text-red-600 font-semibold mb-4">{error}</p>
                   )}
@@ -451,6 +457,8 @@ function HomePageContent() {
                                 event.id,
                               ),
                               state: event.state,
+                              dateKnown: event.dateKnown,
+                              isSpecificPlace: event.isSpecificPlace,
                             })}
                             isNew={newEventId === event.id}
                             isPublic={event.isPublic}

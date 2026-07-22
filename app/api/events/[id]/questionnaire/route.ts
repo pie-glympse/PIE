@@ -1,0 +1,360 @@
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { requireAuthUser } from "@/lib/server-auth";
+
+const toJson = (data: unknown) =>
+  JSON.parse(
+    JSON.stringify(data, (_, value) =>
+      typeof value === "bigint" ? value.toString() : value,
+    ),
+  );
+
+const dayKey = (d: Date) => d.toISOString().split("T")[0];
+
+async function loadEvent(eventId: bigint) {
+  return prisma.event.findUnique({
+    where: { id: eventId },
+    select: {
+      id: true,
+      title: true,
+      state: true,
+      dateKnown: true,
+      startDate: true,
+      endDate: true,
+      proposedDates: true,
+      isSpecificPlace: true,
+      categoryId: true,
+      createdById: true,
+      category: { select: { id: true, name: true, slug: true } },
+      users: { select: { id: true } },
+    },
+  });
+}
+
+function isParticipantOrCreator(
+  event: { createdById: bigint | null; users: { id: bigint }[] },
+  userId: bigint,
+) {
+  return (
+    event.createdById === userId || event.users.some((u) => u.id === userId)
+  );
+}
+
+// ─── GET : questionnaire de l'événement (questions de la catégorie + mes réponses)
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  try {
+    const { id } = await params;
+    const eventId = BigInt(id);
+    const auth = await requireAuthUser(
+      request,
+      new URL(request.url).searchParams.get("userId"),
+    );
+    if (!auth.ok) {
+      return NextResponse.json({ message: auth.error }, { status: auth.status });
+    }
+    const userId = auth.userId;
+
+    const event = await loadEvent(eventId);
+    if (!event) {
+      return NextResponse.json(
+        { message: "Événement non trouvé" },
+        { status: 404 },
+      );
+    }
+    if (!isParticipantOrCreator(event, userId)) {
+      return NextResponse.json(
+        {
+          message:
+            "Vous devez participer à l'événement avant de répondre au questionnaire",
+        },
+        { status: 403 },
+      );
+    }
+
+    // Questions de la catégorie (aucune pour un lieu précis)
+    const questions = event.categoryId
+      ? await prisma.categoryQuestion.findMany({
+          where: { categoryId: event.categoryId, isActive: true },
+          orderBy: [{ sortOrder: "asc" }, { id: "asc" }],
+          select: {
+            id: true,
+            text: true,
+            sortOrder: true,
+            multiSelect: true,
+            maxChoices: true,
+            options: {
+              orderBy: [{ sortOrder: "asc" }, { id: "asc" }],
+              select: { id: true, label: true, sortOrder: true },
+            },
+          },
+        })
+      : [];
+
+    const [myAnswers, myPreference] = await Promise.all([
+      prisma.eventQuestionnaireAnswer.findMany({
+        where: { eventId, userId },
+        select: { optionId: true },
+      }),
+      prisma.eventUserPreference.findUnique({
+        where: { userId_eventId: { userId, eventId } },
+        select: { preferredDate: true, preferredDates: true },
+      }),
+    ]);
+
+    return NextResponse.json(
+      toJson({
+        event: {
+          id: event.id,
+          title: event.title,
+          state: event.state,
+          dateKnown: event.dateKnown,
+          startDate: event.startDate,
+          endDate: event.endDate,
+          proposedDates: event.proposedDates,
+          isSpecificPlace: event.isSpecificPlace,
+          category: event.category,
+        },
+        questions,
+        myAnswerOptionIds: myAnswers.map((a) => a.optionId),
+        myPreferredDate: myPreference?.preferredDate ?? null,
+        myPreferredDates: myPreference?.preferredDates ?? [],
+        hasAnswered: myPreference != null,
+      }),
+      { status: 200 },
+    );
+  } catch (error) {
+    console.error("Erreur récupération questionnaire:", error);
+    return NextResponse.json(
+      { message: "Erreur serveur interne" },
+      { status: 500 },
+    );
+  }
+}
+
+// ─── POST : enregistrer les réponses (date dans la plage + options des questions)
+export async function POST(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  try {
+    const { id } = await params;
+    const eventId = BigInt(id);
+
+    const {
+      userId,
+      optionIds = [],
+      preferredDate,
+      preferredDates,
+    } = await request.json();
+    const auth = await requireAuthUser(request, userId);
+    if (!auth.ok) {
+      return NextResponse.json({ message: auth.error }, { status: auth.status });
+    }
+    const userIdBigInt = auth.userId;
+    const parsedOptionIds: bigint[] = Array.isArray(optionIds)
+      ? optionIds.map((v: string | number) => BigInt(v))
+      : [];
+
+    const event = await loadEvent(eventId);
+    if (!event) {
+      return NextResponse.json(
+        { message: "Événement non trouvé" },
+        { status: 404 },
+      );
+    }
+    if (["confirmed", "closed"].includes(event.state?.toLowerCase() ?? "")) {
+      return NextResponse.json(
+        { message: "Les votes sont clôturés pour cet événement" },
+        { status: 400 },
+      );
+    }
+    if (!isParticipantOrCreator(event, userIdBigInt)) {
+      return NextResponse.json(
+        {
+          message:
+            "Vous devez participer à l'événement avant de répondre au questionnaire",
+        },
+        { status: 403 },
+      );
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: userIdBigInt },
+      select: { id: true, firstName: true, lastName: true },
+    });
+    if (!user) {
+      return NextResponse.json(
+        { message: "Utilisateur non trouvé" },
+        { status: 404 },
+      );
+    }
+
+    // ── Dates préférées (plusieurs jours possibles, non consécutifs)
+    let preferredDateKeys: string[];
+    if (event.dateKnown) {
+      // Date déjà fixée par le créateur : elle sert de préférence unique
+      preferredDateKeys = [dayKey(event.startDate ?? new Date())];
+    } else {
+      // Nouveau format : tableau de dates. Compat : ancienne date unique.
+      const rawDates: unknown[] = Array.isArray(preferredDates)
+        ? preferredDates
+        : preferredDate
+          ? [preferredDate]
+          : [];
+      if (rawDates.length === 0) {
+        return NextResponse.json(
+          { message: "Veuillez choisir au moins une date parmi celles proposées" },
+          { status: 400 },
+        );
+      }
+      const keys = new Set<string>();
+      for (const raw of rawDates) {
+        const parsed = new Date(String(raw));
+        if (Number.isNaN(parsed.getTime())) {
+          return NextResponse.json({ message: "Date invalide" }, { status: 400 });
+        }
+        keys.add(dayKey(parsed));
+      }
+      preferredDateKeys = Array.from(keys).sort();
+
+      for (const chosenKey of preferredDateKeys) {
+        if (event.proposedDates && event.proposedDates.length > 0) {
+          // Dates proposées explicites (potentiellement non consécutives)
+          if (!event.proposedDates.includes(chosenKey)) {
+            return NextResponse.json(
+              { message: "Choisissez uniquement des dates proposées par l'organisateur" },
+              { status: 400 },
+            );
+          }
+        } else if (
+          (event.startDate && chosenKey < dayKey(event.startDate)) ||
+          (event.endDate && chosenKey > dayKey(event.endDate))
+        ) {
+          return NextResponse.json(
+            { message: "Les dates choisies doivent être dans la plage proposée par l'organisateur" },
+            { status: 400 },
+          );
+        }
+      }
+    }
+    // Colonne DateTime historique : on garde la plus proche comme repère.
+    const preferredDateValue = new Date(`${preferredDateKeys[0]}T00:00:00.000Z`);
+
+    // ── Réponses au questionnaire (branche catégorie uniquement)
+    if (event.categoryId) {
+      const questions = await prisma.categoryQuestion.findMany({
+        where: { categoryId: event.categoryId, isActive: true },
+        select: {
+          id: true,
+          multiSelect: true,
+          maxChoices: true,
+          options: { select: { id: true } },
+        },
+      });
+
+      const questionByOptionId = new Map<string, (typeof questions)[number]>();
+      for (const question of questions) {
+        for (const option of question.options) {
+          questionByOptionId.set(option.id.toString(), question);
+        }
+      }
+
+      // Toutes les options doivent appartenir au questionnaire de la catégorie
+      const invalid = parsedOptionIds.filter(
+        (optionId) => !questionByOptionId.has(optionId.toString()),
+      );
+      if (invalid.length > 0) {
+        return NextResponse.json(
+          { message: "Une ou plusieurs réponses ne correspondent pas à ce questionnaire" },
+          { status: 400 },
+        );
+      }
+
+      // Chaque question doit être répondue en respectant son nombre de choix
+      const countByQuestion = new Map<string, number>();
+      for (const optionId of parsedOptionIds) {
+        const question = questionByOptionId.get(optionId.toString())!;
+        const key = question.id.toString();
+        countByQuestion.set(key, (countByQuestion.get(key) ?? 0) + 1);
+      }
+      for (const question of questions) {
+        const count = countByQuestion.get(question.id.toString()) ?? 0;
+        const max = question.multiSelect ? question.maxChoices : 1;
+        if (count === 0) {
+          return NextResponse.json(
+            { message: "Veuillez répondre à toutes les questions" },
+            { status: 400 },
+          );
+        }
+        if (count > max) {
+          return NextResponse.json(
+            { message: `Une question n'accepte que ${max} choix maximum` },
+            { status: 400 },
+          );
+        }
+      }
+    }
+
+    await prisma.$transaction(async (tx) => {
+      await tx.eventUserPreference.upsert({
+        where: { userId_eventId: { userId: userIdBigInt, eventId } },
+        update: {
+          preferredDate: preferredDateValue,
+          preferredDates: preferredDateKeys,
+        },
+        create: {
+          userId: userIdBigInt,
+          eventId,
+          preferredDate: preferredDateValue,
+          preferredDates: preferredDateKeys,
+        },
+      });
+
+      await tx.eventQuestionnaireAnswer.deleteMany({
+        where: { userId: userIdBigInt, eventId },
+      });
+
+      if (event.categoryId && parsedOptionIds.length > 0) {
+        await tx.eventQuestionnaireAnswer.createMany({
+          data: parsedOptionIds.map((optionId) => ({
+            eventId,
+            userId: userIdBigInt,
+            optionId,
+          })),
+          skipDuplicates: true,
+        });
+      }
+    });
+
+    // Notifier le créateur (pas soi-même)
+    if (event.createdById && event.createdById !== userIdBigInt) {
+      await prisma.notification.create({
+        data: {
+          userId: event.createdById,
+          message: `@${user.firstName} ${user.lastName} a répondu au questionnaire de "${event.title}"`,
+          type: "QUESTIONNAIRE_RESPONSE",
+          eventId,
+        },
+      });
+    }
+
+    return NextResponse.json(
+      toJson({
+        message: "Réponses enregistrées",
+        eventId,
+        userId: userIdBigInt,
+        answeredOptions: parsedOptionIds.map((v) => v.toString()),
+      }),
+      { status: 200 },
+    );
+  } catch (error) {
+    console.error("Erreur enregistrement questionnaire:", error);
+    return NextResponse.json(
+      { message: "Erreur serveur interne" },
+      { status: 500 },
+    );
+  }
+}
