@@ -2,6 +2,8 @@
 // Remplace l'ancienne Nearby Search legacy : les types issus des
 // questionnaires (sports_activity_location, hiking_area…) y sont valides.
 
+import type { OpeningPeriod } from "./event-closure";
+
 const PLACES_ENDPOINT = "https://places.googleapis.com/v1/places:searchNearby";
 const PLACES_TEXT_ENDPOINT = "https://places.googleapis.com/v1/places:searchText";
 const GEOCODE_ENDPOINT = "https://maps.googleapis.com/maps/api/geocode/json";
@@ -19,6 +21,7 @@ const PLACES_FIELD_MASK = [
   "places.businessStatus",
   "places.priceLevel",
   "places.location",
+  "places.regularOpeningHours",
 ].join(",");
 
 function getApiKey(): string {
@@ -65,6 +68,8 @@ export type NearbyPlace = {
   priceLevel: number | null;
   lat: number | null;
   lng: number | null;
+  /** Horaires réguliers (periods Google) ; null si Google ne les fournit pas. */
+  openingPeriods: OpeningPeriod[] | null;
 };
 
 type RawPlace = {
@@ -80,6 +85,12 @@ type RawPlace = {
   businessStatus?: string;
   priceLevel?: string;
   location?: { latitude?: number; longitude?: number };
+  regularOpeningHours?: {
+    periods?: Array<{
+      open?: { day?: number; hour?: number; minute?: number };
+      close?: { day?: number; hour?: number; minute?: number };
+    }>;
+  };
 };
 
 // Places API (New) renvoie le prix sous forme d'enum : on normalise en 0..4
@@ -148,7 +159,36 @@ function mapRawPlace(place: RawPlace): NearbyPlace {
       place.priceLevel != null ? (PRICE_LEVEL_MAP[place.priceLevel] ?? null) : null,
     lat: place.location?.latitude ?? null,
     lng: place.location?.longitude ?? null,
+    openingPeriods: mapOpeningPeriods(place.regularOpeningHours),
   };
+}
+
+function mapOpeningPeriods(
+  hours: RawPlace["regularOpeningHours"],
+): OpeningPeriod[] | null {
+  const periods = hours?.periods;
+  if (!Array.isArray(periods) || periods.length === 0) return null;
+  const mapped: OpeningPeriod[] = [];
+  for (const period of periods) {
+    if (!period.open) continue;
+    const open = {
+      day: period.open.day ?? 0,
+      hour: period.open.hour ?? 0,
+      minute: period.open.minute ?? 0,
+    };
+    // Un lieu ouvert 24h/24 renvoie une période { open } sans close : on la
+    // conserve telle quelle (openingPeriods côté filtrage la traite comme
+    // « toujours ouvert »).
+    const close = period.close
+      ? {
+          day: period.close.day ?? 0,
+          hour: period.close.hour ?? 0,
+          minute: period.close.minute ?? 0,
+        }
+      : undefined;
+    mapped.push({ open, close });
+  }
+  return mapped.length > 0 ? mapped : null;
 }
 
 // Recherche TEXTUELLE (relevance Google) — indispensable pour les activités que
