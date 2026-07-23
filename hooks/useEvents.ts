@@ -18,6 +18,11 @@ export type EventType = {
   proposedDates?: string[];
   confirmedDates?: string[];
   createdById?: string;
+  category?: {
+    id: string;
+    name: string;
+    slug: string;
+  } | null;
   selectedGoogleTags?: {
     id: string;
     techName: string;

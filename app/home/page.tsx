@@ -13,7 +13,7 @@ import { useJoinPublicEvent } from "@/hooks/useJoinPublicEvent";
 import { useEventPreferences } from "@/hooks/useEventPreferences";
 import { useToast } from "@/context/ToastContext";
 import {
-    getEventIllustration,
+    getEventCategoryStyle,
     formatEventCreatedAt,
 } from "@/lib/event-display";
 import { canShowEventPreferencesVote } from "@/lib/event-public";
@@ -160,14 +160,16 @@ function HomePageContent() {
     };
   }, [newEventId, router]);
 
-  const adaptEventForGcard = useCallback((event: EventType, index: number) => {
+  const adaptEventForGcard = useCallback((event: EventType) => {
+    const categoryStyle = getEventCategoryStyle(event.category?.slug);
     return {
       title: event.title,
       date: formatEventCreatedAt(event.createdAt) || new Date().toISOString(),
       description: event.description,
       documentCount: event.documentCount,
       participants: event.users || [],
-      backgroundUrl: getEventIllustration(index),
+      backgroundUrl: categoryStyle.icon,
+      accentColor: categoryStyle.color,
       state: event.state,
     };
   }, []);
@@ -408,7 +410,7 @@ function HomePageContent() {
                     {events.length === 0 && !error && (
                       <p className="text-gray-500">Aucun événement trouvé.</p>
                     )}
-                    {events.slice(0, 3).map((event, index) => {
+                    {events.slice(0, 3).map((event) => {
                       const isCreator = !!(
                         event.createdBy?.id &&
                         String(event.createdBy.id) === String(user.id)
@@ -425,7 +427,7 @@ function HomePageContent() {
                         <div key={event.id} id={`event-card-${event.id}`}>
                           <Gcard
                             eventId={event.id}
-                            {...adaptEventForGcard(event, index)}
+                            {...adaptEventForGcard(event)}
                             className="w-full md:w-100 min-h-60 md:h-full md:flex-shrink-0"
                             dropdownOpen={dropdownEvent === event.id}
                             onDropdownToggle={() =>

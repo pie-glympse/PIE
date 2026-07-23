@@ -14,6 +14,61 @@ export function getEventIllustration(indexOrSeed: number | string): string {
   return EVENT_ILLUSTRATIONS[Math.abs(seed) % EVENT_ILLUSTRATIONS.length];
 }
 
+// ─── Identité visuelle par catégorie d'événement ────────────────────────────
+// Chaque type d'event a une couleur ET une icône dédiées (cartes, calendrier…).
+// Les couleurs sont alignées sur CATEGORY_COLORS de Gcalendar.
+export type EventCategoryStyle = {
+  slug: string;
+  label: string;
+  color: string;
+  icon: string;
+};
+
+const EVENT_CATEGORY_STYLES: Record<string, EventCategoryStyle> = {
+  gastronomie: {
+    slug: "gastronomie",
+    label: "Gastronomie",
+    color: "#FF5B5B", // rouge
+    icon: "/images/icones/fleur.png",
+  },
+  sport: {
+    slug: "sport",
+    label: "Sport",
+    color: "#FCC638", // jaune
+    icon: "/images/icones/Union.png",
+  },
+  divertissement: {
+    slug: "divertissement",
+    label: "Divertissement",
+    color: "#F78AFF", // rose
+    icon: "/images/icones/star.png",
+  },
+  culture: {
+    slug: "culture",
+    label: "Culture",
+    color: "#067FF2", // bleu
+    icon: "/images/icones/flower.png",
+  },
+};
+
+// Catégorie « autre » : défaut pour tout event sans catégorie connue.
+export const DEFAULT_EVENT_CATEGORY_STYLE: EventCategoryStyle = {
+  slug: "autre",
+  label: "Autre",
+  color: "#B383DE", // violet
+  icon: "/images/icones/goute.png",
+};
+
+/** Style (couleur + icône + libellé) associé à une catégorie d'événement. */
+export function getEventCategoryStyle(
+  slug?: string | null,
+): EventCategoryStyle {
+  if (!slug) return DEFAULT_EVENT_CATEGORY_STYLE;
+  return (
+    EVENT_CATEGORY_STYLES[slug.toLowerCase()] ?? DEFAULT_EVENT_CATEGORY_STYLE
+  );
+}
+
 export function getEventThemeColor(tags: ThemeTag[] = []): string {
   if (tags.some((t) => t.techName?.includes("restaurant"))) return "#FF8C42";
   if (tags.some((t) => t.techName?.includes("bar"))) return "#7C3AED";
