@@ -1,7 +1,7 @@
 import Gcard from "@/components/Gcard";
 import type { EventType } from "@/hooks/useEvents";
 import {
-    getEventIllustration,
+    getEventCategoryStyle,
     formatEventCreatedAt,
 } from "@/lib/event-display";
 import { canShowEventPreferencesVote } from "@/lib/event-public";
@@ -26,14 +26,16 @@ interface EventListProps {
   joiningEventId?: string | null;
 }
 
-const adaptEventForGcard = (event: EventType, index: number) => {
+const adaptEventForGcard = (event: EventType) => {
+  const categoryStyle = getEventCategoryStyle(event.category?.slug);
   return {
     title: event.title,
     date: formatEventCreatedAt(event.createdAt) || new Date().toISOString(),
     description: event.description,
     documentCount: event.documentCount,
     participants: event.users || [],
-    backgroundUrl: getEventIllustration(index),
+    backgroundUrl: categoryStyle.icon,
+    accentColor: categoryStyle.color,
     state: event.state,
   };
 };
@@ -60,7 +62,7 @@ export const EventList = ({
   if (viewMode === "grid") {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {events.map((event, index) => {
+        {events.map((event) => {
           // Comparer les IDs en tant que strings pour éviter les problèmes de type
           const isCreator = !!(
             event.createdBy?.id &&
@@ -79,7 +81,7 @@ export const EventList = ({
             <div key={event.id}>
               <Gcard
                 eventId={event.id}
-                {...adaptEventForGcard(event, index)}
+                {...adaptEventForGcard(event)}
                 className="w-full h-full min-h-60"
                 dropdownOpen={dropdownEvent === event.id}
                 onDropdownToggle={() => onDropdownToggle(event.id)}
@@ -160,7 +162,7 @@ export const EventList = ({
 
   return (
     <div className="space-y-4">
-      {events.map((event, index) => {
+      {events.map((event) => {
         // Comparer les IDs en tant que strings pour éviter les problèmes de type
         const isCreator = !!(
           event.createdBy?.id &&
@@ -179,7 +181,7 @@ export const EventList = ({
           <div key={event.id}>
             <Gcard
               eventId={event.id}
-              {...adaptEventForGcard(event, index)}
+              {...adaptEventForGcard(event)}
               className="w-full ha-auto"
               dropdownOpen={dropdownEvent === event.id}
               onDropdownToggle={() => onDropdownToggle(event.id)}

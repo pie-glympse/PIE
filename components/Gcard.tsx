@@ -23,6 +23,8 @@ interface EventCardProps {
   participants?: Participant[];
   backgroundUrl: string;
   backgroundSize?: number;
+  /** Couleur de la catégorie de l'event (accent visuel de la carte). */
+  accentColor?: string;
   className?: string;
   dropdownOpen?: boolean;
   onDropdownToggle?: () => void;
@@ -63,6 +65,7 @@ export default function EventCard({
   participants = [],
   backgroundUrl,
   backgroundSize = 200,
+  accentColor,
   className = "",
   dropdownOpen = false,
   onDropdownToggle,
@@ -148,6 +151,9 @@ export default function EventCard({
     timeStyle: "short",
   });
 
+  // Accent de couleur par catégorie (fallback : couleur principale du thème).
+  const accent = accentColor || "var(--color-main)";
+
   return (
     <div
       className={`group relative rounded-xl border bg-white p-6 transition-all duration-300 overflow-hidden ${
@@ -182,9 +188,7 @@ export default function EventCard({
               className="h-1.5 flex-1 rounded-full"
               style={{
                 backgroundColor:
-                  i < filledSteps
-                    ? "var(--color-main)"
-                    : "var(--color-grey-two)",
+                  i < filledSteps ? accent : "var(--color-grey-two)",
               }}
             />
           ))}

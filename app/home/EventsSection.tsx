@@ -25,6 +25,11 @@ export type EventType = {
   recurringRate?: string;
   state?: string;
   createdById?: string;
+  category?: {
+    id: string;
+    name: string;
+    slug: string;
+  } | null;
   selectedGoogleTags?: {
     id: string;
     techName: string;
