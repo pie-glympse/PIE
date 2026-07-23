@@ -283,6 +283,158 @@ export function isPlaceEligible(
   return true;
 }
 
+// ─── Garde-fou HORAIRES : le lieu doit être ouvert pendant l'événement ───────
+// Google Places (New) renvoie regularOpeningHours.periods : chaque période a un
+// `open` {day,hour,minute} et un `close` {day,hour,minute}. Convention Google :
+// day 0 = dimanche … 6 = samedi — IDENTIQUE à Date.getDay(). Cas particuliers :
+//   - lieu ouvert 24h/24 → une seule période { open } SANS close ;
+//   - période franchissant minuit → close.day = open.day + 1 (ou retour à 0).
+// On raisonne en « minutes de la semaine » (0..10079) sur une timeline doublée
+// (0..20159) pour gérer sans modulo les fenêtres à cheval sur minuit / dimanche.
+
+export type OpeningTimePoint = { day: number; hour: number; minute: number };
+export type OpeningPeriod = { open: OpeningTimePoint; close?: OpeningTimePoint };
+
+// Une session = un jour concret de l'événement (weekday 0..6) et sa fenêtre
+// horaire en minutes depuis minuit. endMinute <= startMinute ⇒ la fenêtre
+// franchit minuit (ex. soirée 23h→1h). startMinute = 0 & endMinute = 120 est le
+// cas « minuit → 2h » : une fenêtre normale intra-journée.
+export type EventSession = {
+  weekday: number;
+  startMinute: number;
+  endMinute: number;
+};
+
+const DAY_MINUTES = 24 * 60;
+const WEEK_MINUTES = 7 * DAY_MINUTES;
+
+const pointToWeekMinute = (p: OpeningTimePoint): number =>
+  (((p.day % 7) * DAY_MINUTES + p.hour * 60 + p.minute) % WEEK_MINUTES +
+    WEEK_MINUTES) %
+  WEEK_MINUTES;
+
+// Intervalles d'ouverture projetés sur une semaine DOUBLÉE (chaque période est
+// dupliquée +1 semaine) afin qu'une session proche de la frontière dimanche/
+// lundi reste couverte par une continuité d'ouverture.
+function openIntervalsDoubled(
+  periods: OpeningPeriod[],
+): Array<[number, number]> {
+  const intervals: Array<[number, number]> = [];
+  for (const period of periods) {
+    if (!period.open) continue;
+    // Période sans close = ouvert en continu (24h/24) → couvre toute la timeline.
+    if (!period.close) return [[0, 2 * WEEK_MINUTES]];
+    const start = pointToWeekMinute(period.open);
+    let end = pointToWeekMinute(period.close);
+    if (end <= start) end += WEEK_MINUTES; // franchit minuit / la semaine
+    intervals.push([start, end]);
+    intervals.push([start + WEEK_MINUTES, end + WEEK_MINUTES]);
+  }
+  return intervals;
+}
+
+function mergeIntervals(
+  intervals: Array<[number, number]>,
+): Array<[number, number]> {
+  if (intervals.length === 0) return [];
+  const sorted = [...intervals].sort((a, b) => a[0] - b[0]);
+  const merged: Array<[number, number]> = [[...sorted[0]]];
+  for (let i = 1; i < sorted.length; i++) {
+    const last = merged[merged.length - 1];
+    const [a, b] = sorted[i];
+    if (a <= last[1]) last[1] = Math.max(last[1], b);
+    else merged.push([a, b]);
+  }
+  return merged;
+}
+
+/**
+ * Le lieu est-il ouvert pendant TOUTES les sessions de l'événement ?
+ * Politique (comme les autres garde-fous) : horaires inconnus ⇒ on garde le lieu.
+ * Un lieu n'est écarté que si Google fournit des horaires ET que ceux-ci ne
+ * couvrent pas entièrement au moins une session.
+ */
+export function isPlaceOpenForSessions(
+  periods: OpeningPeriod[] | null | undefined,
+  sessions: EventSession[],
+): boolean {
+  if (!periods || periods.length === 0) return true; // horaires inconnus → garder
+  if (sessions.length === 0) return true; // pas de fenêtre → rien à vérifier
+
+  const intervals = mergeIntervals(openIntervalsDoubled(periods));
+  return sessions.every((session) => {
+    const start = session.weekday * DAY_MINUTES + session.startMinute;
+    const length =
+      session.endMinute > session.startMinute
+        ? session.endMinute - session.startMinute
+        : DAY_MINUTES - session.startMinute + session.endMinute;
+    if (length <= 0) return true; // fenêtre dégénérée → on ne juge pas
+    const end = start + length;
+    // La session doit tenir ENTIÈREMENT dans une plage d'ouverture continue.
+    // On la teste aussi décalée de +1 semaine : une session tôt le dimanche
+    // (ex. minuit→2h) est couverte par la plage du samedi soir qui franchit
+    // minuit, exprimée en fin de timeline doublée.
+    const fits = (s: number, e: number) =>
+      intervals.some(([a, b]) => a <= s && e <= b);
+    return fits(start, end) || fits(start + WEEK_MINUTES, end + WEEK_MINUTES);
+  });
+}
+
+/** Jours calendaires de start..end inclus (borné à 14 j pour éviter les abus). */
+export function eachDayBetween(
+  start: Date | null | undefined,
+  end: Date | null | undefined,
+): Date[] {
+  if (!start) return [];
+  const cursor = new Date(
+    start.getFullYear(),
+    start.getMonth(),
+    start.getDate(),
+  );
+  const stopSource = end ?? start;
+  const stop = new Date(
+    stopSource.getFullYear(),
+    stopSource.getMonth(),
+    stopSource.getDate(),
+  );
+  const days: Date[] = [];
+  while (cursor <= stop && days.length < 14) {
+    days.push(new Date(cursor));
+    cursor.setDate(cursor.getDate() + 1);
+  }
+  return days;
+}
+
+/**
+ * Construit les sessions d'un événement à partir de ses jours et de sa fenêtre
+ * horaire quotidienne. Multi-jours : une session par jour, chacune sur la même
+ * fenêtre [start,end] — « sans compter la nuit » entre les jours (on ne vérifie
+ * pas l'ouverture nocturne entre deux journées). Renvoie [] si l'heure manque.
+ */
+export function buildEventSessions(params: {
+  days: Date[];
+  startMinute: number | null;
+  endMinute: number | null;
+}): EventSession[] {
+  const { days, startMinute, endMinute } = params;
+  if (startMinute == null || endMinute == null || days.length === 0) return [];
+  return days.map((day) => ({
+    weekday: day.getDay(),
+    startMinute,
+    endMinute,
+  }));
+}
+
+/** Minutes depuis minuit d'un champ time stocké en DateTime (heure locale). */
+export function timeToMinutes(
+  time: Date | string | null | undefined,
+): number | null {
+  if (time == null) return null;
+  const d = time instanceof Date ? time : new Date(time);
+  if (Number.isNaN(d.getTime())) return null;
+  return d.getHours() * 60 + d.getMinutes();
+}
+
 // ─── Garde-fou de PERTINENCE (relatif à l'intention votée) ───────────────────
 // Le fast-food/les chaînes ne doivent sortir que si l'intention "sur le pouce"
 // a été votée (sinon McDonald's remonte sur une recherche indienne/exotique).

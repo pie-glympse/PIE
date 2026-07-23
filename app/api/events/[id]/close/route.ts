@@ -11,6 +11,12 @@ import {
   isRelevantToVotes,
   getActivityKeywords,
   interleave,
+  isPlaceOpenForSessions,
+  buildEventSessions,
+  eachDayBetween,
+  timeToMinutes,
+  type EventSession,
+  type OpeningPeriod,
 } from "@/lib/event-closure";
 import {
   geocodeCity,
@@ -137,6 +143,10 @@ export async function POST(
         maxDistance: true,
         costPerPerson: true,
         dateKnown: true,
+        startDate: true,
+        endDate: true,
+        startTime: true,
+        endTime: true,
         isSpecificPlace: true,
         categoryId: true,
         createdById: true,
@@ -208,10 +218,30 @@ export async function POST(
     // Types Google réellement votés → sert au garde-fou de pertinence
     // (ex. écarter le fast-food si personne n'a voté "sur le pouce").
     const votedTypes = new Set(tagScores.map((t) => t.techName));
-    const isEligible = (p: { placeId: string; primaryType: string | null; businessStatus: string | null; priceLevel: number | null }) =>
+
+    // Sessions de l'événement (jours × fenêtre horaire) pour écarter les lieux
+    // fermés au moment prévu. Jours retenus : la date gagnante si elle existe,
+    // sinon la plage startDate..endDate posée par le créateur (multi-jours).
+    const eventDays = winningDate
+      ? [winningDate]
+      : eachDayBetween(event.startDate, event.endDate);
+    const eventSessions: EventSession[] = buildEventSessions({
+      days: eventDays,
+      startMinute: timeToMinutes(event.startTime),
+      endMinute: timeToMinutes(event.endTime),
+    });
+
+    const isEligible = (p: {
+      placeId: string;
+      primaryType: string | null;
+      businessStatus: string | null;
+      priceLevel: number | null;
+      openingPeriods: OpeningPeriod[] | null;
+    }) =>
       !excludeSet.has(p.placeId) &&
       isPlaceEligible(p, { maxPriceLevel, blacklistedIds }) &&
-      isRelevantToVotes(p, votedTypes);
+      isRelevantToVotes(p, votedTypes) &&
+      isPlaceOpenForSessions(p.openingPeriods, eventSessions);
 
     type ProposalCandidate = {
       placeId: string;
